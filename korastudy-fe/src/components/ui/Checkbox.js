@@ -1,5 +1,4 @@
 import React from 'react';
-import './Checkbox.css';
 
 export const Checkbox = ({ 
   id, 
@@ -12,7 +11,7 @@ export const Checkbox = ({
     <input 
       type="checkbox"
       id={id}
-      className={`checkbox ${className}`}
+      className={`w-4 h-4 border border-gray-300 rounded cursor-pointer accent-primary-500 ${className}`}
       checked={checked}
       onChange={onChange}
       {...props}
