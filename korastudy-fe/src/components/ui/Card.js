@@ -1,9 +1,8 @@
 import React from 'react';
-import './Card.css';
 
 export const Card = ({ children, className = '', ...props }) => {
   return (
-    <div className={`card ${className}`} {...props}>
+    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`} {...props}>
       {children}
     </div>
   );
@@ -11,7 +10,7 @@ export const Card = ({ children, className = '', ...props }) => {
 
 export const CardContent = ({ children, className = '', ...props }) => {
   return (
-    <div className={`card-content ${className}`} {...props}>
+    <div className={`p-6 ${className}`} {...props}>
       {children}
     </div>
   );

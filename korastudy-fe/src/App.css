@@ -5,16 +5,6 @@
   flex-direction: column;
 }
 
-.content {
-  flex: 1;
-  min-height: calc(100vh - 80px);
-}
-
-/* Remove the existing styles that might interfere */
-.App-header {
-  display: none;
-}
-
 /* Ensure footer sticks to bottom */
 body, #root {
   margin: 0;

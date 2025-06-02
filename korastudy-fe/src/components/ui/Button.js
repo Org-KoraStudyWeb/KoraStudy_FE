@@ -1,5 +1,4 @@
 import React from 'react';
-import './Button.css';
 
 export const Button = ({ 
   children, 
@@ -9,10 +8,11 @@ export const Button = ({
   type = 'button',
   ...props 
 }) => {
-  const baseClasses = 'button';
+  const baseClasses = 'inline-flex items-center justify-center rounded-md text-sm font-medium transition-all duration-200 cursor-pointer border border-transparent px-4 py-2';
+  
   const variantClasses = {
-    default: 'button-default',
-    outline: 'button-outline'
+    default: 'bg-primary-500 text-white border-primary-500 hover:bg-blue-600 hover:border-blue-600',
+    outline: 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
   };
 
   const classes = `${baseClasses} ${variantClasses[variant]} ${className}`;
