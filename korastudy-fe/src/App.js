@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import Home from './pages/home';
+import Courses from './pages/courses';
+import CourseDetail from './pages/course-details';
 import Login from './pages/login';
 import Register from './pages/register';
 import ForgotPassword from './pages/forgot-password';
@@ -14,6 +16,8 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<><NavBar /><Home /><Footer /></>} />
+          <Route path="/courses" element={<><NavBar /><Courses /><Footer /></>} />
+          <Route path="/course/:courseId" element={<><NavBar /><CourseDetail /><Footer /></>} />
           <Route path="/dang-nhap" element={<Login />} />
           <Route path="/dang-ky" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

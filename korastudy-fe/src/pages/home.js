@@ -1,29 +1,46 @@
-import React, { useEffect, useState } from 'react';
+// import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, BookOpen, Users, Award, Star, ArrowRight, CheckCircle } from 'lucide-react';
+// import { Play, Star, ArrowRight, CheckCircle } from 'lucide-react';
 
-const iconMap = {
-  BookOpen: <BookOpen className="w-8 h-8" />,
-  Users: <Users className="w-8 h-8" />,
-  Award: <Award className="w-8 h-8" />,
-};
+// const iconMap = {
+//   BookOpen: <BookOpen className="w-8 h-8" />,
+//   Users: <Users className="w-8 h-8" />,
+//   Award: <Award className="w-8 h-8" />,
+// };
 
 const Home = () => {
-  const [features, setFeatures] = useState([]);
+  // const [features, setFeatures] = useState([]);
 
-  useEffect(() => {
-    fetch("http://localhost:8080/api/home/features")
-      .then(res => res.json())
-      .then(data => {
-        // Gán icon component dựa vào tên icon trả về từ API
-        const featuresWithIcon = data.map(item => ({
-          ...item,
-          icon: iconMap[item.icon] || <BookOpen className="w-8 h-8" /> // fallback nếu không có icon
-        }));
-        setFeatures(featuresWithIcon);
-      });
-  }, []);
-
+  // useEffect(() => {
+  //   fetch("http://localhost:8080/api/home/features")
+  //     .then(res => res.json())
+  //     .then(data => {
+  //       // Gán icon component dựa vào tên icon trả về từ API
+  //       const featuresWithIcon = data.map(item => ({
+  //         ...item,
+  //         icon: iconMap[item.icon] || <BookOpen className="w-8 h-8" /> // fallback nếu không có icon
+  //       }));
+  //       setFeatures(featuresWithIcon);
+  //     });
+  // }, []);
+  const features = [
+    {
+      icon: <BookOpen className="w-8 h-8" />,
+      title: "Tài liệu phong phú",
+      description: "Hơn 1000+ tài liệu học tiếng Hàn từ cơ bản đến nâng cao"
+    },
+    {
+      icon: <Users className="w-8 h-8" />,
+      title: "Cộng đồng học tập",
+      description: "Kết nối với hàng nghìn học viên cùng đam mê tiếng Hàn"
+    },
+    {
+      icon: <Award className="w-8 h-8" />,
+      title: "Luyện thi TOPIK",
+      description: "Đề thi thử và bài luyện tập chuẩn format TOPIK"
+    }
+  ];
   const testimonials = [
     {
       name: "Nguyễn Minh Anh",
@@ -177,6 +194,15 @@ const Home = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
+            {/* {features.map((feature, index) => (
+              <div key={index} className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div className="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center text-primary-500 mb-6">
+                  {feature.icon}
+                </div>
+                <h3 className="font-semibold text-xl text-gray-800 mb-4">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+              </div>
+            ))} */}
             {features.map((feature, index) => (
               <div key={index} className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <div className="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center text-primary-500 mb-6">
