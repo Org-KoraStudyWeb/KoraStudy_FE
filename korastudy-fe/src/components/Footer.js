@@ -16,10 +16,10 @@ const Footer = () => {
                   src="bloom.png" 
                   alt="KoraStudy Logo" 
                   className="w-full h-full object-contain rounded-lg"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = '<div class="w-full h-full bg-white/20 rounded-lg flex items-center justify-center text-2xl">🌸</div>';
-                  }}
+                  // onError={(e) => {
+                  //   e.target.style.display = 'none';
+                  //   e.target.parentElement.innerHTML = '<div class="w-full h-full bg-white/20 rounded-lg flex items-center justify-center text-2xl">🌸</div>';
+                  // }}
                 />
               </div>
             </div>
@@ -31,7 +31,7 @@ const Footer = () => {
             <div className="mt-5">
               <h4 className="text-base font-semibold mb-[15px] text-white">Theo dõi chúng tôi</h4>
               <div className="flex gap-3">
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 relative">
+                <a href="https://www.facebook.com/Trungnv.0701" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 relative">
                   <img 
                     src="/img_social/ic_messenger.png" 
                     alt="Messenger"
@@ -43,7 +43,7 @@ const Footer = () => {
                     }}
                   />
                 </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 relative">
+                <a href="https://www.facebook.com/Trungnv.0701" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 relative">
                   <img 
                     src="/img_social/ic_gmail.png" 
                     alt="Gmail"
@@ -55,7 +55,7 @@ const Footer = () => {
                     }}
                   />
                 </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 relative">
+                <a href="https://www.facebook.com/Trungnv.0701" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 relative">
                   <img 
                     src="/img_social/ic_phone.png" 
                     alt="Phone"
@@ -67,7 +67,7 @@ const Footer = () => {
                     }}
                   />
                 </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 relative">
+                <a href="https://www.facebook.com/Trungnv.0701" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 relative">
                   <img 
                     src="/img_social/ic_zalo.png" 
                     alt="Zalo"

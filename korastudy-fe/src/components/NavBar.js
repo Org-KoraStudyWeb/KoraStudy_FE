@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-
 const NavBar = () => {
   const [showTopikDropdown, setShowTopikDropdown] = useState(false);
   const [showExamDropdown, setShowExamDropdown] = useState(false);
@@ -9,16 +8,24 @@ const NavBar = () => {
   return (
     <nav className="bg-white px-8 py-4 shadow-md flex justify-between items-center">
       <div className="nav-logo flex items-center">
-        <a href="/" className="text-2xl font-bold text-gray-800 no-underline">
+        <Link to="/" className="flex items-center">
           <img 
-          src="bloom_black.png" 
-          alt="KoraStudy Logo" 
-          className="h-16 w-auto mr-2"
-        />
-        </a>
+            src="bloom_black.png" 
+            alt="KoraStudy Logo" 
+            className="h-16 w-auto mr-2"
+          />
+        </Link>
       </div>
       
       <ul className="hidden md:flex list-none m-0 p-0 gap-8 items-center">
+        <li>
+          <Link 
+            to="/courses" 
+            className="text-gray-800 no-underline text-base px-4 py-2 transition-colors duration-300 hover:text-blue-600"
+          >
+            Khóa học
+          </Link>
+        </li>
         <li>
           <Link 
             to="/tai-lieu" 
@@ -27,14 +34,7 @@ const NavBar = () => {
             Tài liệu
           </Link>
         </li>
-        <li>
-          <Link 
-            to="/ly-thuyet" 
-            className="text-gray-800 no-underline text-base px-4 py-2 transition-colors duration-300 hover:text-blue-600"
-          >
-            Lý thuyết
-          </Link>
-        </li>
+        
         <li>
           <Link 
             to="/lo-trinh" 
@@ -125,21 +125,12 @@ const NavBar = () => {
         </li>
         <li>
           <Link 
-            to="/blog" 
-            className="text-gray-800 no-underline text-base px-4 py-2 transition-colors duration-300 hover:text-blue-600"
-          >
-            Blog
-          </Link>
-        </li>
-        <li>
-          <Link 
             to="/about" 
             className="text-gray-800 no-underline text-base px-4 py-2 transition-colors duration-300 hover:text-blue-600"
           >
             Về KoraStudy
           </Link>
         </li>
-
         <li>
           <Link 
             to="/dang-nhap" 
