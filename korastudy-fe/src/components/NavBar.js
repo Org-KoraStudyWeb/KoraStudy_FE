@@ -6,7 +6,7 @@ const NavBar = () => {
   const [showExamDropdown, setShowExamDropdown] = useState(false);
 
   return (
-    <nav className="bg-white px-8 py-4 shadow-md flex justify-between items-center">
+    <nav className="bg-white px-8 py-4 shadow-xl border-b border-gray-200 flex justify-between items-center">
       <div className="nav-logo flex items-center">
         <Link to="/" className="flex items-center">
           <img 
