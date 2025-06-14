@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, XCircle, CheckCircle } from 'lucide-react';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';
 
@@ -11,18 +11,106 @@ const Login = () => {
     password: '',
     rememberMe: false
   });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: newValue
     }));
+
+    // Clear errors when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+
+    // Real-time validation for email
+    if (name === 'email') {
+      validateField(name, newValue);
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched(prev => ({
+      ...prev,
+      [name]: true
+    }));
+    validateField(name, formData[name]);
+  };
+
+  const validateField = (name, value) => {
+    let error = '';
+
+    switch (name) {
+      case 'email':
+        if (!value) {
+          error = 'Vui lòng nhập địa chỉ email';
+        } else if (!validateEmail(value)) {
+          error = 'Địa chỉ email không hợp lệ';
+        }
+        break;
+
+      case 'password':
+        if (!value) {
+          error = 'Vui lòng nhập mật khẩu';
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+
+    return error === '';
+  };
+
+  const validateForm = () => {
+    const fields = ['email', 'password'];
+    let isValid = true;
+
+    fields.forEach(field => {
+      const fieldIsValid = validateField(field, formData[field]);
+      if (!fieldIsValid) {
+        isValid = false;
+      }
+    });
+
+    // Mark all fields as touched
+    const touchedFields = {};
+    fields.forEach(field => {
+      touchedFields[field] = true;
+    });
+    setTouched(touchedFields);
+
+    return isValid;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Login data:', formData);
+    
+    if (validateForm()) {
+      console.log('Login data:', formData);
+      // Here you would typically send the data to your backend
+      alert('Đăng nhập thành công!');
+    }
   };
 
   return (
@@ -50,10 +138,27 @@ const Login = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
+                  onBlur={handleBlur}
                   placeholder="Nhập địa chỉ Email của bạn"
-                  className="w-full h-11 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 text-sm font-inter transition-all duration-300 outline-none focus:border-primary-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)] placeholder-gray-400"
+                  className={`w-full h-11 bg-gray-50 border-2 rounded-xl px-4 text-sm font-inter transition-all duration-300 outline-none placeholder-gray-400 ${
+                    errors.email && touched.email
+                      ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
+                      : 'border-gray-200 focus:border-primary-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
+                  }`}
                   required
                 />
+                {errors.email && touched.email && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <XCircle size={12} />
+                    {errors.email}
+                  </p>
+                )}
+                {!errors.email && touched.email && validateEmail(formData.email) && (
+                  <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
+                    <CheckCircle size={12} />
+                    Email hợp lệ
+                  </p>
+                )}
               </div>
 
               {/* Password Field */}
@@ -68,8 +173,13 @@ const Login = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     placeholder="Nhập mật khẩu của bạn"
-                    className="w-full h-11 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 pr-12 text-sm font-inter transition-all duration-300 outline-none focus:border-primary-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)] placeholder-gray-400"
+                    className={`w-full h-11 bg-gray-50 border-2 rounded-xl px-4 pr-12 text-sm font-inter transition-all duration-300 outline-none placeholder-gray-400 ${
+                      errors.password && touched.password
+                        ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
+                        : 'border-gray-200 focus:border-primary-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
+                    }`}
                     required
                   />
                   <button
@@ -80,6 +190,12 @@ const Login = () => {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {errors.password && touched.password && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <XCircle size={12} />
+                    {errors.password}
+                  </p>
+                )}
               </div>
 
               {/* Remember Me & Forgot Password */}
@@ -105,7 +221,8 @@ const Login = () => {
               {/* Login Button */}
               <button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-primary-500 via-secondary-400 to-secondary-500 border-0 rounded-xl text-white font-inter font-semibold text-base cursor-pointer transition-all duration-300 mb-5 shadow-[0_4px_12px_rgba(52,188,249,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(52,188,249,0.4)]"
+                className="w-full h-12 bg-gradient-to-r from-primary-500 via-secondary-400 to-secondary-500 border-0 rounded-xl text-white font-inter font-semibold text-base cursor-pointer transition-all duration-300 mb-5 shadow-[0_4px_12px_rgba(52,188,249,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(52,188,249,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+                disabled={Object.values(errors).some(error => error !== '')}
               >
                 Đăng nhập
               </button>
