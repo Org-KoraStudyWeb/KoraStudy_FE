@@ -171,22 +171,22 @@ const Register = () => {
   const passwordValidation = validatePassword(formData.password);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-dark-900">
       <NavBar />
       
-      <div className="flex flex-1 min-h-[calc(100vh-160px)] bg-gradient-to-br from-blue-50 via-cyan-50 to-slate-50">
-        {/* Left Side - Registration Form */}
-        <div className="w-1/2 bg-gradient-to-br from-primary-500 via-secondary-400 to-secondary-500 rounded-r-custom relative flex flex-col items-center justify-center p-10 shadow-custom">
+      <div className="flex flex-1 min-h-[calc(100vh-160px)]">
+        {/* Mobile: Single column, Desktop: Two columns */}
+        <div className="w-full lg:w-1/2 bg-gradient-to-br from-primary-500 via-secondary-400 to-secondary-500 flex flex-col items-center justify-center p-4 lg:p-10 lg:rounded-r-custom relative shadow-custom">
           {/* Registration Card */}
-          <div className="w-full max-w-[420px] bg-white rounded-[20px] p-6 lg:p-10 shadow-[0_10px_30px_rgba(0,0,0,0.1)] my-5">
-            <h2 className="font-bold text-2xl lg:text-3xl text-gray-800 mb-6 lg:mb-8 text-center">
+          <div className="w-full max-w-md bg-white dark:bg-dark-800 rounded-3xl p-6 lg:p-10 shadow-card my-4 lg:my-5 max-h-[90vh] overflow-y-auto">
+            <h2 className="font-bold text-xl lg:text-2xl xl:text-3xl text-gray-800 dark:text-gray-200 mb-4 lg:mb-6 xl:mb-8 text-center">
               Đăng ký
             </h2>
             
-            <form onSubmit={handleSubmit} className="w-full space-y-4 lg:space-y-5">
+            <form onSubmit={handleSubmit} className="w-full space-y-3 lg:space-y-4 xl:space-y-5">
               {/* Full Name Field */}
               <div>
-                <label htmlFor="fullName" className="block font-medium text-sm text-gray-700 mb-1.5">
+                <label htmlFor="fullName" className="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-1.5">
                   Họ và tên:
                 </label>
                 <input
@@ -197,10 +197,10 @@ const Register = () => {
                   onChange={handleInputChange}
                   onBlur={handleBlur}
                   placeholder="Nhập họ và tên của bạn"
-                  className={`w-full h-11 bg-gray-50 border-2 rounded-xl px-4 text-sm transition-all duration-300 outline-none placeholder-gray-400 ${
+                  className={`w-full h-12 lg:h-11 bg-gray-50 dark:bg-dark-700 border-2 rounded-xl px-4 text-sm transition-all duration-300 outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 ${
                     errors.fullName && touched.fullName
                       ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
-                      : 'border-gray-200 focus:border-primary-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
+                      : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                   }`}
                   required
                 />
@@ -214,7 +214,7 @@ const Register = () => {
 
               {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block font-medium text-sm text-gray-700 mb-1.5">
+                <label htmlFor="email" className="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-1.5">
                   Email:
                 </label>
                 <input
@@ -225,10 +225,10 @@ const Register = () => {
                   onChange={handleInputChange}
                   onBlur={handleBlur}
                   placeholder="Nhập địa chỉ Email của bạn"
-                  className={`w-full h-11 bg-gray-50 border-2 rounded-xl px-4 text-sm transition-all duration-300 outline-none placeholder-gray-400 ${
+                  className={`w-full h-12 lg:h-11 bg-gray-50 dark:bg-dark-700 border-2 rounded-xl px-4 text-sm transition-all duration-300 outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 ${
                     errors.email && touched.email
                       ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
-                      : 'border-gray-200 focus:border-primary-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
+                      : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                   }`}
                   required
                 />
@@ -248,7 +248,7 @@ const Register = () => {
 
               {/* Password Field */}
               <div>
-                <label htmlFor="password" className="block font-medium text-sm text-gray-700 mb-1.5">
+                <label htmlFor="password" className="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-1.5">
                   Mật khẩu:
                 </label>
                 <div className="relative">
@@ -260,17 +260,17 @@ const Register = () => {
                     onChange={handleInputChange}
                     onBlur={handleBlur}
                     placeholder="Nhập mật khẩu của bạn"
-                    className={`w-full h-11 bg-gray-50 border-2 rounded-xl px-4 pr-12 text-sm transition-all duration-300 outline-none placeholder-gray-400 ${
+                    className={`w-full h-12 lg:h-11 bg-gray-50 dark:bg-dark-700 border-2 rounded-xl px-4 pr-12 text-sm transition-all duration-300 outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 ${
                       errors.password && touched.password
                         ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
-                        : 'border-gray-200 focus:border-primary-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
+                        : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                     }`}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-primary-500 transition-colors duration-300"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-primary-500 transition-colors duration-300"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -280,7 +280,7 @@ const Register = () => {
                 {formData.password && (
                   <div className="mt-2">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                      <div className="flex-1 bg-gray-200 dark:bg-dark-600 rounded-full h-2">
                         <div 
                           className={`h-2 rounded-full transition-all duration-300 ${
                             passwordStrength.strength === 'weak' ? 'bg-red-500 w-1/4' :
@@ -296,31 +296,31 @@ const Register = () => {
                       )}
                     </div>
 
-                    {/* Password Requirements */}
-                    <div className="space-y-1">
-                      <div className={`flex items-center gap-2 text-xs ${
-                        passwordValidation.validations.length ? 'text-green-500' : 'text-gray-500'
+                    {/* Password Requirements - Compact for mobile */}
+                    <div className="grid grid-cols-2 gap-1 lg:space-y-1 lg:grid-cols-1">
+                      <div className={`flex items-center gap-1 text-xs ${
+                        passwordValidation.validations.length ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'
                       }`}>
-                        {passwordValidation.validations.length ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                        <span>Ít nhất 10 ký tự</span>
+                        {passwordValidation.validations.length ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                        <span className="text-[10px] lg:text-xs">Ít nhất 10 ký tự</span>
                       </div>
-                      <div className={`flex items-center gap-2 text-xs ${
-                        passwordValidation.validations.uppercase ? 'text-green-500' : 'text-gray-500'
+                      <div className={`flex items-center gap-1 text-xs ${
+                        passwordValidation.validations.uppercase ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'
                       }`}>
-                        {passwordValidation.validations.uppercase ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                        <span>Có chữ hoa</span>
+                        {passwordValidation.validations.uppercase ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                        <span className="text-[10px] lg:text-xs">Có chữ hoa</span>
                       </div>
-                      <div className={`flex items-center gap-2 text-xs ${
-                        passwordValidation.validations.number ? 'text-green-500' : 'text-gray-500'
+                      <div className={`flex items-center gap-1 text-xs ${
+                        passwordValidation.validations.number ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'
                       }`}>
-                        {passwordValidation.validations.number ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                        <span>Có số</span>
+                        {passwordValidation.validations.number ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                        <span className="text-[10px] lg:text-xs">Có số</span>
                       </div>
-                      <div className={`flex items-center gap-2 text-xs ${
-                        passwordValidation.validations.special ? 'text-green-500' : 'text-gray-500'
+                      <div className={`flex items-center gap-1 text-xs ${
+                        passwordValidation.validations.special ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'
                       }`}>
-                        {passwordValidation.validations.special ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                        <span>Có ký tự đặc biệt</span>
+                        {passwordValidation.validations.special ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                        <span className="text-[10px] lg:text-xs">Có ký tự đặc biệt</span>
                       </div>
                     </div>
                   </div>
@@ -336,7 +336,7 @@ const Register = () => {
 
               {/* Confirm Password Field */}
               <div>
-                <label htmlFor="confirmPassword" className="block font-medium text-sm text-gray-700 mb-1.5">
+                <label htmlFor="confirmPassword" className="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-1.5">
                   Xác nhận mật khẩu:
                 </label>
                 <div className="relative">
@@ -348,17 +348,17 @@ const Register = () => {
                     onChange={handleInputChange}
                     onBlur={handleBlur}
                     placeholder="Nhập lại mật khẩu của bạn"
-                    className={`w-full h-11 bg-gray-50 border-2 rounded-xl px-4 pr-12 text-sm transition-all duration-300 outline-none placeholder-gray-400 ${
+                    className={`w-full h-12 lg:h-11 bg-gray-50 dark:bg-dark-700 border-2 rounded-xl px-4 pr-12 text-sm transition-all duration-300 outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 ${
                       errors.confirmPassword && touched.confirmPassword
                         ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
-                        : 'border-gray-200 focus:border-primary-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
+                        : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                     }`}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-primary-500 transition-colors duration-300"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-primary-500 transition-colors duration-300"
                   >
                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -378,7 +378,7 @@ const Register = () => {
               </div>
 
               {/* Terms Agreement */}
-              <div className="my-5">
+              <div className="my-4 lg:my-5">
                 <div className="flex items-start gap-2">
                   <input
                     type="checkbox"
@@ -387,10 +387,10 @@ const Register = () => {
                     checked={formData.agreeTerms}
                     onChange={handleInputChange}
                     onBlur={handleBlur}
-                    className="w-[18px] h-[18px] border-2 border-gray-300 rounded cursor-pointer accent-primary-500 mt-0.5 flex-shrink-0"
+                    className="w-[18px] h-[18px] border-2 border-gray-300 dark:border-dark-600 rounded cursor-pointer accent-primary-500 mt-0.5 flex-shrink-0"
                     required
                   />
-                  <label htmlFor="agreeTerms" className="text-[13px] text-gray-700 cursor-pointer leading-[1.4]">
+                  <label htmlFor="agreeTerms" className="text-[12px] lg:text-[13px] text-gray-700 dark:text-gray-300 cursor-pointer leading-[1.4]">
                     Tôi đồng ý với{' '}
                     <Link to="/terms" className="text-primary-500 font-medium hover:underline">
                       Điều khoản dịch vụ
@@ -412,15 +412,15 @@ const Register = () => {
               {/* Register Button */}
               <button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-primary-500 via-secondary-400 to-secondary-500 border-0 rounded-xl text-white font-semibold text-base cursor-pointer transition-all duration-300 mb-5 shadow-[0_4px_12px_rgba(52,188,249,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(52,188,249,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+                className="w-full h-12 bg-gradient-to-r from-primary-500 via-secondary-400 to-secondary-500 border-0 rounded-xl text-white font-semibold text-base cursor-pointer transition-all duration-300 mb-4 shadow-[0_4px_12px_rgba(52,188,249,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(52,188,249,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
                 disabled={Object.values(errors).some(error => error !== '') || !formData.agreeTerms}
               >
                 Đăng ký
               </button>
 
               {/* Login Link */}
-              <div className="text-center my-5">
-                <span className="text-sm text-gray-500">Đã có tài khoản? </span>
+              <div className="text-center my-3 lg:my-4">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Bạn đã có tài khoản? </span>
                 <Link to="/dang-nhap" className="font-semibold text-sm text-primary-500 hover:text-blue-600 hover:underline transition-colors duration-300">
                   Đăng nhập ngay
                 </Link>
@@ -429,44 +429,44 @@ const Register = () => {
               {/* Google Register */}
               <button 
                 type="button" 
-                className="w-full h-12 bg-white border-2 border-gray-200 rounded-xl flex items-center justify-center gap-3 cursor-pointer transition-all duration-300 my-5 hover:border-gray-300 hover:bg-gray-50"
+                className="w-full h-12 bg-white dark:bg-dark-700 border-2 border-gray-200 dark:border-dark-600 rounded-xl flex items-center justify-center gap-3 cursor-pointer transition-all duration-300 my-3 lg:my-5 hover:border-gray-300 dark:hover:border-dark-500 hover:bg-gray-50 dark:hover:bg-dark-600"
               >
                 <img src="/img_social/ic_google.png" alt="Google" className="w-5 h-5" />
-                <span className="font-medium text-sm text-gray-700">Đăng ký với Google</span>
+                <span className="font-medium text-sm text-gray-700 dark:text-gray-300">Đăng ký với Google</span>
               </button>
             </form>
 
             {/* Terms and Privacy */}
-            <div className="text-center mt-6 pt-5 border-t border-gray-200">
-              <Link to="/terms" className="text-xs text-gray-500 hover:text-primary-500 hover:underline transition-colors duration-300">
+            <div className="text-center mt-4 lg:mt-6 pt-3 lg:pt-5 border-t border-gray-200 dark:border-dark-600">
+              <Link to="/terms" className="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-500 hover:underline transition-colors duration-300">
                 Điều khoản dịch vụ
               </Link>
-              <span className="text-xs text-gray-500 mx-1"> & </span>
-              <Link to="/privacy" className="text-xs text-gray-500 hover:text-primary-500 hover:underline transition-colors duration-300">
+              <span className="text-xs text-gray-500 dark:text-gray-400 mx-1"> & </span>
+              <Link to="/privacy" className="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-500 hover:underline transition-colors duration-300">
                 Chính sách bảo mật
               </Link>
             </div>
           </div>
         </div>
 
-        {/* Right Side - Promotional Content */}
-        <div className="w-1/2 bg-gradient-to-br from-blue-50 to-cyan-50 relative flex flex-col items-center justify-center px-15 py-10 overflow-hidden">
+        {/* Right Side - Promotional Content (Hidden on mobile) */}
+        <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-dark-800 dark:to-dark-700 relative flex-col items-center justify-center px-15 py-10 overflow-hidden">
           {/* Background Gradients */}
           <div className="absolute -top-25 -left-25 w-75 h-75 gradient-bg-1 rounded-full"></div>
           <div className="absolute -bottom-25 -right-25 w-100 h-100 gradient-bg-2 rounded-full"></div>
           
           {/* Main Content */}
           <div className="text-center z-10 mb-10">
-            <h1 className="font-inter font-bold text-5xl leading-tight text-gray-800 mb-5 gradient-text">
-              Để tiếng Hàn<br />
-              không còn là trở ngại
+            <h1 className="font-inter font-bold text-5xl leading-tight text-gray-800 dark:text-gray-200 mb-5 gradient-text">
+              Bắt đầu hành trình<br />
+              học tiếng Hàn ngay hôm nay
             </h1>
-            <p className="font-inter text-lg leading-relaxed text-gray-500">
-              Dễ dàng đạt được Level mong muốn với KoraStudy.com
+            <p className="font-inter text-lg leading-relaxed text-gray-500 dark:text-gray-400">
+              Tham gia cộng đồng học viên KoraStudy và chinh phục TOPIK
             </p>
           </div>
 
-          {/* Korean Architecture Illustration */}
+          {/* Illustration */}
           <div className="w-full max-w-lg z-10">
             <img 
               src="background.png" 
