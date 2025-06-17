@@ -177,7 +177,7 @@ const Footer = () => {
                 <div className="w-5 h-5 flex items-center justify-center">
                   <span className="text-base">📍</span>
                 </div>
-                <span>123 Đường ABC, Quận 1, TP.HCM</span>
+                <span>123 Đường ĐBP, Quận Hải Châu, TP.Đà Nẵng</span>
               </div>
               <div className="flex items-center gap-2.5 text-sm text-white/80">
                 <div className="w-5 h-5 flex items-center justify-center">
