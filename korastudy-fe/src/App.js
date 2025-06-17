@@ -20,6 +20,8 @@ import Login from './pages/auth/login';
 import Register from './pages/auth/register';
 import ForgotPassword from './pages/auth/forgot-password';
 
+import Exams from './pages/exam';
+import ExamDetail from './pages/exam-detail';
 function App() {
   return (
     <ThemeProvider>
@@ -40,15 +42,17 @@ function App() {
             <Route path="/topik1" element={<><NavBar /><Topik1 /><Footer /></>} />
             <Route path="/topik2" element={<><NavBar /><Topik2 /><Footer /></>} />
             <Route path="/topik-esp" element={<><NavBar /><TopikESP /><Footer /></>} />
-            <Route path="/de-thi" element={<><NavBar /><DeThi /><Footer /></>} />
+            {/* <Route path="/de-thi" element={<><NavBar /><DeThi /><Footer /></>} />
             <Route path="/de-thi/topik1" element={<><NavBar /><DeThiTopik1 /><Footer /></>} />
             <Route path="/de-thi/topik2" element={<><NavBar /><DeThiTopik2 /><Footer /></>} />
-            <Route path="/de-thi/topik-esp" element={<><NavBar /><DeThiTopikESP /><Footer /></>} />
+            <Route path="/de-thi/topik-esp" element={<><NavBar /><DeThiTopikESP /><Footer /></>} /> */}
             <Route path="/nang-cap" element={<><NavBar /><NangCap /><Footer /></>} />
             <Route path="/about" element={<><NavBar /><About /><Footer /></>} />
             <Route path="/terms" element={<><NavBar /><Terms /><Footer /></>} />
             <Route path="/privacy" element={<><NavBar /><Privacy /><Footer /></>} />
             <Route path="/lien-he" element={<><NavBar /><Contact /><Footer /></>} />
+            <Route path="/de-thi" element={<Exams />}/>
+           <Route path="/de-thi/:examId" element={<><NavBar /><ExamDetail /><Footer /></>} />
           </Routes>
         </div>
       </Router>
@@ -64,10 +68,10 @@ const LuyenTapTopik = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-d
 const Topik1 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK 1</div>;
 const Topik2 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK 2</div>;
 const TopikESP = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK ESP</div>;
-const DeThi = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Đề thi</div>;
-const DeThiTopik1 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Đề thi TOPIK 1</div>;
-const DeThiTopik2 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Đề thi TOPIK 2</div>;
-const DeThiTopikESP = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Đề thi TOPIK ESP</div>;
+// const DeThi = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Đề thi</div>;
+// const DeThiTopik1 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Đề thi TOPIK 1</div>;
+// const DeThiTopik2 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Đề thi TOPIK 2</div>;
+// const DeThiTopikESP = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Đề thi TOPIK ESP</div>;
 const NangCap = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Nâng cấp</div>;
 const About = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Về KoraStudy</div>;
 const Terms = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Điều khoản dịch vụ</div>;
