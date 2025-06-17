@@ -1,16 +1,28 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import './App.css';
+
+// Import contexts - Fixed import path
+import { ThemeProvider } from './contexts/ThemeContext';
+
+// Import components
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
+
+// Import pages
 import Home from './pages/home';
-import Courses from './pages/courses';
-import CourseDetail from './pages/course-details';
-import Login from './pages/login';
-import Register from './pages/register';
-import ForgotPassword from './pages/forgot-password';
+import Courses from './pages/Course/courses';
+import CourseDetail from './pages/Course/course-details';
+
+// Import auth pages
+import Login from './pages/auth/login';
+import Register from './pages/auth/register';
+import ForgotPassword from './pages/auth/forgot-password';
+
+// Import Exams pages
 import Exams from './pages/exam';
 import ExamDetail from './pages/exam-detail';
-import './App.css';
 
 function App() {
   return (
