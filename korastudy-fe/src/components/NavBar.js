@@ -11,7 +11,7 @@ const NavBar = () => {
         <Link to="/" className="flex items-center">
           <img 
             src="bloom_black.png" 
-            alt="KoraStudy Logo" 
+            alt="KoraStudy" 
             className="h-16 w-auto mr-2"
           />
         </Link>

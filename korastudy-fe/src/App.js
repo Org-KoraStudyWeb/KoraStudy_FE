@@ -8,6 +8,8 @@ import CourseDetail from './pages/course-details';
 import Login from './pages/login';
 import Register from './pages/register';
 import ForgotPassword from './pages/forgot-password';
+import Exams from './pages/exam';
+import ExamDetail from './pages/exam-detail';
 import './App.css';
 
 function App() {
@@ -28,15 +30,17 @@ function App() {
           <Route path="/topik1" element={<><NavBar /><Topik1 /><Footer /></>} />
           <Route path="/topik2" element={<><NavBar /><Topik2 /><Footer /></>} />
           <Route path="/topik-esp" element={<><NavBar /><TopikESP /><Footer /></>} />
-          <Route path="/de-thi" element={<><NavBar /><DeThi /><Footer /></>} />
+          {/* <Route path="/de-thi" element={<><NavBar /><DeThi /><Footer /></>} />
           <Route path="/de-thi/topik1" element={<><NavBar /><DeThiTopik1 /><Footer /></>} />
-          <Route path="/de-thi/topik2" element={<><NavBar /><DeThiTopik2 /><Footer /></>} />
+          <Route path="/de-thi/topik2" element={<><NavBar /><DeThiTopik2 /><Footer /></>} /> */}
           <Route path="/de-thi/topik-esp" element={<><NavBar /><DeThiTopikESP /><Footer /></>} />
           <Route path="/nang-cap" element={<><NavBar /><NangCap /><Footer /></>} />
           <Route path="/about" element={<><NavBar /><About /><Footer /></>} />
           <Route path="/terms" element={<><NavBar /><Terms /><Footer /></>} />
           <Route path="/privacy" element={<><NavBar /><Privacy /><Footer /></>} />
           <Route path="/lien-he" element={<><NavBar /><Contact /><Footer /></>} />
+          <Route path="/de-thi" element={<Exams />}/>
+           <Route path="/de-thi/:examId" element={<><NavBar /><ExamDetail /><Footer /></>} />
         </Routes>
       </div>
     </Router>
