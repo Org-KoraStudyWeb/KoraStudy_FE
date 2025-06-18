@@ -101,16 +101,10 @@ const ExamCard = ({ exam }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Link
-            to={`/${exam.id}`}
-            className="flex-1 bg-primary-500 text-white text-center py-2.5 px-4 rounded-lg font-semibold text-sm hover:bg-primary-600 transition-colors duration-300"
-          >
-            Làm bài thi
-          </Link>
+        <div className="flex gap-">
           <Link
             to={`/de-thi/${exam.id}/`}
-            className="px-4 py-2.5 border-2 border-gray-200 text-gray-700 rounded-lg font-semibold text-sm hover:border-primary-500 hover:text-primary-500 transition-colors duration-300"
+            className="px-10 py-2.5 center border-2 border-gray-200 text-gray-700 rounded-lg font-semibold text-sm hover:border-primary-500 hover:text-primary-500 transition-colors duration-300"
           >
             Xem trước
           </Link>
