@@ -1,9 +1,9 @@
 import react, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Clock, Users, Star, ChevronLeft, ChevronRight } from 'lucide-react';
-import NavBar from '../components/NavBar';
-import Footer from '../components/Footer';
-import ExamCard from '../components/ExamCard';
+import NavBar from '../../components/NavBar';
+import Footer from '../../components/Footer';
+import ExamCard from '../../components/ExamCard';
 
 const Exams = () => {
   const [searchTerm, setSearchTerm] = useState('');

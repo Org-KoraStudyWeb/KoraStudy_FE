@@ -20,8 +20,10 @@ import Login from './pages/auth/login';
 import Register from './pages/auth/register';
 import ForgotPassword from './pages/auth/forgot-password';
 
-import Exams from './pages/exam';
+import Exams from './pages/Exam/exam';
 import ExamDetail from './pages/exam-detail';
+import ExamTest from './pages/Exam/exam-test';
+import ExamResults from './pages/Exam/exam-results';
 function App() {
   return (
     <ThemeProvider>
@@ -53,6 +55,9 @@ function App() {
             <Route path="/lien-he" element={<><NavBar /><Contact /><Footer /></>} />
             <Route path="/de-thi" element={<Exams />}/>
            <Route path="/de-thi/:examId" element={<><NavBar /><ExamDetail /><Footer /></>} />
+           <Route path="/exam/:id" element={<ExamDetail />} />
+          <Route path="/exam/:id/take" element={<ExamTest />} />
+          <Route path="/exam/:id/results" element={<ExamResults />} />  
           </Routes>
         </div>
       </Router>
