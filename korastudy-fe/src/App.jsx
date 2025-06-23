@@ -2,27 +2,27 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 // Import contexts - Fixed import path
-import { ThemeProvider } from './contexts/ThemeContext';
-import { UserProvider } from './contexts/UserContext';
+import { ThemeProvider } from '@contexts/ThemeContext.jsx';
+import { UserProvider } from '@contexts/UserContext.jsx';
 // Import components
-import NavBar from './components/NavBar';
-import Footer from './components/Footer';
-import ScrollToTop from './components/ScrollToTop';
+import NavBar from '@components/NavBar.jsx';
+import Footer from '@components/Footer.jsx';
+import ScrollToTop from '@components/ScrollToTop.jsx';
 // Import pages
-import Home from './pages/home';
-import Courses from './pages/Course/courses';
-import CourseDetail from './pages/Course/course-details';
-import Profile from './pages/profile';
+import Home from '@pages/home.jsx';
+import Courses from '@pages/Course/courses.jsx';
+import CourseDetail from '@/pages/Course/course-details.jsx';
+import Profile from '@/pages/profile.jsx';
 // Import auth pages
-import Login from './pages/auth/login';
-import Register from './pages/auth/register';
-import ForgotPassword from './pages/auth/forgot-password';
+import Login from '@pages/auth/login.jsx';
+import Register from '@pages/auth/register.jsx';
+import ForgotPassword from '@pages/auth/forgot-password.jsx';
 // Import other pages
-import Exams from './pages/Exam/exam';
-import ExamDetail from './pages/Exam/exam-detail';
-import ExamTest from 'pages/Exam/exam-test';
-import ExamResults from 'pages/Exam/exam-results';
-import LearningPath from 'pages/LearningPath/learning-path';
+import Exams from '@pages/Exam/exam.jsx';
+import ExamDetail from '@pages/Exam/exam-detail.jsx';
+import ExamTest from '@pages/Exam/exam-test.jsx'; 
+import ExamResults from '@pages/Exam/exam-results.jsx';
+import LearningPath from '@pages/LearningPath/learning-path.jsx';
 
 
 function App() {

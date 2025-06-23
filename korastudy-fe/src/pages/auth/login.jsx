@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, XCircle, CheckCircle } from 'lucide-react';
-import NavBar from 'components/NavBar';
-import Footer from 'components/Footer';
-import { useUser } from 'contexts/UserContext';
+import NavBar from '@components/NavBar';
+import Footer from '@components/Footer';
+import { useUser } from '@contexts/UserContext.jsx';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
