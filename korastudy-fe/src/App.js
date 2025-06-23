@@ -17,10 +17,13 @@ import Profile from './pages/profile';
 import Login from './pages/auth/login';
 import Register from './pages/auth/register';
 import ForgotPassword from './pages/auth/forgot-password';
+// Import other pages
 import Exams from './pages/Exam/exam';
 import ExamDetail from './pages/Exam/exam-detail';
 import ExamTest from 'pages/Exam/exam-test';
 import ExamResults from 'pages/Exam/exam-results';
+import LearningPath from 'pages/LearningPath/learning-path';
+
 
 function App() {
   return (
@@ -39,7 +42,8 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/tai-lieu" element={<><NavBar /><TaiLieu /><Footer /></>} />
               <Route path="/ly-thuyet" element={<><NavBar /><LyThuyet /><Footer /></>} />
-              <Route path="/lo-trinh" element={<><NavBar /><LoTrinh /><Footer /></>} />
+              <Route path="/lo-trinh" element={<LearningPath />} />
+
               <Route path="/luyen-tap-topik" element={<><NavBar /><LuyenTapTopik /><Footer /></>} />
               <Route path="/topik1" element={<><NavBar /><Topik1 /><Footer /></>} />
               <Route path="/topik2" element={<><NavBar /><Topik2 /><Footer /></>} />
@@ -52,8 +56,8 @@ function App() {
               <Route path="/de-thi" element={<Exams />}/>
               <Route path="/de-thi/:examId" element={<><NavBar /><ExamDetail /><Footer /></>} />
               <Route path="/exam/:id" element={<ExamDetail />} />
-          <Route path="/exam/:id/take" element={<ExamTest />} />
-          <Route path="/exam/:id/results" element={<ExamResults />} />  
+              <Route path="/exam/:id/take" element={<ExamTest />} />
+              <Route path="/exam/:id/results" element={<ExamResults />} />  
             </Routes>
           </div>
         </Router>

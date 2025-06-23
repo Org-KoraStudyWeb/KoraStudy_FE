@@ -96,3 +96,29 @@ code {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 }
+
+/* ...existing code... */
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.delay-1000 {
+  animation-delay: 1s;
+}
+
+.delay-2000 {
+  animation-delay: 2s;
+}
+
+/* ...existing code... */
