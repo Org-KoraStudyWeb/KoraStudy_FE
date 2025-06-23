@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { X, Menu, Sun, Moon, User, LogOut, Settings, ChevronDown } from 'lucide-react';
-import { useTheme } from 'contexts/ThemeContext';
-import { useUser } from 'contexts/UserContext';
+import { useTheme } from '@contexts/ThemeContext.jsx';
+import { useUser } from '@contexts/UserContext.jsx';
+
+// import React, { useState, useContext } from 'react';
+// import { Link } from 'react-router-dom';
+// import { Menu, X, Sun, Moon, User, Settings, LogOut } from 'lucide-react';
+// import { ThemeContext } from '@contexts/ThemeContext.jsx';
+// import { UserContext } from '@contexts/UserContext.jsx';
 
 const NavBar = () => {
   const [showTopikDropdown, setShowTopikDropdown] = useState(false);

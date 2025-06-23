@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, Volume2, VolumeX, Play, Pause, RotateCcw, ChevronLeft, ChevronRight, Flag, X } from 'lucide-react';
-import ExamNavigation from '../../components/ExamNavigation';
-import ExamQuestion from '../../components/ExamQuestion';
+// import ExamNavigation from '../../components/ExamNavigation';
+// import ExamQuestion from '../../components/ExamQuestion';
+import ExamNavigation from '@components/ExamNavigation.jsx';
+import ExamQuestion from '@components/ExamQuestion.jsx';
 
 const ExamTest = () => {
   const { id } = useParams();
