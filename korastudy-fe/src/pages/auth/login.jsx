@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, XCircle, CheckCircle } from 'lucide-react';
-import NavBar from '../../components/NavBar';
-import Footer from '../../components/Footer';
+import NavBar from '@components/NavBar';
+import Footer from '@components/Footer';
+import { useUser } from '@contexts/UserContext.jsx';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +14,8 @@ const Login = () => {
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const { login } = useUser();
+  const navigate = useNavigate();
 
   // Email validation function
   const validateEmail = (email) => {
@@ -107,9 +110,10 @@ const Login = () => {
     e.preventDefault();
     
     if (validateForm()) {
-      console.log('Login data:', formData);
-      // Here you would typically send the data to your backend
-      alert('Đăng nhập thành công!');
+      // Simulate login - in real app, this would be an API call
+      const mockToken = 'mock-jwt-token';
+      login(null, mockToken); // Pass null to use mock user data from context
+      navigate('/profile');
     }
   };
 
@@ -119,8 +123,10 @@ const Login = () => {
       
       <div className="flex flex-1 min-h-[calc(100vh-160px)]">
         {/* Mobile: Single column, Desktop: Two columns */}
+        
         <div className="w-full lg:w-1/2 bg-gradient-to-br from-primary-500 via-secondary-400 to-secondary-500 flex flex-col items-center justify-center p-4 lg:p-10 lg:rounded-r-custom relative shadow-custom">
           {/* Login Card */}
+          
           <div className="w-full max-w-md bg-white dark:bg-dark-800 rounded-3xl p-6 lg:p-10 shadow-card my-4 lg:my-10">
             <h2 className="font-inter font-bold text-2xl lg:text-3xl text-gray-800 dark:text-gray-200 mb-6 lg:mb-8 text-center">
               Đăng nhập

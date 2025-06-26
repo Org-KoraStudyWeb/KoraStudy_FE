@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail } from 'lucide-react';
-import NavBar from '../../components/NavBar';
-import Footer from '../../components/Footer';
+import NavBar from '@components/NavBar';
+import Footer from '@components/Footer';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');

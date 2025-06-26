@@ -23,7 +23,8 @@ import ExamDetail from '@pages/Exam/exam-detail.jsx';
 import ExamTest from '@pages/Exam/exam-test.jsx'; 
 import ExamResults from '@pages/Exam/exam-results.jsx';
 import LearningPath from '@pages/LearningPath/learning-path.jsx';
-
+// Import About page
+import About from '@pages/about.jsx';
 import Blog from '@pages/blog/blog.jsx';
 import BlogPost from '@pages/blog/blog-post.jsx';
 
@@ -43,16 +44,16 @@ function App() {
               <Route path="/dang-nhap" element={<Login />} />
               <Route path="/dang-ky" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/flash-card" element={<><NavBar /><TaiLieu /><Footer /></>} />
+              <Route path="/tai-lieu" element={<><NavBar /><TaiLieu /><Footer /></>} />
               <Route path="/ly-thuyet" element={<><NavBar /><LyThuyet /><Footer /></>} />
               <Route path="/lo-trinh" element={<LearningPath />} />
 
-              
               <Route path="/topik1" element={<><NavBar /><Topik1 /><Footer /></>} />
               <Route path="/topik2" element={<><NavBar /><Topik2 /><Footer /></>} />
               <Route path="/topik-esp" element={<><NavBar /><TopikESP /><Footer /></>} />
               <Route path="/nang-cap" element={<><NavBar /><NangCap /><Footer /></>} />
-              <Route path="/about" element={<><NavBar /><About /><Footer /></>} />
+              {/* Sửa route cho About page - Sử dụng component About đã import */}
+              <Route path="/about" element={<About />} />
               <Route path="/terms" element={<><NavBar /><Terms /><Footer /></>} />
               <Route path="/privacy" element={<><NavBar /><Privacy /><Footer /></>} />
               <Route path="/lien-he" element={<><NavBar /><Contact /><Footer /></>} />
@@ -60,7 +61,7 @@ function App() {
               <Route path="/de-thi/:examId" element={<><NavBar /><ExamDetail /><Footer /></>} />
               <Route path="/exam/:id" element={<ExamDetail />} />
               <Route path="/exam/:id/take" element={<ExamTest />} />
-              <Route path="/exam/:id/results" element={<ExamResults />} />
+              <Route path="/exam/:id/results" element={<ExamResults />} />  
               <Route path="/blog" element={<><NavBar /><Blog /><Footer /></>} />
               <Route path="/blog/:postId" element={<><NavBar /><BlogPost /><Footer /></>} />
             </Routes>
@@ -75,12 +76,12 @@ function App() {
 const TaiLieu = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Tài liệu</div>;
 const LyThuyet = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Lý thuyết</div>;
 const LoTrinh = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Lộ trình</div>;
-// const Blog = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Blog</div>;
+const LuyenTapTopik = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Luyện tập TOPIK</div>;
 const Topik1 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK 1</div>;
 const Topik2 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK 2</div>;
 const TopikESP = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK ESP</div>;
 const NangCap = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Nâng cấp</div>;
-const About = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Về KoraStudy</div>;
+// Xóa component About tạm thời ở đây vì đã import từ file riêng
 const Terms = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Điều khoản dịch vụ</div>;
 const Privacy = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Chính sách bảo mật</div>;
 const Contact = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Liên hệ</div>;

@@ -190,7 +190,7 @@ const Footer = () => {
         </div>
 
         {/* Newsletter Section */}
-        <div className="bg-white/10 rounded-xl p-[30px] mb-10">
+        {/* <div className="bg-white/10 rounded-xl p-[30px] mb-10">
           <div className="text-center max-w-[600px] mx-auto">
             <h3 className="text-2xl font-semibold mb-2.5 text-white">Đăng ký nhận thông tin mới nhất</h3>
             <p className="text-sm text-white/80 mb-[25px] leading-[1.5]">
@@ -207,7 +207,7 @@ const Footer = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Footer Bottom */}
         <div className="border-t border-white/20 py-[25px]">

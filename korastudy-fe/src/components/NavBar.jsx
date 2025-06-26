@@ -68,7 +68,7 @@ const NavBar = () => {
           </li>
 
           <li className="relative" onMouseEnter={() => setShowExamDropdown(true)} onMouseLeave={() => setShowExamDropdown(false)}>
-            <Link to="/de-thi" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Đề thi </Link>
+             <Link to="/de-thi" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Đề thi </Link>
             {/* {showExamDropdown && (
               <ul className="absolute top-full left-0 bg-white dark:bg-dark-800 shadow-md rounded py-2 min-w-[200px] border border-gray-200 dark:border-dark-700">
                 <li><Link to="/de-thi/topik1" className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700">Topik 1</Link></li>

@@ -1,29 +1,39 @@
-// import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, BookOpen, Users, Award, Star, ArrowRight, CheckCircle } from 'lucide-react';
-// import { Play, Star, ArrowRight, CheckCircle } from 'lucide-react';
-
-// const iconMap = {
-//   BookOpen: <BookOpen className="w-8 h-8" />,
-//   Users: <Users className="w-8 h-8" />,
-//   Award: <Award className="w-8 h-8" />,
-// };
+import { 
+  Play, BookOpen, Users, Award, Star, ArrowRight, 
+  CheckCircle, ChevronLeft, ChevronRight 
+} from 'lucide-react';
 
 const Home = () => {
-  // const [features, setFeatures] = useState([]);
+  // Banner slider state và functionality
+  const [currentBanner, setCurrentBanner] = useState(0);
+  const banners = [
+    '/banner/banner1.png',
+    '/banner/banner2.png',
+    '/banner/banner3.png',
+    '/banner/banner4.png'
+  ];
 
-  // useEffect(() => {
-  //   fetch("http://localhost:8080/api/home/features")
-  //     .then(res => res.json())
-  //     .then(data => {
-  //       // Gán icon component dựa vào tên icon trả về từ API
-  //       const featuresWithIcon = data.map(item => ({
-  //         ...item,
-  //         icon: iconMap[item.icon] || <BookOpen className="w-8 h-8" /> // fallback nếu không có icon
-  //       }));
-  //       setFeatures(featuresWithIcon);
-  //     });
-  // }, []);
+  // Auto-slide effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBanner((prev) => (prev + 1) % banners.length);
+    }, 5000); // Chuyển banner mỗi 5 giây
+    
+    return () => clearInterval(interval);
+  }, [banners.length]);
+
+  // Navigation functions
+  const prevBanner = () => {
+    setCurrentBanner((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
+  };
+
+  const nextBanner = () => {
+    setCurrentBanner((prev) => (prev + 1) % banners.length);
+  };
+  
+  // Features
   const features = [
     {
       icon: <BookOpen className="w-8 h-8" />,
@@ -41,6 +51,8 @@ const Home = () => {
       description: "Đề thi thử và bài luyện tập chuẩn format TOPIK"
     }
   ];
+
+  // Testimonials
   const testimonials = [
     {
       name: "Nguyễn Minh Anh",
@@ -62,6 +74,7 @@ const Home = () => {
     }
   ];
 
+  // Stats
   const stats = [
     { number: "10,000+", label: "Học viên" },
     { number: "1,000+", label: "Tài liệu" },
@@ -69,6 +82,7 @@ const Home = () => {
     { number: "24/7", label: "Hỗ trợ" }
   ];
 
+  // Courses
   const courses = [
     {
       title: "TOPIK I (Level 1-2)",
@@ -77,8 +91,6 @@ const Home = () => {
       lessons: "120 bài học",
       price: "Free",
       image: "topik.png"
-    //   image: "/api/placeholder/300/200"
-    
     },
     {
       title: "TOPIK II (Level 3-6)",
@@ -149,16 +161,58 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Right Content - Hero Image */}
+            {/* Right Content - Hero Image with Slider */}
             <div className="flex-1 relative">
-              <div className="relative z-10">
-                <img 
-                //src="/api/placeholder/600/500"
-                  src="/banner/banner1.png" 
-                  alt="Korean Learning Platform" 
-                  className="w-full h-auto rounded-2xl shadow-2xl"
-                />
+              <div className="relative z-10 overflow-hidden rounded-2xl shadow-2xl">
+                {/* Banner Images */}
+                <div className="relative">
+                  <div 
+                    className="flex transition-transform duration-500 ease-in-out" 
+                    style={{ transform: `translateX(-${currentBanner * 100}%)` }}
+                  >
+                    {banners.map((banner, index) => (
+                      <img
+                        key={index}
+                        src={banner}
+                        alt={`Korean Learning Platform - Slide ${index + 1}`}
+                        className="w-full h-auto min-w-full object-cover"
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Navigation Arrows */}
+                  <button 
+                    onClick={prevBanner}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white p-2 rounded-full shadow-lg z-10"
+                    aria-label="Previous banner"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-gray-800" />
+                  </button>
+                  
+                  <button 
+                    onClick={nextBanner}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white p-2 rounded-full shadow-lg z-10"
+                    aria-label="Next banner"
+                  >
+                    <ChevronRight className="w-6 h-6 text-gray-800" />
+                  </button>
+                  
+                  {/* Indicators */}
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                    {banners.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentBanner(index)}
+                        className={`w-3 h-3 rounded-full ${
+                          currentBanner === index ? 'bg-primary-500' : 'bg-white/60'
+                        } transition-all duration-300`}
+                        aria-label={`Go to slide ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
+              
               {/* Background Decorations */}
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary-500/20 rounded-full blur-3xl"></div>
               <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-secondary-500/20 rounded-full blur-2xl"></div>
@@ -194,15 +248,6 @@ const Home = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* {features.map((feature, index) => (
-              <div key={index} className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <div className="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center text-primary-500 mb-6">
-                  {feature.icon}
-                </div>
-                <h3 className="font-semibold text-xl text-gray-800 mb-4">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-              </div>
-            ))} */}
             {features.map((feature, index) => (
               <div key={index} className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <div className="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center text-primary-500 mb-6">

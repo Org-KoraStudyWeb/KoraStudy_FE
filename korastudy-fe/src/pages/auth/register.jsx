@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
-import NavBar from '../../components/NavBar';
-import Footer from '../../components/Footer';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, CheckCircle, XCircle, Loader } from 'lucide-react';
+import axios from 'axios';
+import NavBar from '@components/NavBar';
+import Footer from '@components/Footer';
+
+const API_URL = 'http://localhost:8080/api'; // Adjust this to your backend URL
 
 const Register = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -16,6 +20,8 @@ const Register = () => {
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
 
   // Email validation function
   const validateEmail = (email) => {
@@ -64,6 +70,11 @@ const Register = () => {
         ...prev,
         [name]: ''
       }));
+    }
+
+    // Clear API error when user changes anything
+    if (apiError) {
+      setApiError('');
     }
 
     // Real-time validation
@@ -157,13 +168,58 @@ const Register = () => {
     return isValid;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
-      console.log('Register data:', formData);
-      // Here you would typically send the data to your backend
-      alert('Đăng ký thành công!');
+      setIsLoading(true);
+      setApiError('');
+      
+      try {
+        // Split fullName into firstName and lastName
+        const nameParts = formData.fullName.trim().split(' ');
+        const lastName = nameParts[0];
+        const firstName = nameParts.slice(1).join(' ');
+        
+        // Create registration payload that matches backend expectations
+        const registrationData = {
+          firstName: firstName || lastName, // If no space in name, use whole name as firstName
+          lastName: nameParts.length > 1 ? lastName : '',
+          email: formData.email,
+          password: formData.password,
+          gender: 'OTHER', // Default value
+          isEnabled: true
+        };
+        
+        // Call registration API
+        const response = await axios.post(`${API_URL}/auth/register`, registrationData);
+        
+        // Handle successful registration
+        console.log('Registration successful:', response.data);
+        
+        // Show success message
+        alert('Đăng ký thành công!');
+        
+        // Redirect to login page
+        navigate('/dang-nhap');
+      } catch (error) {
+        console.error('Registration error:', error);
+        
+        // Set appropriate error message
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          setApiError(error.response.data?.message || 'Đăng ký thất bại. Vui lòng thử lại sau.');
+        } else if (error.request) {
+          // The request was made but no response was received
+          setApiError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+        } else {
+          // Something happened in setting up the request
+          setApiError('Lỗi khi gửi yêu cầu: ' + error.message);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -182,6 +238,16 @@ const Register = () => {
             <h2 className="font-bold text-xl lg:text-2xl xl:text-3xl text-gray-800 dark:text-gray-200 mb-4 lg:mb-6 xl:mb-8 text-center">
               Đăng ký
             </h2>
+            
+            {/* API Error Message */}
+            {apiError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+                <p className="text-sm flex items-center gap-2">
+                  <XCircle size={16} />
+                  {apiError}
+                </p>
+              </div>
+            )}
             
             <form onSubmit={handleSubmit} className="w-full space-y-3 lg:space-y-4 xl:space-y-5">
               {/* Full Name Field */}
@@ -202,6 +268,7 @@ const Register = () => {
                       ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
                       : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                   }`}
+                  disabled={isLoading}
                   required
                 />
                 {errors.fullName && touched.fullName && (
@@ -230,6 +297,7 @@ const Register = () => {
                       ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
                       : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                   }`}
+                  disabled={isLoading}
                   required
                 />
                 {errors.email && touched.email && (
@@ -265,12 +333,14 @@ const Register = () => {
                         ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
                         : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                     }`}
+                    disabled={isLoading}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-primary-500 transition-colors duration-300"
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -353,12 +423,14 @@ const Register = () => {
                         ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
                         : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                     }`}
+                    disabled={isLoading}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-primary-500 transition-colors duration-300"
+                    disabled={isLoading}
                   >
                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -388,6 +460,7 @@ const Register = () => {
                     onChange={handleInputChange}
                     onBlur={handleBlur}
                     className="w-[18px] h-[18px] border-2 border-gray-300 dark:border-dark-600 rounded cursor-pointer accent-primary-500 mt-0.5 flex-shrink-0"
+                    disabled={isLoading}
                     required
                   />
                   <label htmlFor="agreeTerms" className="text-[12px] lg:text-[13px] text-gray-700 dark:text-gray-300 cursor-pointer leading-[1.4]">
@@ -409,13 +482,20 @@ const Register = () => {
                 )}
               </div>
 
-              {/* Register Button */}
+              {/* Register Button with Loading State */}
               <button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-primary-500 via-secondary-400 to-secondary-500 border-0 rounded-xl text-white font-semibold text-base cursor-pointer transition-all duration-300 mb-4 shadow-[0_4px_12px_rgba(52,188,249,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(52,188,249,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
-                disabled={Object.values(errors).some(error => error !== '') || !formData.agreeTerms}
+                className="w-full h-12 bg-gradient-to-r from-primary-500 via-secondary-400 to-secondary-500 border-0 rounded-xl text-white font-semibold text-base cursor-pointer transition-all duration-300 mb-4 shadow-[0_4px_12px_rgba(52,188,249,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(52,188,249,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none flex items-center justify-center gap-2"
+                disabled={(Object.values(errors).some(error => error !== '') || !formData.agreeTerms) || isLoading}
               >
-                Đăng ký
+                {isLoading ? (
+                  <>
+                    <Loader size={18} className="animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  'Đăng ký'
+                )}
               </button>
 
               {/* Login Link */}
@@ -430,6 +510,7 @@ const Register = () => {
               <button 
                 type="button" 
                 className="w-full h-12 bg-white dark:bg-dark-700 border-2 border-gray-200 dark:border-dark-600 rounded-xl flex items-center justify-center gap-3 cursor-pointer transition-all duration-300 my-3 lg:my-5 hover:border-gray-300 dark:hover:border-dark-500 hover:bg-gray-50 dark:hover:bg-dark-600"
+                disabled={isLoading}
               >
                 <img src="/img_social/ic_google.png" alt="Google" className="w-5 h-5" />
                 <span className="font-medium text-sm text-gray-700 dark:text-gray-300">Đăng ký với Google</span>
