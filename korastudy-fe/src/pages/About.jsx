@@ -41,19 +41,20 @@ const About = () => {
   }, []);
 
   const teamMembers = [
-  {
-    name: "Từ Đàm Văn Thiên",
-    experience: "5+ năm kinh nghiệm",
-    image: "public/teamdev/thien.jpg",
-    bio: "Người sáng lập và điều hành KoraStudy, tốt nghiệp loại giỏi chuyên ngành Full-stack Development tại Đại học CNTT Việt Hàn. Với niềm đam mê về công nghệ và ngôn ngữ Hàn Quốc, anh đã khởi xướng dự án KoraStudy với sứ mệnh giúp người Việt dễ dàng tiếp cận và chinh phục tiếng Hàn.",
-    isLeader: true
-  },
+  
   {
     name: "Vũ Minh Quang",
     title: "Full-stack Developer",
     experience: "4+ năm kinh nghiệm",
     image: "/public/teamdev/quang.jpg",
     bio: "Tốt nghiệp Đại học CNTT Việt Hàn với chuyên ngành Lập trình Back-end, đã tham gia phát triển dự án KoraStudy từ những ngày đầu."
+  },
+  {
+    name: "Từ Đàm Văn Thiên",
+    experience: "5+ năm kinh nghiệm",
+    image: "public/teamdev/thien.jpg",
+    bio: "Người sáng lập và điều hành KoraStudy, tốt nghiệp loại giỏi chuyên ngành Full-stack Development tại Đại học CNTT Việt Hàn. Với niềm đam mê về công nghệ và ngôn ngữ Hàn Quốc, anh đã khởi xướng dự án KoraStudy với sứ mệnh giúp người Việt dễ dàng tiếp cận và chinh phục tiếng Hàn.",
+    isLeader: true
   },
   {
     name: "Nguyễn Văn Trung",

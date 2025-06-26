@@ -138,14 +138,10 @@ const NavBar = () => {
               <div className="flex-1 overflow-y-auto py-4">
                 <nav className="space-y-2 px-4">
                   <Link to="/courses" onClick={closeMobileMenu} className="block px-4 py-3">Khóa học</Link>
-                  <Link to="/tai-lieu" onClick={closeMobileMenu} className="block px-4 py-3">Tài liệu</Link>
+                  <Link to="/tai-lieu" onClick={closeMobileMenu} className="block px-4 py-3">FlashCard</Link>
                   <Link to="/lo-trinh" onClick={closeMobileMenu} className="block px-4 py-3">Lộ trình</Link>
-                  <Link to="/luyen-tap-topik" onClick={closeMobileMenu} className="block px-4 py-3">Luyện tập TOPIK</Link>
-                  <div className="ml-4">
-                    <Link to="/topik1" onClick={closeMobileMenu} className="block px-4 py-2">Topik 1</Link>
-                    <Link to="/topik2" onClick={closeMobileMenu} className="block px-4 py-2">Topik 2</Link>
-                    <Link to="/topik-esp" onClick={closeMobileMenu} className="block px-4 py-2">Topik ESP</Link>
-                  </div>
+                  <Link to="/blog" onClick={closeMobileMenu} className="block px-4 py-3">Blog</Link>
+                  
                   <Link to="/de-thi" onClick={closeMobileMenu} className="block px-4 py-3">Đề thi</Link>
                   <div className="ml-4">
                     <Link to="/de-thi/topik1" onClick={closeMobileMenu} className="block px-4 py-2">Topik 1</Link>
