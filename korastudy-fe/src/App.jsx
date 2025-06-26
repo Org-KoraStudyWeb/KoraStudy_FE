@@ -25,6 +25,8 @@ import ExamResults from '@pages/Exam/exam-results.jsx';
 import LearningPath from '@pages/LearningPath/learning-path.jsx';
 // Import About page
 import About from '@pages/about.jsx';
+import Blog from '@pages/blog/blog.jsx';
+import BlogPost from '@pages/blog/blog-post.jsx';
 
 
 function App() {
@@ -46,7 +48,6 @@ function App() {
               <Route path="/ly-thuyet" element={<><NavBar /><LyThuyet /><Footer /></>} />
               <Route path="/lo-trinh" element={<LearningPath />} />
 
-              <Route path="/luyen-tap-topik" element={<><NavBar /><LuyenTapTopik /><Footer /></>} />
               <Route path="/topik1" element={<><NavBar /><Topik1 /><Footer /></>} />
               <Route path="/topik2" element={<><NavBar /><Topik2 /><Footer /></>} />
               <Route path="/topik-esp" element={<><NavBar /><TopikESP /><Footer /></>} />
@@ -61,6 +62,8 @@ function App() {
               <Route path="/exam/:id" element={<ExamDetail />} />
               <Route path="/exam/:id/take" element={<ExamTest />} />
               <Route path="/exam/:id/results" element={<ExamResults />} />  
+              <Route path="/blog" element={<><NavBar /><Blog /><Footer /></>} />
+              <Route path="/blog/:postId" element={<><NavBar /><BlogPost /><Footer /></>} />
             </Routes>
           </div>
         </Router>

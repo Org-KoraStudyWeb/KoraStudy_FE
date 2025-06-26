@@ -53,29 +53,29 @@ const NavBar = () => {
 
         <ul className="hidden md:flex list-none m-0 p-0 gap-8 items-center">
           <li><Link to="/courses" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Khóa học</Link></li>
-          <li><Link to="/tai-lieu" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Tài liệu</Link></li>
+          <li><Link to="/tai-lieu" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">FlashCard</Link></li>
           <li><Link to="/lo-trinh" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Lộ trình</Link></li>
 
           <li className="relative" onMouseEnter={() => setShowTopikDropdown(true)} onMouseLeave={() => setShowTopikDropdown(false)}>
-            <Link to="/luyen-tap-topik" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Luyện tập TOPIK ▼</Link>
-            {showTopikDropdown && (
+            <Link to="/blog" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Blog</Link>
+            {/* {showTopikDropdown && (
               <ul className="absolute top-full left-0 bg-white dark:bg-dark-800 shadow-md rounded py-2 min-w-[200px] border border-gray-200 dark:border-dark-700">
                 <li><Link to="/topik1" className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700">Topik 1</Link></li>
                 <li><Link to="/topik2" className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700">Topik 2</Link></li>
                 <li><Link to="/topik-esp" className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700">Topik ESP</Link></li>
               </ul>
-            )}
+            )} */}
           </li>
 
           <li className="relative" onMouseEnter={() => setShowExamDropdown(true)} onMouseLeave={() => setShowExamDropdown(false)}>
-            <Link to="/de-thi" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Đề thi ▼</Link>
-            {showExamDropdown && (
+             <Link to="/de-thi" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Đề thi </Link>
+            {/* {showExamDropdown && (
               <ul className="absolute top-full left-0 bg-white dark:bg-dark-800 shadow-md rounded py-2 min-w-[200px] border border-gray-200 dark:border-dark-700">
                 <li><Link to="/de-thi/topik1" className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700">Topik 1</Link></li>
                 <li><Link to="/de-thi/topik2" className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700">Topik 2</Link></li>
                 <li><Link to="/de-thi/topik-esp" className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700">Topik ESP</Link></li>
               </ul>
-            )}
+            )} */}
           </li>
 
           <li><Link to="/about" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400">Về KoraStudy</Link></li>
