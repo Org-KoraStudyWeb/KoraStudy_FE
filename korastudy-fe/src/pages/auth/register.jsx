@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle, XCircle, Loader } from 'lucide-react';
-import axios from 'axios';
 import NavBar from '@components/NavBar';
 import Footer from '@components/Footer';
-
-const API_URL = 'http://localhost:8080/api'; // Adjust this to your backend URL
+import { useUser } from '@contexts/UserContext.jsx';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register } = useUser();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -94,11 +94,13 @@ const Register = () => {
     let error = '';
 
     switch (name) {
-      case 'fullName':
+      case 'username':
         if (!value.trim()) {
-          error = 'Vui lòng nhập họ và tên';
-        } else if (value.trim().length < 2) {
-          error = 'Họ và tên phải có ít nhất 2 ký tự';
+          error = 'Vui lòng nhập tên đăng nhập';
+        } else if (value.trim().length < 3) {
+          error = 'Tên đăng nhập phải có ít nhất 3 ký tự';
+        } else if (!/^[a-zA-Z0-9_]+$/.test(value.trim())) {
+          error = 'Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới';
         }
         break;
 
@@ -148,7 +150,7 @@ const Register = () => {
   };
 
   const validateForm = () => {
-    const fields = ['fullName', 'email', 'password', 'confirmPassword', 'agreeTerms'];
+    const fields = ['username', 'email', 'password', 'confirmPassword', 'agreeTerms'];
     let isValid = true;
 
     fields.forEach(field => {
@@ -168,60 +170,51 @@ const Register = () => {
     return isValid;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+
+
+// ...existing code...
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (validateForm()) {
+    setIsLoading(true);
+    setApiError('');
     
-    if (validateForm()) {
-      setIsLoading(true);
-      setApiError('');
+    try {
+      // Create registration payload that matches backend expectations
+      const registrationData = {
+        username: formData.username, // Use the actual username field from form
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword
+      };
       
-      try {
-        // Split fullName into firstName and lastName
-        const nameParts = formData.fullName.trim().split(' ');
-        const lastName = nameParts[0];
-        const firstName = nameParts.slice(1).join(' ');
-        
-        // Create registration payload that matches backend expectations
-        const registrationData = {
-          firstName: firstName || lastName, // If no space in name, use whole name as firstName
-          lastName: nameParts.length > 1 ? lastName : '',
-          email: formData.email,
-          password: formData.password,
-          gender: 'OTHER', // Default value
-          isEnabled: true
-        };
-        
-        // Call registration API
-        const response = await axios.post(`${API_URL}/auth/register`, registrationData);
-        
-        // Handle successful registration
-        console.log('Registration successful:', response.data);
-        
-        // Show success message
-        alert('Đăng ký thành công!');
-        
-        // Redirect to login page
-        navigate('/dang-nhap');
-      } catch (error) {
-        console.error('Registration error:', error);
-        
-        // Set appropriate error message
-        if (error.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          setApiError(error.response.data?.message || 'Đăng ký thất bại. Vui lòng thử lại sau.');
-        } else if (error.request) {
-          // The request was made but no response was received
-          setApiError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
-        } else {
-          // Something happened in setting up the request
-          setApiError('Lỗi khi gửi yêu cầu: ' + error.message);
-        }
-      } finally {
-        setIsLoading(false);
-      }
+      // Call registration API using the register function from UserContext
+      const response = await register(registrationData);
+      
+      // Handle successful registration
+      console.log('Registration successful:', response);
+      
+      // Show success message
+      alert('Đăng ký thành công! Vui lòng đăng nhập.');
+      
+      // Redirect to login page
+      navigate('/dang-nhap');
+    } catch (error) {
+      console.error('Registration error:', error);
+      
+      // Set appropriate error message
+      setApiError(error.message || 'Đăng ký thất bại. Vui lòng thử lại sau.');
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }
+};
+
+// ...existing code...
+
+
 
   const passwordStrength = getPasswordStrength(formData.password);
   const passwordValidation = validatePassword(formData.password);
@@ -250,31 +243,37 @@ const Register = () => {
             )}
             
             <form onSubmit={handleSubmit} className="w-full space-y-3 lg:space-y-4 xl:space-y-5">
-              {/* Full Name Field */}
+              {/* Username Field */}
               <div>
-                <label htmlFor="fullName" className="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-1.5">
-                  Họ và tên:
+                <label htmlFor="username" className="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-1.5">
+                  Tên đăng nhập:
                 </label>
                 <input
                   type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={formData.fullName}
+                  id="username"
+                  name="username"
+                  value={formData.username}
                   onChange={handleInputChange}
                   onBlur={handleBlur}
-                  placeholder="Nhập họ và tên của bạn"
+                  placeholder="Nhập tên đăng nhập của bạn"
                   className={`w-full h-12 lg:h-11 bg-gray-50 dark:bg-dark-700 border-2 rounded-xl px-4 text-sm transition-all duration-300 outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 ${
-                    errors.fullName && touched.fullName
+                    errors.username && touched.username
                       ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
                       : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                   }`}
                   disabled={isLoading}
                   required
                 />
-                {errors.fullName && touched.fullName && (
+                {errors.username && touched.username && (
                   <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
                     <XCircle size={12} />
-                    {errors.fullName}
+                    {errors.username}
+                  </p>
+                )}
+                {!errors.username && touched.username && formData.username && (
+                  <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
+                    <CheckCircle size={12} />
+                    Tên đăng nhập hợp lệ
                   </p>
                 )}
               </div>

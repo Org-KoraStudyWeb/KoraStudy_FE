@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, XCircle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, XCircle, CheckCircle, Loader } from 'lucide-react';
 import NavBar from '@components/NavBar';
 import Footer from '@components/Footer';
 import { useUser } from '@contexts/UserContext.jsx';
@@ -8,20 +8,17 @@ import { useUser } from '@contexts/UserContext.jsx';
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
+    username: '', // Change from email to username
     password: '',
     rememberMe: false
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
   const { login } = useUser();
   const navigate = useNavigate();
-
-  // Email validation function
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const from = location.state?.from?.pathname || '/';
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -40,8 +37,13 @@ const Login = () => {
       }));
     }
 
-    // Real-time validation for email
-    if (name === 'email') {
+    // Clear API error when user changes anything
+    if (apiError) {
+      setApiError('');
+    }
+
+    // Real-time validation for username
+    if (name === 'username') {
       validateField(name, newValue);
     }
   };
@@ -59,11 +61,11 @@ const Login = () => {
     let error = '';
 
     switch (name) {
-      case 'email':
-        if (!value) {
-          error = 'Vui lòng nhập địa chỉ email';
-        } else if (!validateEmail(value)) {
-          error = 'Địa chỉ email không hợp lệ';
+      case 'username':
+        if (!value.trim()) {
+          error = 'Vui lòng nhập tên đăng nhập';
+        } else if (value.trim().length < 3) {
+          error = 'Tên đăng nhập phải có ít nhất 3 ký tự';
         }
         break;
 
@@ -86,7 +88,7 @@ const Login = () => {
   };
 
   const validateForm = () => {
-    const fields = ['email', 'password'];
+    const fields = ['username', 'password'];
     let isValid = true;
 
     fields.forEach(field => {
@@ -106,63 +108,101 @@ const Login = () => {
     return isValid;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (validateForm()) {
+    setIsLoading(true);
+    setApiError('');
     
-    if (validateForm()) {
-      // Simulate login - in real app, this would be an API call
-      const mockToken = 'mock-jwt-token';
-      login(null, mockToken); // Pass null to use mock user data from context
-      navigate('/profile');
+    try {
+      const loginData = {
+        username: formData.username,
+        password: formData.password
+      };
+      
+      console.log('Login attempt with:', loginData); // Debug log
+      
+      const response = await login(loginData);
+      
+      console.log('Login successful, response:', response); // Debug log
+      
+      // Show success message
+      alert('Đăng nhập thành công!');
+      
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        navigate('/', { replace: true });
+        // Force page reload to ensure all components get the updated user state
+        window.location.reload();
+      }, 100);
+      
+    } catch (error) {
+      console.error('Login error:', error);
+      setApiError(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }
+};
+
+// ...rest of component
+
+
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-dark-900">
       <NavBar />
       
       <div className="flex flex-1 min-h-[calc(100vh-160px)]">
-        {/* Mobile: Single column, Desktop: Two columns */}
-        
         <div className="w-full lg:w-1/2 bg-gradient-to-br from-primary-500 via-secondary-400 to-secondary-500 flex flex-col items-center justify-center p-4 lg:p-10 lg:rounded-r-custom relative shadow-custom">
-          {/* Login Card */}
-          
           <div className="w-full max-w-md bg-white dark:bg-dark-800 rounded-3xl p-6 lg:p-10 shadow-card my-4 lg:my-10">
             <h2 className="font-inter font-bold text-2xl lg:text-3xl text-gray-800 dark:text-gray-200 mb-6 lg:mb-8 text-center">
               Đăng nhập
             </h2>
             
+            {/* API Error Message */}
+            {apiError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+                <p className="text-sm flex items-center gap-2">
+                  <XCircle size={16} />
+                  {apiError}
+                </p>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="w-full">
-              {/* Email Field */}
+              {/* Username Field */}
               <div className="mb-4 lg:mb-5">
-                <label htmlFor="email" className="block font-inter font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
-                  Email:
+                <label htmlFor="username" className="block font-inter font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
+                  Tên đăng nhập:
                 </label>
                 <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={formData.username}
                   onChange={handleInputChange}
                   onBlur={handleBlur}
-                  placeholder="Nhập địa chỉ Email của bạn"
+                  placeholder="Nhập tên đăng nhập của bạn"
                   className={`w-full h-12 lg:h-11 bg-gray-50 dark:bg-dark-700 border-2 rounded-xl px-4 text-sm font-inter transition-all duration-300 outline-none placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 ${
-                    errors.email && touched.email
+                    errors.username && touched.username
                       ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
                       : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                   }`}
+                  disabled={isLoading}
                   required
                 />
-                {errors.email && touched.email && (
+                {errors.username && touched.username && (
                   <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
                     <XCircle size={12} />
-                    {errors.email}
+                    {errors.username}
                   </p>
                 )}
-                {!errors.email && touched.email && validateEmail(formData.email) && (
+                {!errors.username && touched.username && formData.username && (
                   <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
                     <CheckCircle size={12} />
-                    Email hợp lệ
+                    Tên đăng nhập hợp lệ
                   </p>
                 )}
               </div>
@@ -186,12 +226,14 @@ const Login = () => {
                         ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
                         : 'border-gray-200 dark:border-dark-600 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-600 focus:shadow-[0_0_0_3px_rgba(52,188,249,0.1)]'
                     }`}
+                    disabled={isLoading}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-primary-500 transition-colors duration-300"
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -214,6 +256,7 @@ const Login = () => {
                     checked={formData.rememberMe}
                     onChange={handleInputChange}
                     className="w-4 h-4 border-2 border-gray-300 dark:border-dark-600 rounded cursor-pointer accent-primary-500"
+                    disabled={isLoading}
                   />
                   <label htmlFor="rememberMe" className="font-inter text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
                     Ghi nhớ
@@ -224,13 +267,20 @@ const Login = () => {
                 </Link>
               </div>
 
-              {/* Login Button */}
+              {/* Login Button with Loading State */}
               <button 
                 type="submit" 
-                className="w-full h-12 lg:h-12 bg-gradient-to-r from-primary-500 via-secondary-400 to-secondary-500 border-0 rounded-xl text-white font-inter font-semibold text-base cursor-pointer transition-all duration-300 mb-4 lg:mb-5 shadow-[0_4px_12px_rgba(52,188,249,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(52,188,249,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
-                disabled={Object.values(errors).some(error => error !== '')}
+                className="w-full h-12 lg:h-12 bg-gradient-to-r from-primary-500 via-secondary-400 to-secondary-500 border-0 rounded-xl text-white font-inter font-semibold text-base cursor-pointer transition-all duration-300 mb-4 lg:mb-5 shadow-[0_4px_12px_rgba(52,188,249,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(52,188,249,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none flex items-center justify-center gap-2"
+                disabled={Object.values(errors).some(error => error !== '') || isLoading}
               >
-                Đăng nhập
+                {isLoading ? (
+                  <>
+                    <Loader size={18} className="animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  'Đăng nhập'
+                )}
               </button>
 
               {/* Register Link */}
@@ -245,6 +295,7 @@ const Login = () => {
               <button 
                 type="button" 
                 className="w-full h-12 bg-white dark:bg-dark-700 border-2 border-gray-200 dark:border-dark-600 rounded-xl flex items-center justify-center gap-3 cursor-pointer transition-all duration-300 my-4 lg:my-5 hover:border-gray-300 dark:hover:border-dark-500 hover:bg-gray-50 dark:hover:bg-dark-600"
+                disabled={isLoading}
               >
                 <img src="/img_social/ic_google.png" alt="Google" className="w-5 h-5" />
                 <span className="font-inter font-medium text-sm text-gray-700 dark:text-gray-300">Google</span>
