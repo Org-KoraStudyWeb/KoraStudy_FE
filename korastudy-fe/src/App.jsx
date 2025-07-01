@@ -28,6 +28,8 @@ import About from '@pages/about.jsx';
 import Blog from '@pages/blog/blog.jsx';
 import BlogPost from '@pages/blog/blog-post.jsx';
 
+import ProtectedRoute from './components/ProtectedRoute';
+
 
 function App() {
   return (
@@ -37,13 +39,26 @@ function App() {
           <ScrollToTop />
           <div className="App bg-white dark:bg-dark-900 min-h-screen transition-colors duration-300">
             <Routes>
+              {/* Protected routes */}
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/" element={<><NavBar /><Home /><Footer /></>} />
               <Route path="/courses" element={<><NavBar /><Courses /><Footer /></>} />
               <Route path="/course/:courseId" element={<><NavBar /><CourseDetail /><Footer /></>} />
               <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
+              
+              {/* Public routes */}
+              <Route path="/" element={<Home />} />
               <Route path="/dang-nhap" element={<Login />} />
               <Route path="/dang-ky" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+
               <Route path="/tai-lieu" element={<><NavBar /><TaiLieu /><Footer /></>} />
               <Route path="/ly-thuyet" element={<><NavBar /><LyThuyet /><Footer /></>} />
               <Route path="/lo-trinh" element={<LearningPath />} />
@@ -52,7 +67,6 @@ function App() {
               <Route path="/topik2" element={<><NavBar /><Topik2 /><Footer /></>} />
               <Route path="/topik-esp" element={<><NavBar /><TopikESP /><Footer /></>} />
               <Route path="/nang-cap" element={<><NavBar /><NangCap /><Footer /></>} />
-              {/* Sửa route cho About page - Sử dụng component About đã import */}
               <Route path="/about" element={<About />} />
               <Route path="/terms" element={<><NavBar /><Terms /><Footer /></>} />
               <Route path="/privacy" element={<><NavBar /><Privacy /><Footer /></>} />

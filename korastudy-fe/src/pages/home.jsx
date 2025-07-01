@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { 
   Play, BookOpen, Users, Award, Star, ArrowRight, 
-  CheckCircle, ChevronLeft, ChevronRight 
+  CheckCircle, ChevronLeft, ChevronRight, Sparkles, Zap, Target
 } from 'lucide-react';
 
 const Home = () => {
@@ -15,11 +16,15 @@ const Home = () => {
     '/banner/banner4.png'
   ];
 
+  const { scrollY } = useScroll();
+  const y1 = useTransform(scrollY, [0, 300], [0, -50]);
+  const y2 = useTransform(scrollY, [0, 300], [0, -100]);
+
   // Auto-slide effect
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBanner((prev) => (prev + 1) % banners.length);
-    }, 5000); // Chuyển banner mỗi 5 giây
+    }, 5000);
     
     return () => clearInterval(interval);
   }, [banners.length]);
@@ -38,17 +43,20 @@ const Home = () => {
     {
       icon: <BookOpen className="w-8 h-8" />,
       title: "Tài liệu phong phú",
-      description: "Hơn 1000+ tài liệu học tiếng Hàn từ cơ bản đến nâng cao"
+      description: "Hơn 1000+ tài liệu học tiếng Hàn từ cơ bản đến nâng cao",
+      color: "from-blue-500 to-cyan-500"
     },
     {
       icon: <Users className="w-8 h-8" />,
       title: "Cộng đồng học tập",
-      description: "Kết nối với hàng nghìn học viên cùng đam mê tiếng Hàn"
+      description: "Kết nối với hàng nghìn học viên cùng đam mê tiếng Hàn",
+      color: "from-purple-500 to-pink-500"
     },
     {
       icon: <Award className="w-8 h-8" />,
       title: "Luyện thi TOPIK",
-      description: "Đề thi thử và bài luyện tập chuẩn format TOPIK"
+      description: "Đề thi thử và bài luyện tập chuẩn format TOPIK",
+      color: "from-orange-500 to-red-500"
     }
   ];
 
@@ -76,10 +84,10 @@ const Home = () => {
 
   // Stats
   const stats = [
-    { number: "10,000+", label: "Học viên" },
-    { number: "1,000+", label: "Tài liệu" },
-    { number: "95%", label: "Tỷ lệ đậu TOPIK" },
-    { number: "24/7", label: "Hỗ trợ" }
+    { number: "10,000+", label: "Học viên", icon: <Users className="w-6 h-6" /> },
+    { number: "1,000+", label: "Tài liệu", icon: <BookOpen className="w-6 h-6" /> },
+    { number: "95%", label: "Tỷ lệ đậu TOPIK", icon: <Target className="w-6 h-6" /> },
+    { number: "24/7", label: "Hỗ trợ", icon: <Zap className="w-6 h-6" /> }
   ];
 
   // Courses
@@ -90,7 +98,8 @@ const Home = () => {
       duration: "3 tháng",
       lessons: "120 bài học",
       price: "Free",
-      image: "topik.png"
+      image: "topik.png",
+      popular: true
     },
     {
       title: "TOPIK II (Level 3-6)",
@@ -110,102 +119,254 @@ const Home = () => {
     }
   ];
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const AnimatedSection = ({ children, className = "" }) => {
+    const ref = React.useRef(null);
+    const isInView = useInView(ref, { once: true, threshold: 0.1 });
+
+    return (
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, y: 50 }}
+        animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className={className}
+      >
+        {children}
+      </motion.div>
+    );
+  };
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-hidden">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-50 via-cyan-50 to-slate-50 py-20 px-4">
-        <div className="max-w-7xl mx-auto">
+      <section className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 py-20 px-4 overflow-hidden">
+        {/* Animated Background Elements */}
+        <motion.div
+          style={{ y: y1 }}
+          className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
+        />
+        <motion.div
+          style={{ y: y2 }}
+          className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl"
+        />
+        
+        {/* Floating Elements */}
+        <motion.div
+          animate={{ 
+            y: [0, -20, 0],
+            rotate: [0, 5, 0]
+          }}
+          transition={{ 
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-32 right-20 text-blue-400/30"
+        >
+          <Sparkles size={40} />
+        </motion.div>
+        
+        <motion.div
+          animate={{ 
+            y: [0, 15, 0],
+            rotate: [0, -5, 0]
+          }}
+          transition={{ 
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+          className="absolute bottom-40 left-20 text-purple-400/30"
+        >
+          <Star size={32} />
+        </motion.div>
+
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="flex flex-col lg:flex-row items-center gap-12">
             {/* Left Content */}
-            <div className="flex-1 text-center lg:text-left">
-              <h1 className="font-inter font-bold text-5xl lg:text-6xl leading-tight text-gray-800 mb-6">
+            <motion.div 
+              className="flex-1 text-center lg:text-left"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="inline-flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300 mb-6 border border-gray-200/50 dark:border-gray-700/50"
+              >
+                <Sparkles size={16} className="text-blue-500" />
+                Nền tảng học tiếng Hàn #1 Việt Nam
+              </motion.div>
+
+              <motion.h1 
+                className="font-inter font-bold text-5xl lg:text-7xl leading-tight text-gray-800 dark:text-white mb-6"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+              >
                 Để tiếng Hàn<br />
-                <span className="bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent animate-pulse">
                   không còn là trở ngại
                 </span>
-              </h1>
-              <p className="font-inter text-xl text-gray-600 mb-8 leading-relaxed">
+              </motion.h1>
+
+              <motion.p 
+                className="font-inter text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+              >
                 Dễ dàng đạt được Level mong muốn với KoraStudy.com<br />
-                Hơn 10,000 học viên đã tin tưởng và thành công
-              </p>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">Hơn 10,000 học viên</span> đã tin tưởng và thành công
+              </motion.p>
               
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
-                <Link 
-                  to="/dang-ky"
-                  className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center gap-2"
+              <motion.div 
+                className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.5 }}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  Bắt đầu học ngay
-                  <ArrowRight size={20} />
-                </Link>
-                <button className="bg-white text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg border-2 border-gray-200 transition-all duration-300 hover:border-primary-500 hover:text-primary-500 inline-flex items-center justify-center gap-2">
-                  <Play size={20} />
-                  Xem demo
-                </button>
-              </div>
+                  <Link 
+                    to="/dang-ky"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/25 inline-flex items-center justify-center gap-2 group"
+                  >
+                    Bắt đầu học ngay
+                    <motion.div
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <ArrowRight size={20} />
+                    </motion.div>
+                  </Link>
+                </motion.div>
+
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <button className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-8 py-4 rounded-xl font-semibold text-lg border-2 border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:border-blue-500 hover:text-blue-500 hover:shadow-lg inline-flex items-center justify-center gap-2">
+                    <Play size={20} />
+                    Xem demo
+                  </button>
+                </motion.div>
+              </motion.div>
 
               {/* Trust Indicators */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={16} className="text-green-500" />
-                  <span>Miễn phí đăng ký</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={16} className="text-green-500" />
-                  <span>Không cam kết dài hạn</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={16} className="text-green-500" />
-                  <span>Hỗ trợ 24/7</span>
-                </div>
-              </div>
-            </div>
+              <motion.div 
+                className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm text-gray-600 dark:text-gray-400"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+              >
+                {[
+                  "Miễn phí đăng ký",
+                  "Không cam kết dài hạn", 
+                  "Hỗ trợ 24/7"
+                ].map((text, index) => (
+                  <motion.div 
+                    key={text}
+                    className="flex items-center gap-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 0.7 + index * 0.1 }}
+                  >
+                    <CheckCircle size={16} className="text-green-500" />
+                    <span>{text}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </motion.div>
 
-            {/* Right Content - Hero Image with Slider */}
-            <div className="flex-1 relative">
-              <div className="relative z-10 overflow-hidden rounded-2xl shadow-2xl">
+            {/* Right Content - Enhanced Hero Image with Slider */}
+            <motion.div 
+              className="flex-1 relative"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+            >
+              <div className="relative z-10 overflow-hidden rounded-3xl shadow-2xl">
                 {/* Banner Images */}
                 <div className="relative">
-                  <div 
-                    className="flex transition-transform duration-500 ease-in-out" 
+                  <motion.div 
+                    className="flex transition-transform duration-700 ease-out" 
                     style={{ transform: `translateX(-${currentBanner * 100}%)` }}
+                    key={currentBanner}
                   >
                     {banners.map((banner, index) => (
-                      <img
+                      <motion.img
                         key={index}
                         src={banner}
                         alt={`Korean Learning Platform - Slide ${index + 1}`}
                         className="w-full h-auto min-w-full object-cover"
+                        initial={{ scale: 1.1 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.7 }}
                       />
                     ))}
-                  </div>
+                  </motion.div>
                   
-                  {/* Navigation Arrows */}
-                  <button 
+                  {/* Enhanced Navigation Arrows */}
+                  <motion.button 
                     onClick={prevBanner}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white p-2 rounded-full shadow-lg z-10"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl z-10 backdrop-blur-sm"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     aria-label="Previous banner"
                   >
                     <ChevronLeft className="w-6 h-6 text-gray-800" />
-                  </button>
+                  </motion.button>
                   
-                  <button 
+                  <motion.button 
                     onClick={nextBanner}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white p-2 rounded-full shadow-lg z-10"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl z-10 backdrop-blur-sm"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     aria-label="Next banner"
                   >
                     <ChevronRight className="w-6 h-6 text-gray-800" />
-                  </button>
+                  </motion.button>
                   
-                  {/* Indicators */}
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                  {/* Enhanced Indicators */}
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-3">
                     {banners.map((_, index) => (
-                      <button
+                      <motion.button
                         key={index}
                         onClick={() => setCurrentBanner(index)}
-                        className={`w-3 h-3 rounded-full ${
-                          currentBanner === index ? 'bg-primary-500' : 'bg-white/60'
-                        } transition-all duration-300`}
+                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                          currentBanner === index ? 'bg-blue-500 w-8' : 'bg-white/60'
+                        }`}
+                        whileHover={{ scale: 1.2 }}
                         aria-label={`Go to slide ${index + 1}`}
                       />
                     ))}
@@ -213,117 +374,259 @@ const Home = () => {
                 </div>
               </div>
               
-              {/* Background Decorations */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary-500/20 rounded-full blur-3xl"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-secondary-500/20 rounded-full blur-2xl"></div>
-            </div>
+              {/* Enhanced Background Decorations */}
+              <motion.div 
+                className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-full blur-3xl"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.5, 0.3]
+                }}
+                transition={{ 
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <motion.div 
+                className="absolute -bottom-10 -left-10 w-32 h-32 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-full blur-2xl"
+                animate={{ 
+                  scale: [1, 1.3, 1],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{ 
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 1
+                }}
+              />
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
+      {/* Enhanced Stats Section */}
+      <AnimatedSection className="py-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+          <motion.div 
+            className="grid grid-cols-2 lg:grid-cols-4 gap-8"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
             {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-4xl font-bold text-primary-500 mb-2">{stat.number}</div>
-                <div className="text-gray-600 font-medium">{stat.label}</div>
-              </div>
+              <motion.div 
+                key={index} 
+                className="text-center group"
+                variants={itemVariants}
+                whileHover={{ scale: 1.05, y: -5 }}
+              >
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 p-6 rounded-2xl mb-4 group-hover:shadow-lg transition-all duration-300">
+                  <div className="text-blue-500 mb-2 flex justify-center">
+                    {stat.icon}
+                  </div>
+                  <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">{stat.number}</div>
+                  <div className="text-gray-600 dark:text-gray-400 font-medium">{stat.label}</div>
+                </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </AnimatedSection>
 
-      {/* Features Section */}
-      <section className="py-20 bg-gray-50">
+      {/* Enhanced Features Section */}
+      <AnimatedSection className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="font-inter font-bold text-4xl text-gray-800 mb-4">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-inter font-bold text-4xl text-gray-800 dark:text-white mb-4">
               Tại sao chọn KoraStudy?
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Chúng tôi cung cấp phương pháp học tiếng Hàn hiệu quả nhất với công nghệ hiện đại
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <motion.div 
+            className="grid md:grid-cols-3 gap-8"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
             {features.map((feature, index) => (
-              <div key={index} className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <div className="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center text-primary-500 mb-6">
+              <motion.div 
+                key={index} 
+                className="bg-white dark:bg-gray-700 p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 group"
+                variants={itemVariants}
+                whileHover={{ y: -10, scale: 1.02 }}
+              >
+                <motion.div 
+                  className={`w-16 h-16 bg-gradient-to-r ${feature.color} rounded-xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-300`}
+                  whileHover={{ rotate: 5 }}
+                >
                   {feature.icon}
-                </div>
-                <h3 className="font-semibold text-xl text-gray-800 mb-4">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-              </div>
+                </motion.div>
+                <h3 className="font-semibold text-xl text-gray-800 dark:text-white mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                  {feature.description}
+                </p>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </AnimatedSection>
 
-      {/* Courses Section */}
-      <section className="py-20 bg-white">
+      {/* Enhanced Courses Section */}
+      <AnimatedSection className="py-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="font-inter font-bold text-4xl text-gray-800 mb-4">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-inter font-bold text-4xl text-gray-800 dark:text-white mb-4">
               Khóa học phổ biến
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Lựa chọn khóa học phù hợp với trình độ và mục tiêu của bạn
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <motion.div 
+            className="grid md:grid-cols-3 gap-8"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
             {courses.map((course, index) => (
-              <div key={index} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <img 
-                  src={course.image} 
-                  alt={course.title}
-                  className="w-full h-48 object-cover"
-                />
+              <motion.div 
+                key={index} 
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 group relative"
+                variants={itemVariants}
+                whileHover={{ y: -10, scale: 1.02 }}
+              >
+                {course.popular && (
+                  <div className="absolute top-4 left-4 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold z-10">
+                    Phổ biến
+                  </div>
+                )}
+                <div className="relative overflow-hidden">
+                  <img 
+                    src={course.image} 
+                    alt={course.title}
+                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
                 <div className="p-6">
-                  <h3 className="font-semibold text-xl text-gray-800 mb-3">{course.title}</h3>
-                  <p className="text-gray-600 mb-4">{course.description}</p>
+                  <h3 className="font-semibold text-xl text-gray-800 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                    {course.title}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">{course.description}</p>
                   
-                  <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
-                    <span>{course.duration}</span>
-                    <span>{course.lessons}</span>
+                  <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    <span className="flex items-center gap-1">
+                      <BookOpen size={16} />
+                      {course.duration}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Play size={16} />
+                      {course.lessons}
+                    </span>
                   </div>
                   
                   <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-primary-500">{course.price}</span>
-                    <Link 
-                      to="/dang-ky"
-                      className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-300"
+                    <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{course.price}</span>
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      Đăng ký
-                    </Link>
+                      <Link 
+                        to="/dang-ky"
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition-all duration-300"
+                      >
+                        Đăng ký
+                      </Link>
+                    </motion.div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </AnimatedSection>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-br from-primary-500 to-secondary-500">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
+      {/* Enhanced Testimonials Section */}
+      <AnimatedSection className="py-20 bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-600 relative overflow-hidden">
+        {/* Background Animation */}
+        <motion.div
+          className="absolute inset-0 opacity-10"
+          animate={{
+            backgroundPosition: ["0% 0%", "100% 100%"],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+          style={{
+            backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+            backgroundSize: "50px 50px",
+          }}
+        />
+        
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
             <h2 className="font-inter font-bold text-4xl text-white mb-4">
               Học viên nói gì về chúng tôi?
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
               Hàng nghìn học viên đã thành công với KoraStudy
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <motion.div 
+            className="grid md:grid-cols-3 gap-8"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl">
+              <motion.div 
+                key={index} 
+                className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300"
+                variants={itemVariants}
+                whileHover={{ scale: 1.05, y: -5 }}
+              >
                 <div className="flex items-center mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={16} className="text-yellow-400 fill-current" />
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.1 + i * 0.1 }}
+                    >
+                      <Star size={16} className="text-yellow-400 fill-current" />
+                    </motion.div>
                   ))}
                 </div>
                 <p className="text-white/90 mb-6 leading-relaxed">"{testimonial.content}"</p>
@@ -331,46 +634,86 @@ const Home = () => {
                   <img 
                     src={testimonial.avatar} 
                     alt={testimonial.name}
-                    className="w-12 h-12 rounded-full"
+                    className="w-12 h-12 rounded-full border-2 border-white/20"
                   />
                   <div>
                     <div className="font-semibold text-white">{testimonial.name}</div>
                     <div className="text-white/70 text-sm">{testimonial.level}</div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </AnimatedSection>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gray-900">
-        <div className="max-w-4xl mx-auto text-center px-4">
-          <h2 className="font-inter font-bold text-4xl text-white mb-6">
+      {/* Enhanced CTA Section */}
+      <AnimatedSection className="py-20 bg-gray-900 dark:bg-black relative overflow-hidden">
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"
+          animate={{
+            opacity: [0.2, 0.4, 0.2],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        
+        <div className="max-w-4xl mx-auto text-center px-4 relative z-10">
+          <motion.h2 
+            className="font-inter font-bold text-4xl text-white mb-6"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
             Sẵn sàng bắt đầu hành trình học tiếng Hàn?
-          </h2>
-          <p className="text-xl text-gray-300 mb-8">
+          </motion.h2>
+          <motion.p 
+            className="text-xl text-gray-300 mb-8"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
             Tham gia cùng hàng nghìn học viên đã thành công với KoraStudy
-          </p>
+          </motion.p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              to="/dang-ky"
-              className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center gap-2"
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            <motion.div
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
             >
-              Đăng ký miễn phí
-              <ArrowRight size={20} />
-            </Link>
-            <Link 
-              to="/lien-he"
-              className="bg-transparent text-white px-8 py-4 rounded-xl font-semibold text-lg border-2 border-white/30 transition-all duration-300 hover:border-white hover:bg-white/10"
+              <Link 
+                to="/dang-ky"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/25 inline-flex items-center justify-center gap-2"
+              >
+                Đăng ký miễn phí
+                <ArrowRight size={20} />
+              </Link>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              Liên hệ tư vấn
-            </Link>
-          </div>
+              <Link 
+                to="/lien-he"
+                className="bg-transparent text-white px-8 py-4 rounded-xl font-semibold text-lg border-2 border-white/30 transition-all duration-300 hover:border-white hover:bg-white/10 backdrop-blur-sm"
+              >
+                Liên hệ tư vấn
+              </Link>
+            </motion.div>
+          </motion.div>
         </div>
-      </section>
+      </AnimatedSection>
     </div>
   );
 };
