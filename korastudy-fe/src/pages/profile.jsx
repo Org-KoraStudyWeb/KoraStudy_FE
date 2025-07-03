@@ -18,11 +18,13 @@ import {
   Moon,
   Sun,
   Shield,
-  Bell
+  Bell,
+  Phone,
+  Users
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { useTheme } from '../contexts/ThemeContext';
-import NavBar from '../components/NavBar'; // Import NavBar
+import NavBar from '../components/NavBar';
 
 const Profile = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,20 +34,86 @@ const Profile = () => {
   const { theme, toggleTheme } = useTheme();
   
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [editForm, setEditForm] = useState({
-    fullName: user?.fullName || '',
-    email: user?.email || ''
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    phoneNumber: user?.phoneNumber || '',
+    gender: user?.gender || '',
+    dateOfBirth: user?.dateOfBirth || ''
   });
+
+  // Cập nhật editForm khi user thay đổi
+  React.useEffect(() => {
+    if (user) {
+      setEditForm({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phoneNumber: user.phoneNumber || '',
+        gender: user.gender || '',
+        dateOfBirth: user.dateOfBirth || ''
+      });
+    }
+  }, [user]);
+
   const [preferences, setPreferences] = useState(user?.preferences || {});
 
   const handleTabChange = (tab) => {
     setSearchParams({ tab });
   };
 
-  const handleEditSubmit = (e) => {
-    e.preventDefault();
-    updateProfile(editForm);
+  const handleEditSubmit = async (e) => {
+  e.preventDefault();
+  
+  console.log('Submitting profile update:', editForm);
+  setLoading(true);
+  setError('');
+  setSuccess('');
+  
+  try {
+    const result = await updateProfile(editForm);
+    console.log('Profile update result:', result);
+    
     setIsEditing(false);
+    setSuccess('Thông tin cá nhân đã được cập nhật thành công!');
+    
+    setTimeout(() => {
+      setSuccess('');
+    }, 3000);
+    
+  } catch (error) {
+    console.error('Profile update error:', error);
+    
+    // Xử lý lỗi JSON
+    if (error.message && (
+      error.message.includes('Unexpected token') || 
+      error.message.includes('JSON') ||
+      error.message.includes('not valid')
+    )) {
+      setSuccess('Thông tin đã được cập nhật. Vui lòng refresh trang để xem thay đổi.');
+    } else {
+      setError(error.message || 'Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Xóa lỗi khi user bắt đầu nhập
+    if (error) {
+      setError('');
+    }
   };
 
   const handlePreferenceChange = (key, value) => {
@@ -54,13 +122,14 @@ const Profile = () => {
     updatePreferences(newPreferences);
   };
 
-  const getInitials = (name) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const getInitials = (firstName, lastName) => {
+    const first = firstName ? firstName.charAt(0) : '';
+    const last = lastName ? lastName.charAt(0) : '';
+    return (first + last).toUpperCase() || 'U';
+  };
+
+  const getFullName = (firstName, lastName) => {
+    return `${firstName || ''} ${lastName || ''}`.trim() || user?.username || 'User';
   };
 
   const formatDate = (dateString) => {
@@ -73,6 +142,15 @@ const Profile = () => {
     if (score >= 70) return 'text-yellow-600';
     return 'text-red-600';
   };
+
+  const getGenderDisplay = (gender) => {
+  switch(gender) {
+    case 'MALE': return 'Nam';
+    case 'FEMALE': return 'Nữ';
+    case 'OTHER': return 'Khác';
+    default: return 'Chưa cập nhật';
+  }
+};
 
   const tabs = [
     { id: 'overview', name: 'Tổng quan', icon: User },
@@ -101,7 +179,7 @@ const Profile = () => {
 
   return (
     <>
-      <NavBar /> {/* Thêm NavBar */}
+      <NavBar />
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Profile Header */}
@@ -112,13 +190,13 @@ const Profile = () => {
                 {user.avatar ? (
                   <img
                     src={user.avatar}
-                    alt={user.fullName}
+                    alt={getFullName(user.firstName, user.lastName)}
                     className="w-24 h-24 rounded-full"
                   />
                 ) : (
                   <div className="w-24 h-24 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-2xl font-bold">
-                      {getInitials(user.fullName || user.username || 'User')}
+                      {getInitials(user.firstName, user.lastName)}
                     </span>
                   </div>
                 )}
@@ -130,48 +208,159 @@ const Profile = () => {
               {/* User Info */}
               <div className="flex-1">
                 {isEditing ? (
-                  <form onSubmit={handleEditSubmit} className="space-y-4">
-                    <div>
-                      <input
-                        type="text"
-                        value={editForm.fullName}
-                        onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                        className="text-2xl font-bold bg-transparent border-b-2 border-primary-500 focus:outline-none text-gray-900 dark:text-white"
-                        placeholder="Họ và tên"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="email"
-                        value={editForm.email}
-                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                        className="text-gray-600 dark:text-gray-400 bg-transparent border-b-2 border-primary-500 focus:outline-none"
-                        placeholder="Email"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        className="flex items-center gap-2 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-200"
-                      >
-                        <Save size={16} />
-                        Lưu
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsEditing(false)}
-                        className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200"
-                      >
-                        <X size={16} />
-                        Hủy
-                      </button>
-                    </div>
-                  </form>
-                ) : (
+    <form onSubmit={handleEditSubmit} className="space-y-4">
+      {/* Thông báo lỗi */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
+          <div className="flex items-center gap-2">
+            <X size={16} />
+            {error}
+          </div>
+        </div>
+      )}
+
+      {/* Thông báo thành công */}
+      {success && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Save size={16} />
+            {success}
+          </div>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Họ
+          </label>
+          <input
+            type="text"
+            name="firstName"
+            value={editForm.firstName}
+            onChange={handleInputChange}
+            className="w-full p-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            placeholder="Nhập họ"
+            disabled={loading}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Tên
+          </label>
+          <input
+            type="text"
+            name="lastName"
+            value={editForm.lastName}
+            onChange={handleInputChange}
+            className="w-full p-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            placeholder="Nhập tên"
+            disabled={loading}
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Email
+        </label>
+        <input
+          type="email"
+          name="email"
+          value={editForm.email}
+          onChange={handleInputChange}
+          className="w-full p-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          placeholder="Nhập email"
+          disabled={loading}
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Số điện thoại
+          </label>
+          <input
+            type="tel"
+            name="phoneNumber"
+            value={editForm.phoneNumber}
+            onChange={handleInputChange}
+            className="w-full p-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            placeholder="Nhập số điện thoại"
+            disabled={loading}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Giới tính
+          </label>
+          <select
+            name="gender"
+            value={editForm.gender}
+            onChange={handleInputChange}
+            className="w-full p-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            disabled={loading}
+          >
+            <option value="">Chọn giới tính</option>
+            <option value="MALE">Nam</option>
+            <option value="FEMALE">Nữ</option>
+            <option value="OTHER">Khác</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Ngày sinh
+        </label>
+        <input
+          type="date"
+          name="dateOfBirth"
+          value={editForm.dateOfBirth}
+          onChange={handleInputChange}
+          className="w-full p-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          disabled={loading}
+        />
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={loading}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${
+            loading 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-primary-500 hover:bg-primary-600'
+          } text-white`}
+        >
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Đang lưu...
+            </>
+          ) : (
+            <>
+              <Save size={16} />
+              Lưu
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setIsEditing(false);
+            setError('');
+            setSuccess('');
+          }}
+          disabled={loading}
+          className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50"
+        >
+          <X size={16} />
+          Hủy
+        </button>
+      </div>
+    </form>
+  ) : (
                   <>
                     <div className="flex items-center gap-3 mb-2">
                       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {user.fullName || user.username || 'User'}
+                        {getFullName(user.firstName, user.lastName)}
                       </h1>
                       <button
                         onClick={() => setIsEditing(true)}
@@ -234,17 +423,23 @@ const Profile = () => {
             {/* Tab Content */}
             <div className="p-6">
               {activeTab === 'overview' && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Thông tin cá nhân
-                    </h3>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Thông tin cá nhân
+                  </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="flex items-center gap-3">
                         <User className="text-gray-400" size={20} />
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Họ và tên</p>
-                          <p className="font-medium text-gray-900 dark:text-white">{user.fullName || user.username || 'Chưa cập nhật'}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Họ</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{user.firstName || 'Chưa cập nhật'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <User className="text-gray-400" size={20} />
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Tên</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{user.lastName || 'Chưa cập nhật'}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -255,23 +450,30 @@ const Profile = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Target className="text-gray-400" size={20} />
+                        <Phone className="text-gray-400" size={20} />
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Mục tiêu</p>
-                          <p className="font-medium text-gray-900 dark:text-white">{user.preferences?.testLevel || 'TOPIK I'}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Số điện thoại</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{user.phoneNumber || 'Chưa cập nhật'}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Globe className="text-gray-400" size={20} />
+                        <Users className="text-gray-400" size={20} />
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Ngôn ngữ giao diện</p>
-                          <p className="font-medium text-gray-900 dark:text-white">{user.preferences?.interfaceLanguage || 'Vietnamese'}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Giới tính</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{getGenderDisplay(user.gender)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Calendar className="text-gray-400" size={20} />
+                        <div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Ngày sinh</p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {user.dateOfBirth ? formatDate(user.dateOfBirth) : 'Chưa cập nhật'}
+                          </p>
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div>
+                <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                       Hoạt động gần đây
                     </h3>
@@ -306,6 +508,7 @@ const Profile = () => {
                 </div>
               )}
 
+              {/* ...existing code for other tabs... */}
               {activeTab === 'history' && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">

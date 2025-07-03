@@ -41,39 +41,34 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+    
+
   const login = async (credentials) => {
     try {
       setLoading(true);
       const response = await authService.login(credentials);
       
-      console.log('Login response:', response); // Debug log
+      console.log('Login response in UserContext:', response); // Debug log
       
-      // Update state with proper user data
-      const newToken = response.token || response.accessToken || response.data?.token;
-      const userData = response.user || response.userInfo || response.data?.user || {
-        username: credentials.username,
-        email: response.email || credentials.email,
-        fullName: response.fullName || response.name || credentials.username
-      };
-      
-      console.log('Setting token:', newToken, 'user:', userData); // Debug log
-      
-      if (newToken) {
-        setToken(newToken);
+      if (response.user) {
+        setUser(response.user);
+        setToken(response.token);
+        console.log('User set in context:', response.user); // Debug log
+        return response;
+      } else {
+        throw new Error('No user data in response');
       }
-      
-      if (userData) {
-        setUser(userData);
-      }
-      
-      return response;
     } catch (error) {
-      console.error('Login error in context:', error);
+      console.error('Login error:', error);
+      setUser(null);
+      setToken(null);
       throw error;
     } finally {
       setLoading(false);
     }
   };
+
+
 
   const register = async (userData) => {
     try {
@@ -100,18 +95,57 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const updateProfile = async (userData) => {
-    try {
-      const response = await authService.updateProfile(userData);
-      const updatedUser = response.user || response.userInfo || response.data?.user;
-      if (updatedUser) {
+  // Cập nhật thông tin người dùng
+
+  const updateProfile = async (profileData) => {
+  try {
+    console.log('=== updateProfile in UserContext ===');
+    
+    // Sử dụng authService.updateProfile() đã cải tiến
+    const updatedUser = await authService.updateProfile(profileData);
+    console.log('Profile updated via authService:', updatedUser);
+    
+    // Cập nhật state
+    setUser(prev => ({
+      ...prev,
+      ...updatedUser
+    }));
+    
+    console.log('User state updated with new data');
+    return updatedUser;
+    
+  } catch (error) {
+    console.error('Error in UserContext.updateProfile:', error);
+    
+    // Nếu là lỗi JSON, thử update locally
+    if (error.message && (
+      error.message.includes('Unexpected token') || 
+      error.message.includes('JSON') ||
+      error.message.includes('not valid')
+    )) {
+      console.log('JSON error detected, updating user locally');
+      
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        // Update locally
+        const updatedUser = {
+          ...currentUser,
+          ...profileData,
+          fullName: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim()
+        };
+        
+        // Update state và localStorage
         setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        console.log('Local update completed:', updatedUser);
+        return updatedUser;
       }
-      return response;
-    } catch (error) {
-      throw error;
     }
-  };
+    
+    throw error;
+  }
+};
 
   const forgotPassword = async (email) => {
     try {
