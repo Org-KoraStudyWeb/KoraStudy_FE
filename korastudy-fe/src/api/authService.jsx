@@ -36,7 +36,7 @@ api.interceptors.response.use(
 );
 
 // Auth service methods
-const authService = {
+ const authService = {
   // Register new user
   register: async (userData) => {
     try {
@@ -61,7 +61,9 @@ const authService = {
     }
   },
 
-  // Login user
+
+
+// Login user
   login: async (credentials) => {
     try {
       const loginData = {
@@ -82,11 +84,21 @@ const authService = {
           localStorage.setItem('authToken', token);
         }
         
-        // Create user object from response or credentials
-        const userData = response.data.user || response.data.userInfo || {
-          username: credentials.username,
+        // Tạo user object từ response - sửa lại để lưu đúng ID
+        const userData = {
+          id: response.data.id, // Lấy ID trực tiếp từ response
+          username: response.data.username || credentials.username,
           email: response.data.email || '',
-          fullName: response.data.fullName || response.data.name || credentials.username,
+          firstName: response.data.firstName || '',
+          lastName: response.data.lastName || '',
+          phoneNumber: response.data.phoneNumber || '',
+          gender: response.data.gender || '',
+          avatar: response.data.avatar || null,
+          dateOfBirth: response.data.dateOfBirth || '',
+          roles: response.data.roles || ['USER'],
+          fullName: response.data.fullName || response.data.name || 
+                  `${response.data.firstName || ''} ${response.data.lastName || ''}`.trim() || 
+                  response.data.username || credentials.username,
           // Add default stats and other properties
           stats: {
             totalTests: 0,
@@ -107,7 +119,7 @@ const authService = {
         console.log('Stored user data:', userData); // Debug log
         
         return {
-          ...response.data,
+          token: token,
           user: userData
         };
       }
@@ -126,6 +138,8 @@ const authService = {
     }
   },
 
+
+
   // Logout user
   logout: async () => {
     try {
@@ -138,18 +152,30 @@ const authService = {
     }
   },
 
-  // Get current user from localStorage
-  getCurrentUser: () => {
-    try {
-      const user = localStorage.getItem('user');
-      const parsedUser = user ? JSON.parse(user) : null;
-      console.log('getCurrentUser:', parsedUser); // Debug log
-      return parsedUser;
-    } catch (error) {
-      console.error('Error parsing user data:', error);
+
+// Get current user from localStorage
+getCurrentUser: () => {
+  try {
+    const userString = localStorage.getItem('user');
+    console.log('Raw user string from localStorage:', userString); // Debug log
+    
+    if (!userString) {
+      console.log('No user data in localStorage'); // Debug log
       return null;
     }
-  },
+    
+    const parsedUser = JSON.parse(userString);
+    console.log('Parsed user data:', parsedUser); // Debug log
+    console.log('User ID:', parsedUser?.id); // Debug log
+    
+    return parsedUser;
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+    localStorage.removeItem('user'); // Xóa dữ liệu lỗi
+    return null;
+  }
+},
+
 
   // Get current token
   getToken: () => {
@@ -193,19 +219,162 @@ const authService = {
   },
 
   updateProfile: async (userData) => {
-    try {
-      const response = await api.put('/profile', userData);
-      if (response.data.user || response.data.userInfo) {
-        localStorage.setItem('user', JSON.stringify(response.data.user || response.data.userInfo));
-      }
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        throw new Error(error.response.data?.message || 'Cập nhật thông tin thất bại');
-      }
-      throw error;
+  try {
+    // Lấy user hiện tại từ localStorage
+    const currentUser = authService.getCurrentUser();
+    const userId = currentUser?.id;
+    if (!userId) {
+      throw new Error('User ID not found in localStorage. Please login again.');
     }
+
+    console.log('[updateProfile] Updating user ID:', userId);
+
+    // Chuẩn bị request data
+    const requestData = {
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      phoneNumber: userData.phoneNumber,
+      gender: userData.gender,
+      avatar: userData.avatar || null,
+      dateOfBirth: userData.dateOfBirth || null
+    };
+
+    console.log('[updateProfile] Request data:', requestData);
+    
+    try {
+      // Dùng axios với error handling
+      const response = await api.put(`/user/profile/${userId}`, requestData);
+      
+      console.log('[updateProfile] Response status:', response.status);
+      console.log('[updateProfile] Response headers:', response.headers);
+      
+      // Phòng trường hợp response.data là string, không phải object
+      let responseData = response.data;
+      if (typeof responseData === 'string') {
+        try {
+          responseData = JSON.parse(responseData);
+          console.log('[updateProfile] Parsed string response:', responseData);
+        } catch (parseError) {
+          console.warn('[updateProfile] Could not parse response as JSON:', parseError);
+          // Nếu không parse được, sử dụng userData làm dữ liệu thay thế
+          responseData = { ...userData };
+        }
+      }
+
+      // Cập nhật localStorage user
+      const updatedUser = {
+        ...currentUser,
+        email: responseData.email || userData.email || currentUser.email,
+        firstName: responseData.firstName || userData.firstName || currentUser.firstName,
+        lastName: responseData.lastName || userData.lastName || currentUser.lastName,
+        phoneNumber: responseData.phoneNumber || userData.phoneNumber || currentUser.phoneNumber,
+        gender: responseData.gender || userData.gender || currentUser.gender,
+        avatar: responseData.avatar || userData.avatar || currentUser.avatar,
+        dateOfBirth: responseData.dateOfBirth || userData.dateOfBirth || currentUser.dateOfBirth,
+        fullName: `${responseData.firstName || userData.firstName || ''} ${responseData.lastName || userData.lastName || ''}`.trim() || currentUser.fullName
+      };
+
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      console.log('[updateProfile] Updated user stored:', updatedUser);
+      
+      return updatedUser;
+    } catch (axiosError) {
+      // Xử lý lỗi từ axios
+      console.error('[updateProfile] Axios error:', axiosError);
+      
+      // Thử direct fetch request nếu axios thất bại
+      console.log('[updateProfile] Trying with fetch API as fallback');
+      
+      const response = await fetch(`http://localhost:8080/api/v1/user/profile/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Lấy response text trước để log
+      const responseText = await response.text();
+      console.log('[updateProfile] Fetch response text:', responseText);
+      
+      // Nếu không có content hoặc rỗng, coi như thành công
+      if (!responseText || responseText.trim() === '') {
+        console.log('[updateProfile] Empty response, treating as success');
+        
+        // Cập nhật localStorage user với userData đã gửi đi
+        const updatedUser = {
+          ...currentUser,
+          ...userData
+        };
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      
+      // Thử parse JSON
+      try {
+        const responseData = JSON.parse(responseText);
+        
+        // Cập nhật localStorage user
+        const updatedUser = {
+          ...currentUser,
+          ...responseData
+        };
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+      } catch (jsonError) {
+        console.error('[updateProfile] JSON parse error:', jsonError);
+        console.log('[updateProfile] Using userData as fallback');
+        
+        // Nếu không parse được, dùng userData
+        const updatedUser = {
+          ...currentUser,
+          ...userData
+        };
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+    }
+  } catch (error) {
+    console.error('[updateProfile] Error:', error);
+    
+    // Kiểm tra nếu là lỗi JSON
+    if (error.message && (
+      error.message.includes('Unexpected token') || 
+      error.message.includes('JSON')
+    )) {
+      console.log('[updateProfile] JSON error detected, attempting to update user locally');
+      
+      // Lấy currentUser từ localStorage
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        // Cập nhật locally
+        const updatedUser = {
+          ...currentUser,
+          ...userData
+        };
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+    }
+    
+    // Re-throw error khác
+    throw error;
   }
+}
+
+ 
+
+
 };
 
 export default authService;
