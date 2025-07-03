@@ -196,9 +196,6 @@ const handleSubmit = async (e) => {
       // Handle successful registration
       console.log('Registration successful:', response);
       
-      // Show success message
-      alert('Đăng ký thành công! Vui lòng đăng nhập.');
-      
       // Redirect to login page
       navigate('/dang-nhap');
     } catch (error) {

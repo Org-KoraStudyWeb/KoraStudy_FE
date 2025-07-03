@@ -1,42 +1,91 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/v1/auth';
+// Base URLs
+const AUTH_API_URL = 'http://localhost:8080/api/v1/auth';
+const USER_API_URL = 'http://localhost:8080/api/v1';
 
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: API_URL,
+// Create axios instances with default configs
+const authApi = axios.create({
+  baseURL: AUTH_API_URL,
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  }
-);
+const userApi = axios.create({
+  baseURL: USER_API_URL,
+  timeout: 10000,
+  headers: { 'Content-Type': 'application/json' },
+});
 
-// Response interceptor to handle token expiration
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/dang-nhap';
+// Helper function to add auth token to requests
+const setupInterceptors = (api) => {
+  api.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
     }
-    return Promise.reject(error);
-  }
-);
+  );
 
-// Auth service methods
- const authService = {
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        window.location.href = '/dang-nhap';
+      }
+      return Promise.reject(error);
+    }
+  );
+};
+
+// Apply interceptors to both API instances
+setupInterceptors(authApi);
+setupInterceptors(userApi);
+
+// Helper function to extract profile data from nested objects
+// Modified to prioritize direct fields as seen in Postman response
+const extractProfileData = (data, field, defaultValue = '') => {
+  if (!data) return defaultValue;
+  
+  // Directly access the field first (as seen in Postman)
+  if (data[field] !== undefined && data[field] !== null) {
+    return data[field];
+  }
+  
+  // Fallback to other possible nested locations
+  const nestedValue = data.user?.[field] || 
+                     data.account?.[field] || 
+                     data.user?.account?.[field];
+                     
+  return nestedValue !== undefined && nestedValue !== null ? nestedValue : defaultValue;
+};
+
+// Helper function to update user in localStorage
+const updateLocalUserData = (currentUser, newData) => {
+  if (!currentUser) return null;
+  
+  const updatedUser = {
+    ...currentUser,
+    ...newData,
+    // Ensure fullName is consistent with first and last name
+    fullName: `${newData.firstName || currentUser.firstName || ''} ${newData.lastName || currentUser.lastName || ''}`.trim() || 
+              newData.fullName || currentUser.fullName || currentUser.username
+  };
+  
+  localStorage.setItem('user', JSON.stringify(updatedUser));
+  
+  // Debug log - remove in production
+  console.log('Updated user data in localStorage:', updatedUser);
+  
+  return updatedUser;
+};
+
+// Main auth service object
+const authService = {
   // Register new user
   register: async (userData) => {
     try {
@@ -47,9 +96,11 @@ api.interceptors.response.use(
         confirmPassword: userData.confirmPassword
       };
 
-      const response = await api.post('/register', registrationData);
+      const response = await authApi.post('/register', registrationData);
+      console.log('Registration successful:', response.data);
       return response.data;
     } catch (error) {
+      console.error('Registration error:', error);
       if (error.response) {
         const message = error.response.data?.message || 'Đăng ký thất bại';
         throw new Error(message);
@@ -61,45 +112,62 @@ api.interceptors.response.use(
     }
   },
 
-
-
-// Login user
+  // Login user
   login: async (credentials) => {
     try {
-      const loginData = {
+      console.log('Attempting login with:', credentials.username);
+      const response = await authApi.post('/login', {
         username: credentials.username,
         password: credentials.password
+      });
+      
+      console.log('Login response received:', response.data);
+      
+      if (!response.data) {
+        throw new Error('Invalid response from server');
+      }
+      
+      // Store token
+      const token = response.data.token || response.data.accessToken;
+      if (token) {
+        localStorage.setItem('authToken', token);
+      }
+      
+      // Get basic user data from login response
+      const userId = response.data.id;
+      if (!userId) {
+        throw new Error('User ID không tồn tại trong response');
+      }
+      
+      const basicUserData = {
+        id: userId,
+        username: response.data.username || credentials.username,
+        roles: response.data.roles || ['USER'],
       };
-
-      console.log('Sending login request:', loginData); // Debug log
-
-      const response = await api.post('/login', loginData);
       
-      console.log('Login response from server:', response.data); // Debug log
-      
-      if (response.data) {
-        // Store token
-        const token = response.data.token || response.data.accessToken;
-        if (token) {
-          localStorage.setItem('authToken', token);
-        }
+      // Fetch complete profile data
+      try {
+        console.log('Fetching profile data for user:', userId);
+        const profileResponse = await userApi.get(`/user/profile/${userId}`);
+        console.log('Profile data received:', profileResponse.data);
         
-        // Tạo user object từ response - sửa lại để lưu đúng ID
+        // Store raw profile data for debugging
+        localStorage.setItem('userProfileRaw', JSON.stringify(profileResponse.data));
+        
+        const profileData = profileResponse.data;
+        
+        // Extract user data from profile response, matching the flat structure seen in Postman
         const userData = {
-          id: response.data.id, // Lấy ID trực tiếp từ response
-          username: response.data.username || credentials.username,
-          email: response.data.email || '',
-          firstName: response.data.firstName || '',
-          lastName: response.data.lastName || '',
-          phoneNumber: response.data.phoneNumber || '',
-          gender: response.data.gender || '',
-          avatar: response.data.avatar || null,
-          dateOfBirth: response.data.dateOfBirth || '',
-          roles: response.data.roles || ['USER'],
-          fullName: response.data.fullName || response.data.name || 
-                  `${response.data.firstName || ''} ${response.data.lastName || ''}`.trim() || 
-                  response.data.username || credentials.username,
-          // Add default stats and other properties
+          ...basicUserData,
+          email: profileData.email || response.data.email || '',
+          firstName: profileData.firstName || response.data.firstName || '',
+          lastName: profileData.lastName || response.data.lastName || '',
+          phoneNumber: profileData.phoneNumber || response.data.phoneNumber || '',
+          gender: profileData.gender || response.data.gender || '',
+          avatar: profileData.avatar || response.data.avatar || null,
+          dateOfBirth: profileData.dateOfBirth || response.data.dateOfBirth || '',
+          fullName: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || 
+                    response.data.fullName || credentials.username,
           stats: {
             totalTests: 0,
             averageScore: 0,
@@ -115,18 +183,42 @@ api.interceptors.response.use(
         };
         
         localStorage.setItem('user', JSON.stringify(userData));
+        console.log('User data stored with full profile:', userData);
         
-        console.log('Stored user data:', userData); // Debug log
+        return { token, user: userData };
+      } catch (profileError) {
+        console.error('Failed to fetch profile data:', profileError);
         
-        return {
-          token: token,
-          user: userData
+        // Fallback: use data from login response
+        const userData = {
+          ...basicUserData,
+          email: response.data.email || '',
+          firstName: response.data.firstName || '',
+          lastName: response.data.lastName || '',
+          phoneNumber: response.data.phoneNumber || '',
+          gender: response.data.gender || '',
+          avatar: response.data.avatar || null,
+          dateOfBirth: response.data.dateOfBirth || '',
+          fullName: response.data.fullName || credentials.username,
+          stats: {
+            totalTests: 0,
+            averageScore: 0,
+            studyStreak: 0,
+            totalStudyHours: 0
+          },
+          preferences: {
+            testLevel: 'TOPIK I',
+            interfaceLanguage: 'Vietnamese'
+          }
         };
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        console.warn('Using basic user data as profile fetch failed');
+        
+        return { token, user: userData };
       }
-      
-      throw new Error('Invalid response from server');
     } catch (error) {
-      console.error('AuthService login error:', error);
+      console.error('Login error:', error);
       if (error.response) {
         const message = error.response.data?.message || 'Đăng nhập thất bại';
         throw new Error(message);
@@ -138,50 +230,84 @@ api.interceptors.response.use(
     }
   },
 
-
-
   // Logout user
   logout: async () => {
     try {
-      await api.post('/logout');
+      await authApi.post('/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('userProfileRaw'); // Also remove debug data
     }
   },
 
-
-// Get current user from localStorage
-getCurrentUser: () => {
-  try {
-    const userString = localStorage.getItem('user');
-    console.log('Raw user string from localStorage:', userString); // Debug log
-    
-    if (!userString) {
-      console.log('No user data in localStorage'); // Debug log
+  // Get current user from localStorage and refresh data if needed
+  getCurrentUser: () => {
+    try {
+      const userString = localStorage.getItem('user');
+      if (!userString) {
+        return null;
+      }
+      
+      const parsedUser = JSON.parse(userString);
+      
+      // Always fetch fresh profile data on page load
+      if (parsedUser?.id) {
+        console.log('Refreshing user data on page load for ID:', parsedUser.id);
+        
+        // Fetch profile asynchronously but return current user immediately
+        (async () => {
+          try {
+            const profileResponse = await userApi.get(`/user/profile/${parsedUser.id}`);
+            if (profileResponse.data) {
+              console.log('Fresh profile data received:', profileResponse.data);
+              
+              // Store raw data for debugging
+              localStorage.setItem('userProfileRaw', JSON.stringify(profileResponse.data));
+              
+              const profileData = profileResponse.data;
+              
+              // Update user with fresh profile data, matching flat structure
+              const updatedUser = {
+                ...parsedUser,
+                email: profileData.email || parsedUser.email || '',
+                firstName: profileData.firstName || parsedUser.firstName || '',
+                lastName: profileData.lastName || parsedUser.lastName || '',
+                phoneNumber: profileData.phoneNumber || parsedUser.phoneNumber || '',
+                gender: profileData.gender || parsedUser.gender || '',
+                avatar: profileData.avatar || parsedUser.avatar || null,
+                dateOfBirth: profileData.dateOfBirth || parsedUser.dateOfBirth || '',
+                fullName: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || 
+                          parsedUser.fullName || parsedUser.username
+              };
+              
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              console.log('User data updated with fresh profile');
+              
+              // Force a UI update by dispatching a custom event
+              window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
+                detail: updatedUser 
+              }));
+            }
+          } catch (error) {
+            console.error('Failed to refresh profile data:', error);
+          }
+        })();
+      }
+      
+      return parsedUser;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      localStorage.removeItem('user');
       return null;
     }
-    
-    const parsedUser = JSON.parse(userString);
-    console.log('Parsed user data:', parsedUser); // Debug log
-    console.log('User ID:', parsedUser?.id); // Debug log
-    
-    return parsedUser;
-  } catch (error) {
-    console.error('Error parsing user data:', error);
-    localStorage.removeItem('user'); // Xóa dữ liệu lỗi
-    return null;
-  }
-},
+  },
 
-
-  // Get current token
+  // Get authentication token
   getToken: () => {
-    const token = localStorage.getItem('authToken');
-    console.log('getToken:', token); // Debug log
-    return token;
+    return localStorage.getItem('authToken');
   },
 
   // Check if user is authenticated
@@ -191,10 +317,10 @@ getCurrentUser: () => {
     return !!(token && user);
   },
 
-  // Other methods...
+  // Refresh authentication token
   refreshToken: async () => {
     try {
-      const response = await api.post('/refresh');
+      const response = await authApi.post('/refresh');
       if (response.data.token || response.data.accessToken) {
         localStorage.setItem('authToken', response.data.token || response.data.accessToken);
         return response.data.token || response.data.accessToken;
@@ -206,9 +332,10 @@ getCurrentUser: () => {
     }
   },
 
+  // Send password reset request
   forgotPassword: async (email) => {
     try {
-      const response = await api.post('/forgot-password', { email });
+      const response = await authApi.post('/forgot-password', { email });
       return response.data;
     } catch (error) {
       if (error.response) {
@@ -218,163 +345,159 @@ getCurrentUser: () => {
     }
   },
 
+  // Update user profile
   updateProfile: async (userData) => {
-  try {
-    // Lấy user hiện tại từ localStorage
-    const currentUser = authService.getCurrentUser();
-    const userId = currentUser?.id;
-    if (!userId) {
-      throw new Error('User ID not found in localStorage. Please login again.');
-    }
-
-    console.log('[updateProfile] Updating user ID:', userId);
-
-    // Chuẩn bị request data
-    const requestData = {
-      email: userData.email,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      phoneNumber: userData.phoneNumber,
-      gender: userData.gender,
-      avatar: userData.avatar || null,
-      dateOfBirth: userData.dateOfBirth || null
-    };
-
-    console.log('[updateProfile] Request data:', requestData);
-    
     try {
-      // Dùng axios với error handling
-      const response = await api.put(`/user/profile/${userId}`, requestData);
+      const currentUser = authService.getCurrentUser();
+      const userId = currentUser?.id;
       
-      console.log('[updateProfile] Response status:', response.status);
-      console.log('[updateProfile] Response headers:', response.headers);
-      
-      // Phòng trường hợp response.data là string, không phải object
-      let responseData = response.data;
-      if (typeof responseData === 'string') {
-        try {
-          responseData = JSON.parse(responseData);
-          console.log('[updateProfile] Parsed string response:', responseData);
-        } catch (parseError) {
-          console.warn('[updateProfile] Could not parse response as JSON:', parseError);
-          // Nếu không parse được, sử dụng userData làm dữ liệu thay thế
-          responseData = { ...userData };
-        }
+      if (!userId) {
+        throw new Error('User ID not found. Please login again.');
       }
 
-      // Cập nhật localStorage user
-      const updatedUser = {
-        ...currentUser,
-        email: responseData.email || userData.email || currentUser.email,
-        firstName: responseData.firstName || userData.firstName || currentUser.firstName,
-        lastName: responseData.lastName || userData.lastName || currentUser.lastName,
-        phoneNumber: responseData.phoneNumber || userData.phoneNumber || currentUser.phoneNumber,
-        gender: responseData.gender || userData.gender || currentUser.gender,
-        avatar: responseData.avatar || userData.avatar || currentUser.avatar,
-        dateOfBirth: responseData.dateOfBirth || userData.dateOfBirth || currentUser.dateOfBirth,
-        fullName: `${responseData.firstName || userData.firstName || ''} ${responseData.lastName || userData.lastName || ''}`.trim() || currentUser.fullName
+      const requestData = {
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phoneNumber: userData.phoneNumber,
+        gender: userData.gender,
+        avatar: userData.avatar || null,
+        dateOfBirth: userData.dateOfBirth || null
       };
 
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      console.log('[updateProfile] Updated user stored:', updatedUser);
+      console.log('Updating profile for user:', userId, requestData);
       
-      return updatedUser;
-    } catch (axiosError) {
-      // Xử lý lỗi từ axios
-      console.error('[updateProfile] Axios error:', axiosError);
-      
-      // Thử direct fetch request nếu axios thất bại
-      console.log('[updateProfile] Trying with fetch API as fallback');
-      
-      const response = await fetch(`http://localhost:8080/api/v1/user/profile/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify(requestData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      // Lấy response text trước để log
-      const responseText = await response.text();
-      console.log('[updateProfile] Fetch response text:', responseText);
-      
-      // Nếu không có content hoặc rỗng, coi như thành công
-      if (!responseText || responseText.trim() === '') {
-        console.log('[updateProfile] Empty response, treating as success');
-        
-        // Cập nhật localStorage user với userData đã gửi đi
-        const updatedUser = {
-          ...currentUser,
-          ...userData
-        };
-        
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        return updatedUser;
-      }
-      
-      // Thử parse JSON
       try {
-        const responseData = JSON.parse(responseText);
+        const response = await userApi.put(`/user/profile/${userId}`, requestData);
+        console.log('Profile updated successfully:', response.data);
         
-        // Cập nhật localStorage user
-        const updatedUser = {
-          ...currentUser,
+        // Parse response if it's a string
+        let responseData = response.data;
+        if (typeof responseData === 'string' && responseData.trim() !== '') {
+          try {
+            responseData = JSON.parse(responseData);
+          } catch (parseError) {
+            console.warn('Could not parse response as JSON');
+            responseData = {};
+          }
+        }
+        
+        // Update local user data
+        const updatedUser = updateLocalUserData(currentUser, {
+          ...requestData,
           ...responseData
-        };
+        });
         
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        // Force a UI update by dispatching a custom event
+        window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
+          detail: updatedUser 
+        }));
+        
         return updatedUser;
-      } catch (jsonError) {
-        console.error('[updateProfile] JSON parse error:', jsonError);
-        console.log('[updateProfile] Using userData as fallback');
+      } catch (error) {
+        console.error('Error updating profile with axios:', error);
         
-        // Nếu không parse được, dùng userData
-        const updatedUser = {
-          ...currentUser,
-          ...userData
-        };
+        // Try fallback with fetch API
+        console.log('Trying fallback with fetch API');
         
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        const response = await fetch(`${USER_API_URL}/user/profile/${userId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          },
+          body: JSON.stringify(requestData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Handle the response
+        const responseText = await response.text();
+        let responseData = {};
+        
+        if (responseText && responseText.trim() !== '') {
+          try {
+            responseData = JSON.parse(responseText);
+          } catch (parseError) {
+            console.warn('Could not parse fetch response as JSON');
+          }
+        }
+        
+        // Update local user data
+        const updatedUser = updateLocalUserData(currentUser, {
+          ...requestData,
+          ...responseData
+        });
+        
+        // Force a UI update
+        window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
+          detail: updatedUser 
+        }));
+        
         return updatedUser;
       }
-    }
-  } catch (error) {
-    console.error('[updateProfile] Error:', error);
-    
-    // Kiểm tra nếu là lỗi JSON
-    if (error.message && (
-      error.message.includes('Unexpected token') || 
-      error.message.includes('JSON')
-    )) {
-      console.log('[updateProfile] JSON error detected, attempting to update user locally');
+    } catch (error) {
+      console.error('Profile update error:', error);
       
-      // Lấy currentUser từ localStorage
+      // If it's just a parsing error, try to update locally
+      if (error.message && (
+        error.message.includes('Unexpected token') || 
+        error.message.includes('JSON')
+      )) {
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+          console.log('Updating user data locally due to JSON error');
+          return updateLocalUserData(currentUser, userData);
+        }
+      }
+      
+      throw error;
+    }
+  },
+  
+  // Force refresh user profile data
+  refreshUserProfile: async () => {
+    try {
       const currentUser = authService.getCurrentUser();
-      if (currentUser) {
-        // Cập nhật locally
+      if (!currentUser?.id) return null;
+      
+      const profileResponse = await userApi.get(`/user/profile/${currentUser.id}`);
+      if (profileResponse.data) {
+        const profileData = profileResponse.data;
+        
+        // Update user with fresh profile data
         const updatedUser = {
           ...currentUser,
-          ...userData
+          email: profileData.email || currentUser.email || '',
+          firstName: profileData.firstName || currentUser.firstName || '',
+          lastName: profileData.lastName || currentUser.lastName || '',
+          phoneNumber: profileData.phoneNumber || currentUser.phoneNumber || '',
+          gender: profileData.gender || currentUser.gender || '',
+          avatar: profileData.avatar || currentUser.avatar || null,
+          dateOfBirth: profileData.dateOfBirth || currentUser.dateOfBirth || '',
+          fullName: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || 
+                    currentUser.fullName || currentUser.username
         };
         
         localStorage.setItem('user', JSON.stringify(updatedUser));
+        console.log('User profile manually refreshed');
+        
+        // Force a UI update
+        window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
+          detail: updatedUser 
+        }));
+        
         return updatedUser;
       }
+      
+      return currentUser;
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
+      return null;
     }
-    
-    // Re-throw error khác
-    throw error;
   }
-}
-
- 
-
-
 };
 
 export default authService;
