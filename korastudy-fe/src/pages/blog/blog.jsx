@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import BlogCard from '../../components/BlogCard.jsx';
-import BlogCategories from '../../components/BlogCategories.jsx';
-import BlogTags from '../../components/BlogTags.jsx';
-import BlogSearch from '../../components/BlogSearch.jsx';
+import BlogCard from '../../components/BlogComponent/BlogCard.jsx';
+import BlogCategories from '../../components/BlogComponent/BlogCategories.jsx';
+import BlogTags from '../../components/BlogComponent/BlogTags.jsx';
+import BlogSearch from '../../components/BlogComponent/BlogSearch.jsx';
 import { blogService } from '../../api/blogService';
 
 const Blog = () => {

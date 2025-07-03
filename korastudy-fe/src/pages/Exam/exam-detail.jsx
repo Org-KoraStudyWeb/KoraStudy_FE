@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Clock, Users, Star, BookOpen, Award, Play, FileText, CheckCircle, AlertCircle, User } from 'lucide-react';
 
-import ExamQuestion from '@components/ExamQuestion.jsx';
+import ExamQuestion from '@components/ExamComponent/ExamQuestion.jsx';
 
 const ExamDetail = () => {
   const { id } = useParams();

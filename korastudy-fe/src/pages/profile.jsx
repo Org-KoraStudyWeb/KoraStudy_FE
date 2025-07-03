@@ -128,9 +128,17 @@ const Profile = () => {
     return (first + last).toUpperCase() || 'U';
   };
 
-  const getFullName = (firstName, lastName) => {
-    return `${firstName || ''} ${lastName || ''}`.trim() || user?.username || 'User';
-  };
+  // Đảm bảo function này được sử dụng nhất quán
+
+const getFullName = (firstName, lastName) => {
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`.trim();
+  }
+  if (firstName || lastName) {
+    return (firstName || lastName).trim();
+  }
+  return user?.username || 'User';
+};
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('vi-VN');
