@@ -35,7 +35,12 @@ const setupInterceptors = (api) => {
       if (error.response?.status === 401) {
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
-        window.location.href = '/dang-nhap';
+        
+        // Chỉ chuyển hướng nếu KHÔNG đang ở trang đăng nhập
+        const currentPath = window.location.pathname;
+        if (currentPath !== '/dang-nhap' && currentPath !== '/login') {
+          window.location.href = '/dang-nhap';
+        }
       }
       return Promise.reject(error);
     }

@@ -30,7 +30,7 @@ const LoginForm = ({
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="w-full">
+      <form onSubmit={handleSubmit} className="w-full" noValidate>
         {/* Username Field */}
         <div className="mb-4 lg:mb-5">
           <label htmlFor="username" className="block font-inter font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
