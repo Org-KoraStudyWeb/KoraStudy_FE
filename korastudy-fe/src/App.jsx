@@ -14,7 +14,7 @@ import Courses from '@pages/Course/courses.jsx';
 import CourseDetail from '@/pages/Course/course-details.jsx';
 import Profile from '@/pages/profile.jsx';
 // Import auth pages
-import Login from '@pages/auth/login.jsx';
+import LoginPage from './pages/auth/LoginPage';
 import Register from '@pages/auth/register.jsx';
 import ForgotPassword from '@pages/auth/forgot-password.jsx';
 // Import other pages
@@ -55,7 +55,7 @@ function App() {
               
               {/* Public routes */}
               <Route path="/" element={<Home />} />
-              <Route path="/dang-nhap" element={<Login />} />
+              <Route path="/dang-nhap" element={<LoginPage />} />
               <Route path="/dang-ky" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
 
