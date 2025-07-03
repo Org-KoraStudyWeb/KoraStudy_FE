@@ -125,18 +125,14 @@ const LoginContainer = () => {
         
         console.log('Login successful, response:', response);
         
+        // Chuyển hướng đến trang chủ mà không reload trang
+        navigate('/', { replace: true });
         
-        
-        // Small delay to ensure state is updated
-        setTimeout(() => {
-          navigate('/', { replace: true });
-          // Force page reload to ensure all components get the updated user state
-          window.location.reload();
-        }, 100);
         
       } catch (error) {
         console.error('Login error:', error);
-        setApiError(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+        // Thay thông báo lỗi thành "Sai mật khẩu hoặc tài khoản, hãy thử lại"
+        setApiError('Sai mật khẩu hoặc tài khoản, hãy thử lại');
       } finally {
         setIsLoading(false);
       }
