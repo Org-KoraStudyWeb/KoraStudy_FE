@@ -4,7 +4,7 @@ import { Search, Filter, Clock, Users, Star, ChevronLeft, ChevronRight } from 'l
 
 import NavBar from '@components/NavBar';
 import Footer from '@components/Footer';
-import ExamCard from '@components/ExamCard';
+import ExamCard from '@components/ExamComponent/ExamCard';
 
 
 const Exams = () => {

@@ -37,8 +37,15 @@ const NavBar = () => {
 
   // Get display name for user
   const getDisplayName = () => {
-    return user?.fullName || user?.username || user?.name || 'User';
-  };
+  // Replace with this code:
+  if (user?.firstName && user?.lastName) {
+    return `${user.firstName} ${user.lastName}`;
+  }
+  if (user?.firstName) {
+    return user.firstName;
+  }
+  return user?.fullName || user?.username || user?.name || 'User';
+};
 
   // Close user menu when clicking outside
   React.useEffect(() => {
@@ -55,6 +62,8 @@ const NavBar = () => {
   }, [showUserMenu]);
 
   console.log('NavBar - isAuthenticated:', isAuthenticated(), 'user:', user); // Debug log
+
+  
 
   return (
     <>
