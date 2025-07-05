@@ -1,10 +1,21 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import { toast } from 'react-toastify';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = () => {
   const { isAuthenticated, loading } = useUser();
   const location = useLocation();
+  const toastShown = useRef(false);
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated() && !toastShown.current) {
+      toast.warn("Bạn cần đăng nhập để truy cập trang này.", {
+        toastId: "auth-required", // Thêm ID để ngăn thông báo trùng lặp
+      });
+      toastShown.current = true; // Đánh dấu là đã hiển thị thông báo
+    }
+  }, [loading, isAuthenticated]);
 
   // Show loading while checking authentication
   if (loading) {
@@ -23,8 +34,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/dang-nhap" state={{ from: location }} replace />;
   }
 
-  // If authenticated, render the protected component
-  return children;
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

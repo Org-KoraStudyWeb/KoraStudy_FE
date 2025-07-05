@@ -1,45 +1,129 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useScroll, useTransform, useInView } from 'framer-motion';
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
 import { 
   Play, BookOpen, Users, Award, Star, ArrowRight, 
   CheckCircle, ChevronLeft, ChevronRight, Sparkles, Zap, Target
 } from 'lucide-react';
 
+// Memoized components to prevent unnecessary re-renders
+const MemoizedIcon = memo(({ children }) => children);
+
+// Optimized banner component with AnimatePresence
+const BannerSlider = memo(({ banners, currentBanner, prevBanner, nextBanner }) => {
+  return (
+    <div className="relative z-10 overflow-hidden rounded-3xl shadow-2xl">
+      <div className="relative h-full w-full">
+        <AnimatePresence initial={false} mode="wait">
+          <motion.div
+            key={currentBanner}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="w-full"
+          >
+            <img
+              src={banners[currentBanner]}
+              alt={`Korean Learning Platform - Slide ${currentBanner + 1}`}
+              className="w-full h-auto object-cover"
+              style={{ willChange: 'transform' }}
+              loading="eager"
+            />
+          </motion.div>
+        </AnimatePresence>
+          
+        {/* Navigation Arrows with improved performance */}
+        <motion.button 
+          onClick={prevBanner}
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl z-10 backdrop-blur-sm"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          aria-label="Previous banner"
+          style={{ willChange: 'transform' }}
+        >
+          <ChevronLeft className="w-6 h-6 text-gray-800" />
+        </motion.button>
+        
+        <motion.button 
+          onClick={nextBanner}
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl z-10 backdrop-blur-sm"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          aria-label="Next banner"
+          style={{ willChange: 'transform' }}
+        >
+          <ChevronRight className="w-6 h-6 text-gray-800" />
+        </motion.button>
+        
+        {/* Optimized Indicators */}
+        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-3">
+          {banners.map((_, index) => (
+            <motion.button
+              key={index}
+              onClick={() => {}}
+              className={`h-3 rounded-full transition-all duration-300 ${
+                currentBanner === index ? 'bg-blue-500 w-8' : 'bg-white/60 w-3'
+              }`}
+              whileHover={{ scale: 1.2 }}
+              style={{ willChange: 'transform' }}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Memoized animated section to prevent unnecessary re-renders
+const AnimatedSection = memo(({ children, className = "", delay = 0 }) => {
+  const ref = React.useRef(null);
+  const isInView = useInView(ref, { once: true, threshold: 0.1, margin: "0px 0px 100px 0px" });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+      transition={{ duration: 0.6, ease: "easeOut", delay }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+});
+
 const Home = () => {
-  // Banner slider state và functionality
   const [currentBanner, setCurrentBanner] = useState(0);
-  const banners = [
+  const banners = useMemo(() => [
     '/banner/banner1.png',
     '/banner/banner2.png',
-    '/banner/banner3.png',
-    '/banner/banner4.png'
-  ];
+    '/banner/banner1.png',
+    '/banner/banner2.png'
+  ], []);
 
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 300], [0, -50]);
   const y2 = useTransform(scrollY, [0, 300], [0, -100]);
 
-  // Auto-slide effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % banners.length);
-    }, 5000);
-    
-    return () => clearInterval(interval);
+  // Optimized banner navigation with useCallback
+  const prevBanner = useCallback(() => {
+    setCurrentBanner((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
   }, [banners.length]);
 
-  // Navigation functions
-  const prevBanner = () => {
-    setCurrentBanner((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
-  };
-
-  const nextBanner = () => {
+  const nextBanner = useCallback(() => {
     setCurrentBanner((prev) => (prev + 1) % banners.length);
-  };
+  }, [banners.length]);
   
-  // Features
-  const features = [
+  // Auto-slide with proper cleanup and optimization
+  useEffect(() => {
+    const interval = setInterval(nextBanner, 5000);
+    return () => clearInterval(interval);
+  }, [nextBanner]);
+  
+  // Memoized data objects to prevent recreating on every render
+  const features = useMemo(() => [
     {
       icon: <BookOpen className="w-8 h-8" />,
       title: "Tài liệu phong phú",
@@ -58,10 +142,9 @@ const Home = () => {
       description: "Đề thi thử và bài luyện tập chuẩn format TOPIK",
       color: "from-orange-500 to-red-500"
     }
-  ];
+  ], []);
 
-  // Testimonials
-  const testimonials = [
+  const testimonials = useMemo(() => [
     {
       name: "Nguyễn Minh Anh",
       level: "TOPIK 5",
@@ -80,18 +163,16 @@ const Home = () => {
       content: "Đề thi thử của KoraStudy giúp mình chuẩn bị tốt cho kỳ thi TOPIK. Kết quả vượt ngoài mong đợi!",
       avatar: "/api/placeholder/60/60"
     }
-  ];
+  ], []);
 
-  // Stats
-  const stats = [
+  const stats = useMemo(() => [
     { number: "10,000+", label: "Học viên", icon: <Users className="w-6 h-6" /> },
     { number: "1,000+", label: "Tài liệu", icon: <BookOpen className="w-6 h-6" /> },
     { number: "95%", label: "Tỷ lệ đậu TOPIK", icon: <Target className="w-6 h-6" /> },
     { number: "24/7", label: "Hỗ trợ", icon: <Zap className="w-6 h-6" /> }
-  ];
+  ], []);
 
-  // Courses
-  const courses = [
+  const courses = useMemo(() => [
     {
       title: "TOPIK I (Level 1-2)",
       description: "Dành cho người mới bắt đầu học tiếng Hàn",
@@ -117,15 +198,16 @@ const Home = () => {
       price: "499,000đ",
       image: "/api/placeholder/300/200"
     }
-  ];
+  ], []);
 
-  // Animation variants
+  // Optimized animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.1,
+        delayChildren: 0.1
       }
     }
   };
@@ -136,34 +218,24 @@ const Home = () => {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
+        duration: 0.5,
         ease: "easeOut"
       }
     }
   };
 
-  const AnimatedSection = ({ children, className = "" }) => {
-    const ref = React.useRef(null);
-    const isInView = useInView(ref, { once: true, threshold: 0.1 });
-
-    return (
-      <motion.div
-        ref={ref}
-        initial={{ opacity: 0, y: 50 }}
-        animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className={className}
-      >
-        {children}
-      </motion.div>
-    );
-  };
+  // Trust indicators with reduced animation complexity
+  const trustIndicators = useMemo(() => [
+    "Miễn phí đăng ký",
+    "Không cam kết dài hạn", 
+    "Hỗ trợ 24/7"
+  ], []);
 
   return (
     <div className="min-h-screen overflow-hidden">
-      {/* Hero Section */}
+      {/* Hero Section with optimized animations */}
       <section className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 py-20 px-4 overflow-hidden">
-        {/* Animated Background Elements */}
+        {/* Reduced complexity background elements */}
         <motion.div
           style={{ y: y1 }}
           className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
@@ -173,7 +245,7 @@ const Home = () => {
           className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl"
         />
         
-        {/* Floating Elements */}
+        {/* Simplified floating elements with hardware acceleration */}
         <motion.div
           animate={{ 
             y: [0, -20, 0],
@@ -185,6 +257,7 @@ const Home = () => {
             ease: "easeInOut"
           }}
           className="absolute top-32 right-20 text-blue-400/30"
+          style={{ willChange: 'transform' }}
         >
           <Sparkles size={40} />
         </motion.div>
@@ -201,79 +274,77 @@ const Home = () => {
             delay: 1
           }}
           className="absolute bottom-40 left-20 text-purple-400/30"
+          style={{ willChange: 'transform' }}
         >
           <Star size={32} />
         </motion.div>
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="flex flex-col lg:flex-row items-center gap-12">
-            {/* Left Content */}
+            {/* Left Content - Optimized animations */}
             <motion.div 
               className="flex-1 text-center lg:text-left"
-              initial={{ opacity: 0, x: -50 }}
+              initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
             >
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
                 className="inline-flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300 mb-6 border border-gray-200/50 dark:border-gray-700/50"
               >
-                <Sparkles size={16} className="text-blue-500" />
+                <MemoizedIcon><Sparkles size={16} className="text-blue-500" /></MemoizedIcon>
                 Nền tảng học tiếng Hàn #1 Việt Nam
               </motion.div>
 
               <motion.h1 
                 className="font-inter font-bold text-5xl lg:text-7xl leading-tight text-gray-800 dark:text-white mb-6"
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
               >
                 Để tiếng Hàn<br />
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent animate-pulse">
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
                   không còn là trở ngại
                 </span>
               </motion.h1>
 
               <motion.p 
                 className="font-inter text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed"
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
               >
                 Dễ dàng đạt được Level mong muốn với KoraStudy.com<br />
                 <span className="font-semibold text-blue-600 dark:text-blue-400">Hơn 10,000 học viên</span> đã tin tưởng và thành công
               </motion.p>
               
-              {/* CTA Buttons */}
+              {/* CTA Buttons with simplified animations */}
               <motion.div 
                 className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8"
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.5 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
               >
                 <motion.div
-                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  style={{ willChange: 'transform' }}
                 >
                   <Link 
                     to="/dang-ky"
                     className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/25 inline-flex items-center justify-center gap-2 group"
                   >
                     Bắt đầu học ngay
-                    <motion.div
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      <ArrowRight size={20} />
-                    </motion.div>
+                    <ArrowRight size={20} />
                   </Link>
                 </motion.div>
 
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  style={{ willChange: 'transform' }}
                 >
                   <button className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 px-8 py-4 rounded-xl font-semibold text-lg border-2 border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:border-blue-500 hover:text-blue-500 hover:shadow-lg inline-flex items-center justify-center gap-2">
                     <Play size={20} />
@@ -282,24 +353,20 @@ const Home = () => {
                 </motion.div>
               </motion.div>
 
-              {/* Trust Indicators */}
+              {/* Trust Indicators with simplified animations */}
               <motion.div 
                 className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm text-gray-600 dark:text-gray-400"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.6 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
               >
-                {[
-                  "Miễn phí đăng ký",
-                  "Không cam kết dài hạn", 
-                  "Hỗ trợ 24/7"
-                ].map((text, index) => (
+                {trustIndicators.map((text, index) => (
                   <motion.div 
                     key={text}
                     className="flex items-center gap-2"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.7 + index * 0.1 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.4, delay: 0.7 + index * 0.1 }}
                   >
                     <CheckCircle size={16} className="text-green-500" />
                     <span>{text}</span>
@@ -308,73 +375,21 @@ const Home = () => {
               </motion.div>
             </motion.div>
 
-            {/* Right Content - Enhanced Hero Image with Slider */}
+            {/* Right Content - Optimized banner slider */}
             <motion.div 
               className="flex-1 relative"
-              initial={{ opacity: 0, x: 50 }}
+              initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <div className="relative z-10 overflow-hidden rounded-3xl shadow-2xl">
-                {/* Banner Images */}
-                <div className="relative">
-                  <motion.div 
-                    className="flex transition-transform duration-700 ease-out" 
-                    style={{ transform: `translateX(-${currentBanner * 100}%)` }}
-                    key={currentBanner}
-                  >
-                    {banners.map((banner, index) => (
-                      <motion.img
-                        key={index}
-                        src={banner}
-                        alt={`Korean Learning Platform - Slide ${index + 1}`}
-                        className="w-full h-auto min-w-full object-cover"
-                        initial={{ scale: 1.1 }}
-                        animate={{ scale: 1 }}
-                        transition={{ duration: 0.7 }}
-                      />
-                    ))}
-                  </motion.div>
-                  
-                  {/* Enhanced Navigation Arrows */}
-                  <motion.button 
-                    onClick={prevBanner}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl z-10 backdrop-blur-sm"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    aria-label="Previous banner"
-                  >
-                    <ChevronLeft className="w-6 h-6 text-gray-800" />
-                  </motion.button>
-                  
-                  <motion.button 
-                    onClick={nextBanner}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-xl z-10 backdrop-blur-sm"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    aria-label="Next banner"
-                  >
-                    <ChevronRight className="w-6 h-6 text-gray-800" />
-                  </motion.button>
-                  
-                  {/* Enhanced Indicators */}
-                  <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-3">
-                    {banners.map((_, index) => (
-                      <motion.button
-                        key={index}
-                        onClick={() => setCurrentBanner(index)}
-                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                          currentBanner === index ? 'bg-blue-500 w-8' : 'bg-white/60'
-                        }`}
-                        whileHover={{ scale: 1.2 }}
-                        aria-label={`Go to slide ${index + 1}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <BannerSlider 
+                banners={banners} 
+                currentBanner={currentBanner} 
+                prevBanner={prevBanner}
+                nextBanner={nextBanner}
+              />
               
-              {/* Enhanced Background Decorations */}
+              {/* Simplified background decorations */}
               <motion.div 
                 className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-full blur-3xl"
                 animate={{ 
@@ -384,7 +399,8 @@ const Home = () => {
                 transition={{ 
                   duration: 4,
                   repeat: Infinity,
-                  ease: "easeInOut"
+                  ease: "easeInOut",
+                  repeatType: "mirror"
                 }}
               />
               <motion.div 
@@ -397,7 +413,8 @@ const Home = () => {
                   duration: 3,
                   repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 1
+                  delay: 1,
+                  repeatType: "mirror"
                 }}
               />
             </motion.div>
@@ -405,7 +422,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Enhanced Stats Section */}
+      {/* Enhanced Stats Section with lazy loading */}
       <AnimatedSection className="py-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4">
           <motion.div 
@@ -413,18 +430,19 @@ const Home = () => {
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0.2 }}
           >
             {stats.map((stat, index) => (
               <motion.div 
                 key={index} 
                 className="text-center group"
                 variants={itemVariants}
-                whileHover={{ scale: 1.05, y: -5 }}
+                whileHover={{ y: -5 }}
+                style={{ willChange: 'transform' }}
               >
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 p-6 rounded-2xl mb-4 group-hover:shadow-lg transition-all duration-300">
                   <div className="text-blue-500 mb-2 flex justify-center">
-                    {stat.icon}
+                    <MemoizedIcon>{stat.icon}</MemoizedIcon>
                   </div>
                   <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">{stat.number}</div>
                   <div className="text-gray-600 dark:text-gray-400 font-medium">{stat.label}</div>
@@ -435,15 +453,15 @@ const Home = () => {
         </div>
       </AnimatedSection>
 
-      {/* Enhanced Features Section */}
-      <AnimatedSection className="py-20 bg-gray-50 dark:bg-gray-800">
+      {/* Features Section with optimized animations */}
+      <AnimatedSection className="py-20 bg-gray-50 dark:bg-gray-800" delay={0.1}>
         <div className="max-w-7xl mx-auto px-4">
           <motion.div 
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
           >
             <h2 className="font-inter font-bold text-4xl text-gray-800 dark:text-white mb-4">
               Tại sao chọn KoraStudy?
@@ -458,20 +476,22 @@ const Home = () => {
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0.2 }}
           >
             {features.map((feature, index) => (
               <motion.div 
                 key={index} 
                 className="bg-white dark:bg-gray-700 p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 group"
                 variants={itemVariants}
-                whileHover={{ y: -10, scale: 1.02 }}
+                whileHover={{ y: -10 }}
+                style={{ willChange: 'transform' }}
               >
                 <motion.div 
                   className={`w-16 h-16 bg-gradient-to-r ${feature.color} rounded-xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-300`}
                   whileHover={{ rotate: 5 }}
+                  style={{ willChange: 'transform' }}
                 >
-                  {feature.icon}
+                  <MemoizedIcon>{feature.icon}</MemoizedIcon>
                 </motion.div>
                 <h3 className="font-semibold text-xl text-gray-800 dark:text-white mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
                   {feature.title}
@@ -485,15 +505,15 @@ const Home = () => {
         </div>
       </AnimatedSection>
 
-      {/* Enhanced Courses Section */}
-      <AnimatedSection className="py-20 bg-white dark:bg-gray-900">
+      {/* Courses Section with optimized animations */}
+      <AnimatedSection className="py-20 bg-white dark:bg-gray-900" delay={0.2}>
         <div className="max-w-7xl mx-auto px-4">
           <motion.div 
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
           >
             <h2 className="font-inter font-bold text-4xl text-gray-800 dark:text-white mb-4">
               Khóa học phổ biến
@@ -508,14 +528,15 @@ const Home = () => {
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0.2 }}
           >
             {courses.map((course, index) => (
               <motion.div 
                 key={index} 
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 group relative"
                 variants={itemVariants}
-                whileHover={{ y: -10, scale: 1.02 }}
+                whileHover={{ y: -10 }}
+                style={{ willChange: 'transform' }}
               >
                 {course.popular && (
                   <div className="absolute top-4 left-4 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold z-10">
@@ -526,7 +547,12 @@ const Home = () => {
                   <img 
                     src={course.image} 
                     alt={course.title}
-                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-48 object-cover transition-transform duration-500"
+                    style={{ 
+                      willChange: 'transform',
+                      transform: 'translateZ(0)' // Force GPU acceleration
+                    }}
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
@@ -552,6 +578,7 @@ const Home = () => {
                     <motion.div
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
+                      style={{ willChange: 'transform' }}
                     >
                       <Link 
                         to="/dang-ky"
@@ -568,32 +595,26 @@ const Home = () => {
         </div>
       </AnimatedSection>
 
-      {/* Enhanced Testimonials Section */}
-      <AnimatedSection className="py-20 bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-600 relative overflow-hidden">
-        {/* Background Animation */}
+      {/* Testimonials Section with optimized animations */}
+      <AnimatedSection className="py-20 bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-600 relative overflow-hidden" delay={0.3}>
+        {/* Simplified background animation */}
         <motion.div
           className="absolute inset-0 opacity-10"
-          animate={{
-            backgroundPosition: ["0% 0%", "100% 100%"],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            repeatType: "reverse",
-          }}
           style={{
             backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
             backgroundSize: "50px 50px",
+            willChange: 'background-position',
+            transform: 'translateZ(0)' // Force GPU acceleration
           }}
         />
         
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.div 
             className="text-center mb-16"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
           >
             <h2 className="font-inter font-bold text-4xl text-white mb-4">
               Học viên nói gì về chúng tôi?
@@ -608,25 +629,23 @@ const Home = () => {
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0.2 }}
           >
             {testimonials.map((testimonial, index) => (
               <motion.div 
                 key={index} 
                 className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300"
                 variants={itemVariants}
-                whileHover={{ scale: 1.05, y: -5 }}
+                whileHover={{ y: -5 }}
+                style={{ willChange: 'transform' }}
               >
                 <div className="flex items-center mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <motion.div
+                    <Star 
                       key={i}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.1 + i * 0.1 }}
-                    >
-                      <Star size={16} className="text-yellow-400 fill-current" />
-                    </motion.div>
+                      size={16} 
+                      className="text-yellow-400 fill-current" 
+                    />
                   ))}
                 </div>
                 <p className="text-white/90 mb-6 leading-relaxed">"{testimonial.content}"</p>
@@ -635,6 +654,7 @@ const Home = () => {
                     src={testimonial.avatar} 
                     alt={testimonial.name}
                     className="w-12 h-12 rounded-full border-2 border-white/20"
+                    loading="lazy"
                   />
                   <div>
                     <div className="font-semibold text-white">{testimonial.name}</div>
@@ -647,50 +667,53 @@ const Home = () => {
         </div>
       </AnimatedSection>
 
-      {/* Enhanced CTA Section */}
-      <AnimatedSection className="py-20 bg-gray-900 dark:bg-black relative overflow-hidden">
+      {/* CTA Section with optimized animations */}
+      <AnimatedSection className="py-20 bg-gray-900 dark:bg-black relative overflow-hidden" delay={0.4}>
         <motion.div
           className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"
           animate={{
-            opacity: [0.2, 0.4, 0.2],
+            opacity: [0.2, 0.3, 0.2],
           }}
           transition={{
             duration: 4,
             repeat: Infinity,
             ease: "easeInOut",
+            repeatType: "mirror"
           }}
+          style={{ willChange: 'opacity' }}
         />
         
         <div className="max-w-4xl mx-auto text-center px-4 relative z-10">
           <motion.h2 
             className="font-inter font-bold text-4xl text-white mb-6"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
           >
             Sẵn sàng bắt đầu hành trình học tiếng Hàn?
           </motion.h2>
           <motion.p 
             className="text-xl text-gray-300 mb-8"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
           >
             Tham gia cùng hàng nghìn học viên đã thành công với KoraStudy
           </motion.p>
           
           <motion.div 
             className="flex flex-col sm:flex-row gap-4 justify-center"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
             <motion.div
-              whileHover={{ scale: 1.05, y: -2 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              style={{ willChange: 'transform' }}
             >
               <Link 
                 to="/dang-ky"
@@ -703,6 +726,7 @@ const Home = () => {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              style={{ willChange: 'transform' }}
             >
               <Link 
                 to="/lien-he"
