@@ -2,8 +2,8 @@ import react, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Clock, Users, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 
-import NavBar from '@components/NavBar';
-import Footer from '@components/Footer';
+// import NavBar from '@components/NavBar';
+// import Footer from '@components/Footer';
 import ExamCard from '@components/ExamComponent/ExamCard';
 
 
@@ -167,7 +167,7 @@ const Exams = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavBar />
+    
       
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary-500 via-primary-600 to-secondary-500 py-16">
@@ -352,7 +352,7 @@ const Exams = () => {
         </div>
       </section>
 
-      <Footer />
+     
     </div>
   );
 };

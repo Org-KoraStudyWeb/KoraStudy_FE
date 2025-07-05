@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Award, BookOpen, Users, Target, Star, TrendingUp, Globe, BookMarked, ShieldCheck } from 'lucide-react';
-import NavBar from '@components/NavBar.jsx';
-import Footer from '@components/Footer.jsx';
+// import NavBar from '@components/NavBar.jsx';
+// import Footer from '@components/Footer.jsx';
 
 const About = () => {
   const [animatedItems, setAnimatedItems] = useState({});
@@ -91,7 +91,7 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
-      <NavBar />
+     
       
       {/* Hero Section */}
       <section className="relative py-24 bg-gradient-to-br from-primary-500 via-primary-600 to-secondary-500 text-white overflow-hidden">
@@ -581,7 +581,6 @@ const About = () => {
         </div>
       </section>
       
-      <Footer />
       
       {/* Thêm hiệu ứng counter số */}
       <style jsx>{`

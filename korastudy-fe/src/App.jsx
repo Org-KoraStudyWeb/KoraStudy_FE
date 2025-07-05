@@ -1,6 +1,10 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import './App.css';
+// Import react-toastify
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 // Import contexts - Fixed import path
 import { ThemeProvider } from '@contexts/ThemeContext.jsx';
 import { UserProvider } from '@contexts/UserContext.jsx';
@@ -37,47 +41,56 @@ function App() {
       <UserProvider>
         <Router>
           <ScrollToTop />
+          {/* Thêm ToastContainer */}
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+          />
           <div className="App bg-white dark:bg-dark-900 min-h-screen transition-colors duration-300">
             <Routes>
-              {/* Protected routes */}
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="/" element={<><NavBar /><Home /><Footer /></>} />
-              <Route path="/courses" element={<><NavBar /><Courses /><Footer /></>} />
-              <Route path="/course/:courseId" element={<><NavBar /><CourseDetail /><Footer /></>} />
-              <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
-              
-              {/* Public routes */}
-              <Route path="/" element={<Home />} />
+              {/* Layout cho các trang công khai */}
+              <Route path="/" element={<><NavBar /><Outlet /><Footer /></>}>
+                <Route index element={<Home />} />
+                <Route path="courses" element={<Courses />} />
+                <Route path="course/:courseId" element={<CourseDetail />} />
+                <Route path="tai-lieu" element={<TaiLieu />} />
+                <Route path="ly-thuyet" element={<LyThuyet />} />
+                <Route path="lo-trinh" element={<LearningPath />} />
+                <Route path="topik1" element={<Topik1 />} />
+                <Route path="topik2" element={<Topik2 />} />
+                <Route path="topik-esp" element={<TopikESP />} />
+                <Route path="nang-cap" element={<NangCap />} />
+                <Route path="about" element={<About />} />
+                <Route path="terms" element={<Terms />} />
+                <Route path="privacy" element={<Privacy />} />
+                <Route path="lien-he" element={<Contact />} />
+                <Route path="de-thi/:examId" element={<ExamDetail />} />
+                <Route path="exam/:id" element={<ExamDetail />} />
+                <Route path="exam/:id/take" element={<ExamTest />} />
+                <Route path="exam/:id/results" element={<ExamResults />} />
+                <Route path="de-thi" element={<Exams />} />
+                {/* <Route path="blog" element={<Blog />} />
+                <Route path="profile" element={<BlogPost />} /> */}
+              </Route>
+
+              {/* Trang xác thực */}
               <Route path="/dang-nhap" element={<LoginPage />} />
               <Route path="/dang-ky" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
 
-              <Route path="/tai-lieu" element={<><NavBar /><TaiLieu /><Footer /></>} />
-              <Route path="/ly-thuyet" element={<><NavBar /><LyThuyet /><Footer /></>} />
-              <Route path="/lo-trinh" element={<LearningPath />} />
-
-              <Route path="/topik1" element={<><NavBar /><Topik1 /><Footer /></>} />
-              <Route path="/topik2" element={<><NavBar /><Topik2 /><Footer /></>} />
-              <Route path="/topik-esp" element={<><NavBar /><TopikESP /><Footer /></>} />
-              <Route path="/nang-cap" element={<><NavBar /><NangCap /><Footer /></>} />
-              <Route path="/about" element={<About />} />
-              <Route path="/terms" element={<><NavBar /><Terms /><Footer /></>} />
-              <Route path="/privacy" element={<><NavBar /><Privacy /><Footer /></>} />
-              <Route path="/lien-he" element={<><NavBar /><Contact /><Footer /></>} />
-              <Route path="/de-thi" element={<Exams />}/>
-              <Route path="/de-thi/:examId" element={<><NavBar /><ExamDetail /><Footer /></>} />
-              <Route path="/exam/:id" element={<ExamDetail />} />
-              <Route path="/exam/:id/take" element={<ExamTest />} />
-              <Route path="/exam/:id/results" element={<ExamResults />} />  
-              <Route path="/blog" element={<><NavBar /><Blog /><Footer /></>} />
-              <Route path="/blog/:postId" element={<><NavBar /><BlogPost /><Footer /></>} />
+              {/* Các trang yêu cầu đăng nhập */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
+                <Route path="/blog" element={<><NavBar /><Blog /><Footer /></>} />
+              </Route>
             </Routes>
           </div>
         </Router>
@@ -95,7 +108,6 @@ const Topik1 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900
 const Topik2 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK 2</div>;
 const TopikESP = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK ESP</div>;
 const NangCap = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Nâng cấp</div>;
-// Xóa component About tạm thời ở đây vì đã import từ file riêng
 const Terms = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Điều khoản dịch vụ</div>;
 const Privacy = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Chính sách bảo mật</div>;
 const Contact = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Liên hệ</div>;
