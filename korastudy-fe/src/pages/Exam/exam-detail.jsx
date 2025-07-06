@@ -1,377 +1,447 @@
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock, Users, Star, BookOpen, Award, Play, FileText, CheckCircle, AlertCircle, User } from 'lucide-react';
-
-import ExamQuestion from '@components/ExamComponent/ExamQuestion.jsx';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { examService } from '../../api/ExamService';
+import { useUser } from '../../contexts/UserContext';
+import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
 
 const ExamDetail = () => {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState('overview');
+  const navigate = useNavigate();
+  const { user } = useUser();
+  
+  const [exam, setExam] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  // Sample exam data - in real app, this would come from API
-  const examData = {
-    1: {
-      id: 1,
-      title: "Đề thi TOPIK I Mock Test",
-      subtitle: "Bài thi thử TOPIK I cơ bản - Phần thi đọc hiểu và nghe hiểu",
-      description: "Đề thi thử TOPIK I được thiết kế theo đúng format của kỳ thi chính thức, giúp bạn làm quen với cấu trúc đề thi và rèn luyện kỹ năng làm bài. Đề thi bao gồm 2 phần chính: Nghe hiểu (30 câu) và Đọc hiểu (40 câu).",
-      level: "Sơ cấp",
-      duration: "100 phút",
-      totalQuestions: 70,
-      listeningQuestions: 30,
-      readingQuestions: 40,
-      participants: 1234,
-      rating: 4.8,
-      totalRatings: 456,
-      type: "TOPIK I",
-      difficulty: "Trung bình",
-      price: "Miễn phí",
-      image: "topik.png",
-      instructor: {
-        name: "Cô Minh Anh",
-        title: "Chuyên gia TOPIK",
-        avatar: "/api/placeholder/60/60",
-        experience: "5+ năm kinh nghiệm"
-      },
-      features: [
-        "Đề thi theo format chính thức TOPIK I",
-        "Có file audio cho phần nghe hiểu",
-        "Giải thích chi tiết đáp án",
-        "Chấm điểm tự động",
-        "Phân tích kết quả chi tiết",
-        "Lưu lại lịch sử làm bài"
-      ],
-      requirements: [
-        "Đã học xong bảng chữ cái Hangeul",
-        "Có từ vựng cơ bản khoảng 800-1500 từ",
-        "Hiểu ngữ pháp cơ bản tiếng Hàn",
-        "Máy tính có loa hoặc tai nghe"
-      ],
-      instructions: [
-        "Đọc kỹ hướng dẫn trước khi bắt đầu",
-        "Làm bài theo thứ tự từ phần nghe đến phần đọc",
-        "Không được quay lại phần đã làm",
-        "Thời gian làm bài là 100 phút",
-        "Nộp bài trước khi hết thời gian"
-      ],
-      sampleQuestions: [
-        {
-          id: 1,
-          type: "listening",
-          question: "다음을 듣고 알맞은 것을 고르십시오.",
-          options: [
-            "가: 어디에 가세요? 나: 학교에 가요.",
-            "가: 뭘 드세요? 나: 커피를 마셔요.",
-            "가: 언제 만나요? 나: 내일 만나요.",
-            "가: 누구와 가세요? 나: 친구와 가요."
-          ],
-          correctAnswer: 0,
-          explanation: "대화를 듣고 상황에 맞는 응답을 선택하는 문제입니다."
-        },
-        {
-          id: 2,
-          type: "reading",
-          question: "다음 글을 읽고 내용과 같은 것을 고르십시오.",
-          passage: "저는 매일 아침 7시에 일어납니다. 그리고 8시에 학교에 갑니다. 학교에서 한국어를 공부합니다. 오후 3시에 집에 돌아와서 숙제를 합니다.",
-          options: [
-            "저는 오전 7시에 잠을 잡니다.",
-            "저는 오전 8시에 학교에 갑니다.",
-            "저는 학교에서 영어를 공부합니다.",
-            "저는 오후 4시에 집에 돌아옵니다."
-          ],
-          correctAnswer: 1,
-          explanation: "글의 내용에 따르면 '8시에 학교에 갑니다'가 정답입니다."
+  // Fetch exam detail
+  useEffect(() => {
+    const fetchExamDetail = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('Fetching exam detail for ID:', id);
+        
+        // Kiểm tra xem examService có tồn tại không
+        if (!examService || !examService.getExamDetail) {
+          throw new Error('ExamService not available');
         }
-      ]
+        
+        const examData = await examService.getExamDetail(id);
+        console.log('Exam data received:', examData);
+        
+        if (!examData) {
+          throw new Error('No exam data received');
+        }
+        
+        setExam(examData);
+        
+      } catch (err) {
+        console.error('Error fetching exam detail:', err);
+        setError(err.message || 'Không thể tải thông tin bài thi. Vui lòng thử lại.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchExamDetail();
+    } else {
+      setError('ID bài thi không hợp lệ');
+      setLoading(false);
+    }
+  }, [id]);
+
+  // Fetch comments - separate useEffect để không block exam detail
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        if (!exam) return;
+        
+        console.log('Fetching comments for exam:', id);
+        const commentsData = await examService.getExamComments(id);
+        console.log('Comments data received:', commentsData);
+        setComments(commentsData || []);
+      } catch (err) {
+        console.error('Error fetching comments:', err);
+        // Không hiển thị lỗi cho comments, chỉ log
+        setComments([]);
+      }
+    };
+
+    if (exam && examService.getExamComments) {
+      fetchComments();
+    }
+  }, [exam, id]);
+
+  // Submit comment
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    
+    if (!user) {
+      alert('Vui lòng đăng nhập để bình luận');
+      return;
+    }
+
+    if (!newComment.trim()) {
+      alert('Vui lòng nhập nội dung bình luận');
+      return;
+    }
+
+    try {
+      setIsSubmittingComment(true);
+      
+      const commentData = {
+        context: newComment.trim(),
+        userId: user.id
+      };
+
+      await examService.addExamComment(id, commentData);
+      
+      // Refresh comments
+      const updatedComments = await examService.getExamComments(id);
+      setComments(updatedComments || []);
+      
+      setNewComment('');
+      
+    } catch (err) {
+      console.error('Error submitting comment:', err);
+      alert('Không thể gửi bình luận. Vui lòng thử lại.');
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
-  const exam = examData[id] || examData[1];
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      return new Date(dateString).toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (err) {
+      return dateString;
+    }
+  };
 
-  const tabs = [
-    { id: 'overview', name: 'Tổng quan', icon: BookOpen },
-    { id: 'questions', name: 'Câu hỏi mẫu', icon: FileText },
-    { id: 'instructor', name: 'Giảng viên', icon: User }
-  ];
+  // Format duration
+  const formatDuration = (minutes) => {
+    if (!minutes) return 'Không giới hạn';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (hours > 0) {
+      return `${hours} giờ ${mins} phút`;
+    }
+    return `${mins} phút`;
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Đang tải thông tin bài thi...</p>
+            <p className="mt-2 text-sm text-gray-500">ID: {id}</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center max-w-md">
+            <div className="text-red-500 mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 8.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Có lỗi xảy ra</h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <p className="text-sm text-gray-500 mb-4">Exam ID: {id}</p>
+            <div className="space-y-2">
+              <button 
+                onClick={() => window.location.reload()}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Thử lại
+              </button>
+              <button 
+                onClick={() => navigate('/exam')}
+                className="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+              >
+                Quay lại danh sách bài thi
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // No exam data
+  if (!exam) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">Không tìm thấy bài thi với ID: {id}</p>
+            <button 
+              onClick={() => navigate('/exam')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Quay lại danh sách bài thi
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-    
+      <Navbar />
       
-      {/* Header */}
-      <section className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4 mb-4">
-            <Link 
-              to="/de-thi"
-              className="flex items-center gap-2 text-gray-600 hover:text-primary-500 transition-colors duration-300"
-            >
-              <ArrowLeft size={20} />
-              <span className="font-medium">Quay lại danh sách</span>
-            </Link>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Debug info - remove in production
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-2 bg-yellow-100 rounded text-sm">
+            <strong>Debug:</strong> ID={id}, Exam loaded: {exam ? 'Yes' : 'No'}
+          </div>
+        )} */}
+
+        {/* Back button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/exam')}
+            className="inline-flex items-center text-gray-600 hover:text-gray-900"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Quay lại danh sách
+          </button>
+        </div>
+
+        {/* Exam Header */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center mb-2">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {exam.title || 'Bài thi TOEIC'}
+                  </h1>
+                  <p className="text-gray-600 mt-1">
+                    {exam.description || 'Mô tả bài thi'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Exam Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {exam.durationTimes || exam.duration_times || 0}
+              </div>
+              <div className="text-sm text-gray-600">Thời gian (phút)</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {exam.totalQuestions || exam.total_questions || 0}
+              </div>
+              <div className="text-sm text-gray-600">Câu hỏi</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {exam.totalPart || exam.total_part || 0}
+              </div>
+              <div className="text-sm text-gray-600">Phần thi</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {exam.level || 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600">Cấp độ</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Start Test Section */}
+        <div className="bg-white rounded-lg shadow-sm p-8 mb-6 text-center">
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H15M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1M9 10H7a2 2 0 00-2 2v1a2 2 0 002 2h2m9-6V9a2 2 0 00-2-2H5a2 2 0 00-2 2v7a2 2 0 002 2h1" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Sẵn sàng làm bài?</h2>
+            <p className="text-gray-600">
+              Thời gian: {formatDuration(exam.durationTimes || exam.duration_times)} | {exam.totalQuestions || exam.total_questions} câu hỏi
+            </p>
           </div>
           
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Content */}
-            <div className="lg:col-span-2">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <BookOpen className="w-8 h-8 text-primary-500" />
+          <Link
+            to={`/exam/${exam.mockTestId || exam.mock_test_id || id}/test`}
+            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H15M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1M9 10H7a2 2 0 00-2 2v1a2 2 0 002 2h2m9-6V9a2 2 0 00-2-2H5a2 2 0 00-2 2v7a2 2 0 002 2h1" />
+            </svg>
+            Bắt đầu làm bài
+          </Link>
+        </div>
+
+        {/* Exam Info */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông tin chi tiết</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <span className="text-sm font-medium text-gray-500">Ngày tạo:</span>
+              <p className="text-gray-900">
+                {formatDate(exam.createdAt || exam.created_at)}
+              </p>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-500">Cập nhật lần cuối:</span>
+              <p className="text-gray-900">
+                {formatDate(exam.lastModified || exam.last_modified)}
+              </p>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-500">Thời gian làm bài:</span>
+              <p className="text-gray-900">
+                {formatDuration(exam.durationTimes || exam.duration_times)}
+              </p>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-500">Mức độ:</span>
+              <p className="text-gray-900">{exam.level || 'Chưa xác định'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Bình luận ({comments.length})
+          </h3>
+          
+          {/* Add Comment Form */}
+          {user ? (
+            <form onSubmit={handleSubmitComment} className="mb-6">
+              <div className="flex space-x-3">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 font-medium">
+                      {user.username?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex-1">
-                  <h1 className="font-inter font-bold text-3xl text-gray-800 mb-2">
-                    {exam.title}
-                  </h1>
-                  <p className="text-lg text-gray-600 mb-4">
-                    {exam.subtitle}
-                  </p>
-                  
-                  {/* Stats */}
-                  <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Clock size={16} className="text-primary-500" />
-                      <span>{exam.duration}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <BookOpen size={16} className="text-primary-500" />
-                      <span>{exam.totalQuestions} câu hỏi</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users size={16} className="text-primary-500" />
-                      <span>{exam.participants.toLocaleString()} người đã thi</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Star size={16} className="text-yellow-500 fill-current" />
-                      <span>{exam.rating} ({exam.totalRatings} đánh giá)</span>
-                    </div>
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Viết bình luận của bạn..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <div className="flex justify-end mt-2">
+                    <button
+                      type="submit"
+                      disabled={isSubmittingComment || !newComment.trim()}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmittingComment ? 'Đang gửi...' : 'Gửi bình luận'}
+                    </button>
                   </div>
                 </div>
               </div>
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                  {exam.level}
-                </span>
-                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                  {exam.type}
-                </span>
-                <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
-                  {exam.difficulty}
-                </span>
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                  {exam.price}
-                </span>
-              </div>
+            </form>
+          ) : (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <p className="text-gray-600 text-center">
+                <Link to="/login" className="text-blue-600 hover:text-blue-700">
+                  Đăng nhập
+                </Link> để bình luận
+              </p>
             </div>
+          )}
 
-            {/* Right Sidebar */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl p-6 shadow-sm border sticky top-4">
-                <div className="text-center mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Play className="w-10 h-10 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-lg text-gray-800 mb-2">
-                    Sẵn sàng làm bài?
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Thời gian: {exam.duration} | {exam.totalQuestions} câu hỏi
-                  </p>
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  <Link
-                    to={`/exam/${exam.id}/take`}
-                    className="w-full bg-gradient-to-r from-primary-500 to-secondary-500 text-white py-3 px-6 rounded-xl font-semibold text-center hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
-                  >
-                    <Play size={18} />
-                    Bắt đầu làm bài
-                  </Link>
-                  <button className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-300">
-                    Lưu vào danh sách
-                  </button>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="border-t pt-4">
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-primary-500">{exam.listeningQuestions}</div>
-                      <div className="text-xs text-gray-600">Câu nghe</div>
+          {/* Comments List */}
+          <div className="space-y-4">
+            {comments.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">Chưa có bình luận nào</p>
+            ) : (
+              comments.map((comment) => (
+                <div key={comment.postCommentId || comment.id} className="flex space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600 font-medium">
+                        {comment.username?.charAt(0).toUpperCase() || 'U'}
+                      </span>
                     </div>
-                    <div>
-                      <div className="text-2xl font-bold text-secondary-500">{exam.readingQuestions}</div>
-                      <div className="text-xs text-gray-600">Câu đọc</div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-gray-900">
+                          {comment.username || 'Người dùng'}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {formatDate(comment.createdAt || comment.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-gray-700">{comment.context || comment.content}</p>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              ))
+            )}
           </div>
         </div>
-      </section>
 
-      {/* Tabs */}
-      <section className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex space-x-8">
-            {tabs.map(tab => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 py-4 px-2 border-b-2 font-medium transition-colors duration-300 ${
-                    activeTab === tab.id
-                      ? 'border-primary-500 text-primary-500'
-                      : 'border-transparent text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  <Icon size={18} />
-                  {tab.name}
-                </button>
-              );
-            })}
+        {/* Start Test Button - New Section */}
+        {exam && (
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => navigate(`/exam/${exam.id}/test`)}
+              className="bg-primary-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-600 transition"
+            >
+              Làm bài thi
+            </button>
           </div>
-        </div>
-      </section>
-
-      {/* Tab Content */}
-      <section className="py-8">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              
-              {/* Overview Tab */}
-              {activeTab === 'overview' && (
-                <div className="space-y-8">
-                  <div className="bg-white rounded-xl p-6 shadow-sm">
-                    <h2 className="text-2xl font-semibold mb-4">Mô tả đề thi</h2>
-                    <p className="text-gray-700 leading-relaxed mb-6">
-                      {exam.description}
-                    </p>
-                    
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                          Tính năng nổi bật
-                        </h3>
-                        <ul className="space-y-2">
-                          {exam.features.map((feature, index) => (
-                            <li key={index} className="flex items-start gap-2 text-gray-700">
-                              <div className="w-1.5 h-1.5 bg-primary-500 rounded-full mt-2 flex-shrink-0"></div>
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      <div>
-                        <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                          <AlertCircle className="w-5 h-5 text-orange-500" />
-                          Yêu cầu trước khi thi
-                        </h3>
-                        <ul className="space-y-2">
-                          {exam.requirements.map((requirement, index) => (
-                            <li key={index} className="flex items-start gap-2 text-gray-700">
-                              <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                              {requirement}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 shadow-sm">
-                    <h2 className="text-2xl font-semibold mb-4">Hướng dẫn làm bài</h2>
-                    <div className="space-y-3">
-                      {exam.instructions.map((instruction, index) => (
-                        <div key={index} className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                            {index + 1}
-                          </div>
-                          <p className="text-gray-700">{instruction}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Questions Tab */}
-              {activeTab === 'questions' && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl p-6 shadow-sm">
-                    <h2 className="text-2xl font-semibold mb-4">Câu hỏi mẫu</h2>
-                    <p className="text-gray-600 mb-6">
-                      Dưới đây là một số câu hỏi mẫu để bạn làm quen với format đề thi
-                    </p>
-                    
-                    <div className="space-y-8">
-                      {exam.sampleQuestions.map((question, index) => (
-                        <ExamQuestion 
-                          key={question.id} 
-                          question={question} 
-                          questionNumber={index + 1}
-                          showAnswer={true}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Instructor Tab */}
-              {activeTab === 'instructor' && (
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <h2 className="text-2xl font-semibold mb-6">Thông tin giảng viên</h2>
-                  <div className="flex items-start gap-6">
-                    <img 
-                      src={exam.instructor.avatar} 
-                      alt={exam.instructor.name}
-                      className="w-24 h-24 rounded-full"
-                    />
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold mb-2">{exam.instructor.name}</h3>
-                      <p className="text-gray-600 mb-2">{exam.instructor.title}</p>
-                      <p className="text-gray-600 mb-4">{exam.instructor.experience}</p>
-                      <p className="text-gray-700 leading-relaxed">
-                        Chuyên gia hàng đầu về kỳ thi TOPIK với nhiều năm kinh nghiệm giảng dạy và biên soạn đề thi. 
-                        Đã giúp hàng nghìn học viên đạt được kết quả cao trong kỳ thi TOPIK.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-lg mb-4">Đề thi liên quan</h3>
-                <div className="space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <Link key={i} to={`/exam/${i + 1}`} className="block p-4 border rounded-lg hover:border-primary-500 transition-colors duration-300">
-                      <h4 className="font-medium text-gray-800 mb-1">TOPIK I - Test {i + 1}</h4>
-                      <p className="text-sm text-gray-600 mb-2">Bài thi thử TOPIK I</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>100 phút</span>
-                        <span>70 câu</span>
-                        <span className="text-green-600 font-medium">Miễn phí</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
+        )}
+      </div>
       
+      <Footer />
     </div>
   );
 };

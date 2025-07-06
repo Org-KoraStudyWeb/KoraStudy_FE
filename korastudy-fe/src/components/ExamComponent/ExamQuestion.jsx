@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Volume2, CheckCircle, XCircle, Eye, Flag, FlagOff } from 'lucide-react';
+import { Volume2, CheckCircle, XCircle, Eye, Flag, FlagOff, Image as ImageIcon } from 'lucide-react';
 
 const ExamQuestion = ({ 
   question, 
@@ -9,170 +9,199 @@ const ExamQuestion = ({
   isPreview = false, 
   isTest = false,
   isFlagged = false,
-  onToggleFlag
+  onToggleFlag,
+  showCorrectAnswer = false,
+  correctAnswer = null
 }) => {
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
 
-  const handleAnswerSelect = (optionIndex) => {
-    if (isTest && onAnswerSelect) {
-      onAnswerSelect(optionIndex);
-    } else if (!isPreview) {
-      // For practice mode
-      onAnswerSelect && onAnswerSelect(optionIndex);
-    }
-  };
-
-  const getOptionClass = (optionIndex) => {
-    if (!isPreview && !isTest && selectedAnswer !== null) {
-      if (optionIndex === question.correctAnswer) {
-        return 'border-green-500 bg-green-50 text-green-800';
-      } else if (optionIndex === selectedAnswer && optionIndex !== question.correctAnswer) {
-        return 'border-red-500 bg-red-50 text-red-800';
+  // Parse options from string format
+  const parseOptions = (optionString) => {
+    if (!optionString) return [];
+    
+    try {
+      // Nếu là JSON string
+      if (optionString.startsWith('{') || optionString.startsWith('[')) {
+        return JSON.parse(optionString);
       }
+      
+      // Nếu là format "A) option1 B) option2..."
+      const matches = optionString.match(/([A-D])\)\s*([^A-D]*?)(?=\s*[A-D]\)|$)/g);
+      if (matches) {
+        const options = {};
+        matches.forEach(match => {
+          const [, letter, text] = match.match(/([A-D])\)\s*(.*)/);
+          options[letter] = text.trim();
+        });
+        return options;
+      }
+      
+      // Fallback: split by common delimiters
+      const parts = optionString.split(/\s*[,;|]\s*/).filter(part => part.trim());
+      const options = {};
+      const letters = ['A', 'B', 'C', 'D'];
+      parts.forEach((part, index) => {
+        if (index < letters.length) {
+          options[letters[index]] = part.trim();
+        }
+      });
+      return options;
+      
+    } catch (error) {
+      console.error('Error parsing options:', error);
+      return {};
     }
-    
-    if (selectedAnswer === optionIndex) {
-      return 'border-primary-500 bg-primary-50';
-    }
-    
-    return 'border-gray-200 hover:border-gray-300';
   };
 
-  const getOptionNumber = (index) => {
-    return ['1', '2', '3', '4'][index] || (index + 1);
+  const options = parseOptions(question.option);
+  const optionKeys = Object.keys(options);
+
+  const handleAudioPlay = () => {
+    if (question.audioUrl) {
+      const audio = new Audio(question.audioUrl);
+      setAudioPlaying(true);
+      audio.play();
+      audio.onended = () => setAudioPlaying(false);
+      audio.onerror = () => setAudioPlaying(false);
+    }
+  };
+
+  const getOptionClass = (optionKey) => {
+    let baseClass = "w-full p-4 text-left border rounded-lg transition-colors ";
+    
+    if (showCorrectAnswer && correctAnswer === optionKey) {
+      baseClass += "bg-green-100 border-green-300 text-green-800";
+    } else if (selectedAnswer === optionKey) {
+      if (showCorrectAnswer && correctAnswer !== optionKey) {
+        baseClass += "bg-red-100 border-red-300 text-red-800";
+      } else {
+        baseClass += "bg-blue-100 border-blue-300 text-blue-800";
+      }
+    } else {
+      baseClass += "bg-white border-gray-300 hover:bg-gray-50";
+    }
+    
+    return baseClass;
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Question Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <span className="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-semibold">
-            문제 {questionNumber}
-          </span>
-          {question.type === 'listening' && (
-            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-1">
-              <Volume2 size={14} />
-              듣기
-            </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          {/* Audio Button */}
+          {question.audioUrl && (
+            <button
+              onClick={handleAudioPlay}
+              disabled={audioPlaying}
+              className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
+                audioPlaying 
+                  ? 'bg-blue-100 text-blue-800' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Volume2 className="h-4 w-4 mr-2" />
+              {audioPlaying ? 'Đang phát...' : 'Nghe'}
+            </button>
           )}
-          {question.type === 'reading' && (
-            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-              읽기
+          
+          {/* Question Number */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-500">
+              Câu {questionNumber}
             </span>
-          )}
+            {showCorrectAnswer && (
+              <div className="flex items-center space-x-1">
+                {selectedAnswer === correctAnswer ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-red-600" />
+                )}
+              </div>
+            )}
+          </div>
         </div>
-        
-        {/* Flag button for test mode */}
+
+        {/* Flag Button */}
         {isTest && onToggleFlag && (
           <button
             onClick={onToggleFlag}
-            className={`p-2 rounded-lg transition-colors duration-300 ${
+            className={`p-2 rounded-lg transition-colors ${
               isFlagged 
-                ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
+                ? 'bg-red-100 text-red-600' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
-            title={isFlagged ? "Remove flag" : "Flag question"}
           >
-            {isFlagged ? <Flag size={18} className="fill-current" /> : <FlagOff size={18} />}
+            {isFlagged ? <Flag className="h-4 w-4" /> : <FlagOff className="h-4 w-4" />}
           </button>
         )}
       </div>
 
-      {/* Question Content */}
-      <div className="space-y-4">
-        {/* Instruction */}
-        {question.instruction && (
-          <p className="text-sm text-gray-600 italic">{question.instruction}</p>
-        )}
-        
-        {/* Main Question */}
-        <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-primary-500">
-          <p className="text-gray-800 font-medium text-lg leading-relaxed">
-            {question.question}
-          </p>
+      {/* Question Image */}
+      {question.imageUrl && (
+        <div className="flex justify-center">
+          <img 
+            src={question.imageUrl} 
+            alt="Question"
+            className="max-w-full h-auto rounded-lg shadow-sm"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
         </div>
-        
-        {/* Passage for reading questions */}
-        {question.passage && (
-          <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-            <p className="text-gray-800 leading-relaxed text-lg">
-              {question.passage}
-            </p>
-          </div>
-        )}
+      )}
 
-        {/* Listening instruction */}
-        {question.type === 'listening' && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-yellow-800 text-sm">
-              🎧 Please use the audio controls above to listen to the audio for this question.
-            </p>
-          </div>
-        )}
+      {/* Question Text */}
+      <div className="prose max-w-none">
+        <p className="text-gray-900 text-lg leading-relaxed whitespace-pre-wrap">
+          {question.questionText}
+        </p>
       </div>
 
       {/* Answer Options */}
       <div className="space-y-3">
-        {question.options.map((option, index) => (
+        {optionKeys.map((optionKey) => (
           <button
-            key={index}
-            onClick={() => handleAnswerSelect(index)}
+            key={optionKey}
+            onClick={() => !isPreview && onAnswerSelect && onAnswerSelect(optionKey)}
             disabled={isPreview}
-            className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-300 ${getOptionClass(index)} ${
-              isPreview ? 'cursor-default' : 'cursor-pointer'
-            }`}
+            className={getOptionClass(optionKey)}
           >
-            <div className="flex items-start gap-4">
-              <span className="w-8 h-8 rounded-full border-2 border-current flex items-center justify-center text-lg font-bold flex-shrink-0 mt-1">
-                {getOptionNumber(index)}
+            <div className="flex items-start">
+              <span className="font-medium text-gray-900 mr-3">
+                {optionKey})
               </span>
-              <span className="flex-1 text-lg leading-relaxed">{option}</span>
-              
-              {/* Show correct/incorrect icons when answered (practice mode) */}
-              {!isPreview && !isTest && selectedAnswer !== null && (
-                <>
-                  {index === question.correctAnswer && (
-                    <CheckCircle size={24} className="text-green-500 flex-shrink-0" />
+              <span className="text-gray-900 flex-1 text-left">
+                {options[optionKey]}
+              </span>
+              {selectedAnswer === optionKey && (
+                <div className="ml-2">
+                  {showCorrectAnswer && correctAnswer === optionKey ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : showCorrectAnswer && correctAnswer !== optionKey ? (
+                    <XCircle className="h-5 w-5 text-red-600" />
+                  ) : (
+                    <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
                   )}
-                  {index === selectedAnswer && index !== question.correctAnswer && (
-                    <XCircle size={24} className="text-red-500 flex-shrink-0" />
-                  )}
-                </>
+                </div>
               )}
             </div>
           </button>
         ))}
       </div>
 
-      {/* Preview Mode Info */}
-      {isPreview && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-blue-700">
-            <Eye size={16} />
-            <span className="text-sm font-medium">
-              미리보기 모드 - 정답은 {getOptionNumber(question.correctAnswer)} 입니다
+      {/* Show correct answer in preview mode */}
+      {showCorrectAnswer && correctAnswer && (
+        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center">
+            <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+            <span className="text-sm font-medium text-green-800">
+              Đáp án đúng: {correctAnswer}) {options[correctAnswer]}
             </span>
           </div>
         </div>
-      )}
-
-      {/* Explanation (only in practice mode after answering) */}
-      {(showExplanation || isPreview) && question.explanation && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h4 className="font-semibold text-yellow-800 mb-2">해설:</h4>
-          <p className="text-yellow-700 leading-relaxed">{question.explanation}</p>
-        </div>
-      )}
-
-      {/* Show Explanation Button (practice mode only) */}
-      {!isPreview && !isTest && selectedAnswer !== null && !showExplanation && question.explanation && (
-        <button
-          onClick={() => setShowExplanation(true)}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-300 text-sm font-medium"
-        >
-          해설 보기
-        </button>
       )}
     </div>
   );

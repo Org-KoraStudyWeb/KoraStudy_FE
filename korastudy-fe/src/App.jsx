@@ -17,7 +17,7 @@ import Profile from '@/pages/profile.jsx';
 import LoginPage from './pages/auth/LoginPage';
 import Register from '@pages/auth/register.jsx';
 import ForgotPassword from '@pages/auth/forgot-password.jsx';
-// Import other pages
+// Import exam pages
 import Exams from '@pages/Exam/exam.jsx';
 import ExamDetail from '@pages/Exam/exam-detail.jsx';
 import ExamTest from '@pages/Exam/exam-test.jsx'; 
@@ -30,7 +30,6 @@ import BlogPost from '@pages/blog/blog-post.jsx';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
-
 function App() {
   return (
     <ThemeProvider>
@@ -39,43 +38,50 @@ function App() {
           <ScrollToTop />
           <div className="App bg-white dark:bg-dark-900 min-h-screen transition-colors duration-300">
             <Routes>
+              {/* Auth routes - no navbar/footer */}
+              <Route path="/dang-nhap" element={<LoginPage />} />
+              <Route path="/dang-ky" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+
+              {/* Exam routes - some with navbar/footer, some without */}
+              <Route path="/exam" element={<><NavBar /><Exams /><Footer /></>} />
+              <Route path="/exam/:id" element={<ExamDetail />} />
+              <Route path="/exam/:id/test" element={<ExamTest />} /> {/* No navbar/footer for test */}
+              <Route path="/exam/:id/results" element={<ExamResults />} /> {/* No navbar/footer for results */}
+              
+              {/* Legacy exam routes for compatibility */}
+              <Route path="/de-thi" element={<><NavBar /><Exams /><Footer /></>} />
+              <Route path="/de-thi/:examId" element={<><NavBar /><ExamDetail /><Footer /></>} />
+
               {/* Protected routes */}
               <Route 
                 path="/profile" 
                 element={
                   <ProtectedRoute>
-                    <Profile />
+                    <><NavBar /><Profile /><Footer /></>
                   </ProtectedRoute>
                 } 
               />
+
+              {/* Public routes with navbar/footer */}
               <Route path="/" element={<><NavBar /><Home /><Footer /></>} />
               <Route path="/courses" element={<><NavBar /><Courses /><Footer /></>} />
               <Route path="/course/:courseId" element={<><NavBar /><CourseDetail /><Footer /></>} />
-              <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
               
-              {/* Public routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/dang-nhap" element={<LoginPage />} />
-              <Route path="/dang-ky" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-
               <Route path="/tai-lieu" element={<><NavBar /><TaiLieu /><Footer /></>} />
               <Route path="/ly-thuyet" element={<><NavBar /><LyThuyet /><Footer /></>} />
-              <Route path="/lo-trinh" element={<LearningPath />} />
+              <Route path="/lo-trinh" element={<><NavBar /><LearningPath /><Footer /></>} />
 
               <Route path="/topik1" element={<><NavBar /><Topik1 /><Footer /></>} />
               <Route path="/topik2" element={<><NavBar /><Topik2 /><Footer /></>} />
               <Route path="/topik-esp" element={<><NavBar /><TopikESP /><Footer /></>} />
               <Route path="/nang-cap" element={<><NavBar /><NangCap /><Footer /></>} />
-              <Route path="/about" element={<About />} />
+              
+              <Route path="/about" element={<><NavBar /><About /><Footer /></>} />
               <Route path="/terms" element={<><NavBar /><Terms /><Footer /></>} />
               <Route path="/privacy" element={<><NavBar /><Privacy /><Footer /></>} />
               <Route path="/lien-he" element={<><NavBar /><Contact /><Footer /></>} />
-              <Route path="/de-thi" element={<Exams />}/>
-              <Route path="/de-thi/:examId" element={<><NavBar /><ExamDetail /><Footer /></>} />
-              <Route path="/exam/:id" element={<ExamDetail />} />
-              <Route path="/exam/:id/take" element={<ExamTest />} />
-              <Route path="/exam/:id/results" element={<ExamResults />} />  
+              
               <Route path="/blog" element={<><NavBar /><Blog /><Footer /></>} />
               <Route path="/blog/:postId" element={<><NavBar /><BlogPost /><Footer /></>} />
             </Routes>
@@ -95,7 +101,6 @@ const Topik1 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900
 const Topik2 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK 2</div>;
 const TopikESP = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK ESP</div>;
 const NangCap = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Nâng cấp</div>;
-// Xóa component About tạm thời ở đây vì đã import từ file riêng
 const Terms = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Điều khoản dịch vụ</div>;
 const Privacy = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Chính sách bảo mật</div>;
 const Contact = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Liên hệ</div>;
