@@ -95,12 +95,7 @@ const ExamDetail = () => {
     try {
       setIsSubmittingComment(true);
       
-      const commentData = {
-        context: newComment.trim(),
-        userId: user.id
-      };
-
-      await examService.addExamComment(id, commentData);
+      await examService.addExamComment(id, newComment.trim(), user.id);
       
       // Refresh comments
       const updatedComments = await examService.getExamComments(id);
@@ -294,7 +289,7 @@ const ExamDetail = () => {
           </div>
         </div>
 
-        {/* Start Test Section */}
+        {/* Action Buttons */}
         <div className="bg-white rounded-lg shadow-sm p-8 mb-6 text-center">
           <div className="mb-6">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -304,19 +299,31 @@ const ExamDetail = () => {
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Sẵn sàng làm bài?</h2>
             <p className="text-gray-600">
-              Thời gian: {formatDuration(exam.durationTimes || exam.duration_times)} | {exam.totalQuestions || exam.total_questions} câu hỏi
+              Thời gian: {formatDuration(exam.durationTimes)} | {exam.totalQuestions} câu hỏi
             </p>
           </div>
           
-          <Link
-            to={`/exam/${exam.mockTestId || exam.mock_test_id || id}/test`}
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H15M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1M9 10H7a2 2 0 00-2 2v1a2 2 0 002 2h2m9-6V9a2 2 0 00-2-2H5a2 2 0 00-2 2v7a2 2 0 002 2h1" />
-            </svg>
-            Bắt đầu làm bài
-          </Link>
+          <div className="flex justify-center gap-4">
+            <Link
+              to={`/exam/${exam.id}/test`}
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H15M9 10V9a2 2 0 012-2h2a2 2 0 012 2v1M9 10H7a2 2 0 00-2 2v1a2 2 0 002 2h2m9-6V9a2 2 0 00-2-2H5a2 2 0 00-2 2v7a2 2 0 002 2h1" />
+              </svg>
+              Làm bài đầy đủ
+            </Link>
+            
+            <Link
+              to={`/exam/${exam.id}/practice`}
+              className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              Luyện tập theo phần
+            </Link>
+          </div>
         </div>
 
         {/* Exam Info */}
@@ -401,7 +408,7 @@ const ExamDetail = () => {
               <p className="text-gray-500 text-center py-8">Chưa có bình luận nào</p>
             ) : (
               comments.map((comment) => (
-                <div key={comment.postCommentId || comment.id} className="flex space-x-3">
+                <div key={comment.id} className="flex space-x-3">
                   <div className="flex-shrink-0">
                     <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                       <span className="text-gray-600 font-medium">
@@ -416,10 +423,10 @@ const ExamDetail = () => {
                           {comment.username || 'Người dùng'}
                         </span>
                         <span className="text-sm text-gray-500">
-                          {formatDate(comment.createdAt || comment.created_at)}
+                          {formatDate(comment.createdAt)}
                         </span>
                       </div>
-                      <p className="text-gray-700">{comment.context || comment.content}</p>
+                      <p className="text-gray-700">{comment.context}</p>
                     </div>
                   </div>
                 </div>
@@ -427,18 +434,6 @@ const ExamDetail = () => {
             )}
           </div>
         </div>
-
-        {/* Start Test Button - New Section */}
-        {exam && (
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={() => navigate(`/exam/${exam.id}/test`)}
-              className="bg-primary-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-600 transition"
-            >
-              Làm bài thi
-            </button>
-          </div>
-        )}
       </div>
       
       <Footer />

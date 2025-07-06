@@ -66,38 +66,13 @@ export const examService = {
     }
   },
 
-  // Lấy lịch sử làm bài của user
-  getExamHistory: async (userId) => {
-    try {
-      const response = await api.get(`/exams/history`, {
-        params: { userId }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching exam history:', error);
-      throw error;
-    }
-  },
-
-  // Lấy thống kê kết quả thi của user
-  getExamStatistics: async (userId) => {
-    try {
-      const response = await api.get(`/exams/statistics`, {
-        params: { userId }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching exam statistics:', error);
-      throw error;
-    }
-  },
-
-  // Nộp bài thi (cần truyền userId)
+  // Nộp bài thi
   submitExam: async (examId, answers, userId) => {
     try {
-      const response = await api.post(`/exams/${examId}/submit?userId=${userId}`, {
-        answers
-      });
+      console.log(`Submitting exam ${examId} with answers:`, answers, 'userId:', userId); // Debug log
+      // Truyền userId lên query param
+      const response = await api.post(`/exams/${examId}/submit?userId=${userId}`, answers);
+      console.log('Submit response:', response.data); // Debug log
       return response.data;
     } catch (error) {
       console.error('Error submitting exam:', error);
@@ -145,13 +120,45 @@ export const examService = {
     }
   },
 
-  // Lấy chi tiết kết quả theo resultId
-  getExamResultDetail: async (resultId) => {
+  // Lấy comments của bài thi
+  getExamComments: async (examId) => {
     try {
-      const response = await api.get(`/exams/result/${resultId}`);
+      console.log(`Getting comments for exam ${examId}`);
+      const response = await api.get(`/exams/${examId}/comments`);
+      console.log('Comments response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error fetching exam result detail:', error);
+      console.error('Error fetching comments:', error);
+      throw error;
+    }
+  },
+
+  // Thêm comment cho bài thi
+  addExamComment: async (examId, context, userId) => {
+    try {
+      console.log(`Adding comment for exam ${examId}`);
+      const response = await api.post(`/exams/${examId}/comments?context=${encodeURIComponent(context)}&userId=${userId}`);
+      console.log('Add comment response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      throw error;
+    }
+  },
+
+  // Nộp bài practice test
+  submitPracticeTest: async (examId, partIds, answers, userId) => {
+    try {
+      console.log(`Submitting practice test ${examId} with parts:`, partIds);
+      const params = new URLSearchParams();
+      partIds.forEach(id => params.append('partIds', id));
+      params.append('userId', userId);
+      
+      const response = await api.post(`/exams/${examId}/submit-practice?${params}`, { answers });
+      console.log('Practice submit response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error submitting practice test:', error);
       throw error;
     }
   },

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, BookOpen, Clock, Users, Star } from 'lucide-react';
 import ExamCard from '../../components/ExamComponent/ExamCard';
-import { examService } from '../../api/examService'; // Import examService
+import { examService } from '../../api/ExamService'; // Import examService
 import { useUser } from '../../contexts/UserContext'; // Sử dụng UserContext
 
 const Exams = () => {
