@@ -80,7 +80,7 @@ const NavBar = () => {
 
         <ul className="hidden md:flex list-none m-0 p-0 gap-8 items-center">
           <li><Link to="/courses" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Khóa học</Link></li>
-          <li><Link to="/tai-lieu" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">FlashCard</Link></li>
+          <li><Link to="/flash-card" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">FlashCard</Link></li>
           <li><Link to="/lo-trinh" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Lộ trình</Link></li>
 
           <li className="relative" onMouseEnter={() => setShowTopikDropdown(true)} onMouseLeave={() => setShowTopikDropdown(false)}>
@@ -228,7 +228,7 @@ const NavBar = () => {
               <div className="flex-1 overflow-y-auto py-4">
                 <nav className="space-y-2 px-4">
                   <Link to="/courses" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Khóa học</Link>
-                  <Link to="/tai-lieu" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">FlashCard</Link>
+                  <Link to="/flash-card" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">FlashCard</Link>
                   <Link to="/lo-trinh" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Lộ trình</Link>
                   <Link to="/blog" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Blog</Link>
                   
