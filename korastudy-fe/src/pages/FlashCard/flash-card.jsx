@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, BookOpen, Play, Users, Star, ArrowRight, 
-  Lock, Shuffle, Brain, Target, Clock, Trophy
+  Lock, Shuffle, Brain, Target, Clock, Trophy, Trash2
 } from 'lucide-react';
 import { useUser } from '../../contexts/UserContext';
 import { flashcardService } from '../../api/flashcardService';
@@ -14,6 +14,8 @@ const FlashCard = () => {
   const [systemSets, setSystemSets] = useState([]);
   const [userSets, setUserSets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedSetId, setSelectedSetId] = useState(null);
 
   const { isAuthenticated } = useUser();
   const navigate = useNavigate();
@@ -94,6 +96,28 @@ const FlashCard = () => {
 
   const handleCreateWordList = () => {
     navigate('/flash-card/create');
+  };
+
+  // Xử lý khi người dùng muốn xóa một bộ flashcard
+  const openDeleteDialog = (e, setId) => {
+    e.stopPropagation(); // Ngăn sự kiện click lan tỏa lên card cha
+    e.preventDefault(); // Ngăn chuyển hướng nếu bọc trong thẻ link
+    setSelectedSetId(setId);
+    setDeleteDialogOpen(true);
+  };
+
+  // Xử lý khi người dùng xác nhận xóa
+  const handleDeleteSet = async () => {
+    if (!selectedSetId) return;
+    
+    try {
+      await flashcardService.deleteFlashcardSet(selectedSetId);
+      // Cập nhật lại state để UI cập nhật ngay
+      setUserSets(prevSets => prevSets.filter(set => set.id !== selectedSetId));
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Error deleting flashcard set:', error);
+    }
   };
 
   const AnimatedSection = ({ children, className = "" }) => {
@@ -217,12 +241,21 @@ const FlashCard = () => {
                 {userWordLists.map((list, index) => (
                   <motion.div
                     key={list.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 relative"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                     whileHover={{ y: -5 }}
                   >
+                    {/* Nút xóa ở góc trên bên phải */}
+                    <button
+                      onClick={(e) => openDeleteDialog(e, list.id)}
+                      className="absolute top-2 right-2 p-2 bg-white/10 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-all z-10"
+                      title="Xóa bộ flashcard"
+                    >
+                      <Trash2 size={18} className="text-red-500" />
+                    </button>
+                    
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
@@ -489,6 +522,39 @@ const FlashCard = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay nền tối */}
+          <div 
+            className="absolute inset-0 bg-black/50" 
+            onClick={() => setDeleteDialogOpen(false)}
+          />
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 max-w-sm w-full z-10">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+              Xác nhận xóa
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Bạn có chắc chắn muốn xóa bộ từ vựng này? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setDeleteDialogOpen(false)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg font-semibold text-gray-800 dark:text-white transition-all duration-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDeleteSet}
+                className="px-4 py-2 bg-red-500 rounded-lg font-semibold text-white transition-all duration-300 hover:bg-red-600"
+              >
+                Xóa bộ từ vựng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

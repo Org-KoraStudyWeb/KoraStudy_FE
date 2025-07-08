@@ -82,6 +82,21 @@ export const flashcardService = {
     const res = await flashcardApi.post('/system', apiData);
     toast.success('Tạo bộ flashcard hệ thống thành công!');
     return res.data;
+  },
+  
+  deleteFlashcardSet: async (setId) => {
+    try {
+      const res = await flashcardApi.delete(`/${setId}`);
+      toast.success('Đã xóa bộ flashcard thành công!');
+      return res.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        toast.error(error.response?.data || 'Bạn không có quyền xóa bộ flashcard này');
+      } else {
+        toast.error('Không thể xóa bộ flashcard');
+      }
+      throw error;
+    }
   }
 };
 
