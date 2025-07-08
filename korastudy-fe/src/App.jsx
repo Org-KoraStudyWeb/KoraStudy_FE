@@ -4,7 +4,6 @@ import './App.css';
 // Import react-toastify
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
 // Import contexts - Fixed import path
 import { ThemeProvider } from '@contexts/ThemeContext.jsx';
 import { UserProvider } from '@contexts/UserContext.jsx';
@@ -24,16 +23,18 @@ import ForgotPassword from '@pages/auth/forgot-password.jsx';
 // Import other pages
 import Exams from '@pages/Exam/exam.jsx';
 import ExamDetail from '@pages/Exam/exam-detail.jsx';
-import ExamTest from '@pages/Exam/exam-test.jsx'; 
+import ExamTest from '@pages/Exam/exam-test.jsx';
 import ExamResults from '@pages/Exam/exam-results.jsx';
 import LearningPath from '@pages/LearningPath/learning-path.jsx';
 // Import About page
 import About from '@pages/about.jsx';
 import Blog from '@pages/blog/blog.jsx';
 import BlogPost from '@pages/blog/blog-post.jsx';
-
+// Import FlashCard pages
+import FlashCard from '@pages/FlashCard/flash-card.jsx';
+import FlashCardPractice from '@pages/FlashCard/flash-card-practice.jsx';
+import CreateWordList from '@pages/FlashCard/create-word-list.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
-
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
             pauseOnHover
             theme="colored"
           />
+
           <div className="App bg-white dark:bg-dark-900 min-h-screen transition-colors duration-300">
             <Routes>
               {/* Layout cho các trang công khai */}
@@ -61,7 +63,7 @@ function App() {
                 <Route index element={<Home />} />
                 <Route path="courses" element={<Courses />} />
                 <Route path="course/:courseId" element={<CourseDetail />} />
-                <Route path="tai-lieu" element={<TaiLieu />} />
+                <Route path="flash-card" element={<FlashCard />} />
                 <Route path="ly-thuyet" element={<LyThuyet />} />
                 <Route path="lo-trinh" element={<LearningPath />} />
                 <Route path="topik1" element={<Topik1 />} />
@@ -77,8 +79,15 @@ function App() {
                 <Route path="exam/:id/take" element={<ExamTest />} />
                 <Route path="exam/:id/results" element={<ExamResults />} />
                 <Route path="de-thi" element={<Exams />} />
-                {/* <Route path="blog" element={<Blog />} />
-                <Route path="profile" element={<BlogPost />} /> */}
+              </Route>
+
+              {/* FlashCard routes - some protected, some public */}
+              <Route path="/flash-card/practice/:topicId" element={<><NavBar /><FlashCardPractice /><Footer /></>} />
+              <Route path="/flash-card/practice/user/:listId" element={<><NavBar /><FlashCardPractice /><Footer /></>} />
+              
+              {/* Protected FlashCard routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/flash-card/create" element={<><NavBar /><CreateWordList /><Footer /></>} />
               </Route>
 
               {/* Trang xác thực */}
@@ -100,12 +109,11 @@ function App() {
 }
 
 // Temporary placeholder components with dark mode support
-const TaiLieu = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Tài liệu</div>;
 const LyThuyet = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Lý thuyết</div>;
 const LoTrinh = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Lộ trình</div>;
 const LuyenTapTopik = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Luyện tập TOPIK</div>;
-const Topik1 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK 1</div>;
-const Topik2 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK 2</div>;
+const Topik1 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK I</div>;
+const Topik2 = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK II</div>;
 const TopikESP = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">TOPIK ESP</div>;
 const NangCap = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Nâng cấp</div>;
 const Terms = () => <div className="min-h-[60vh] p-10 bg-white dark:bg-dark-900 text-gray-900 dark:text-gray-100">Điều khoản dịch vụ</div>;
