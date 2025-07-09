@@ -47,7 +47,7 @@ function App() {
               <Route path="/exam" element={<><NavBar /><Exams /><Footer /></>} />
               <Route path="/exam/:id" element={<ExamDetail />} />
               <Route path="/exam/:id/test" element={<ExamTest />} /> {/* No navbar/footer for test */}
-              <Route path="/exam/:id/results" element={<ExamResults />} /> {/* No navbar/footer for results */}
+              <Route path="/exam/:id/result" element={<ExamResults />} /> {/* No navbar/footer for results */}
               
               {/* Legacy exam routes for compatibility */}
               <Route path="/de-thi" element={<><NavBar /><Exams /><Footer /></>} />

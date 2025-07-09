@@ -169,32 +169,120 @@ const ExamTest = () => {
 
   // Nộp bài thi
   const handleSubmitExam = async () => {
-    if (!user?.id) {
-      toast.error('Bạn cần đăng nhập để nộp bài');
+    // Validate user authentication first
+    if (!user) {
+      console.error('User not found:', user);
+      toast.error('Vui lòng đăng nhập để nộp bài');
+      navigate('/dang-nhap');
       return;
     }
-    setIsSubmitting(true);
-    try {
-      const answers = questions.map(q => ({
-        questionId: q.id,
-        selectedAnswer: q.selectedAnswer || null
-      }));
-      // Gọi API và nhận kết quả
-      const result = await examService.submitExam(id, answers, user.id);
-      toast.success('Nộp bài thành công!');
-      // Điều hướng sang trang kết quả, truyền cả result, questions và answers để xem chi tiết đúng/sai
-      navigate(`/exam/${id}/results`, {
-        state: {
-          result,
-          questions,
-          answers
+
+    // Get the correct user ID - try multiple possible fields
+    const userId = user.id || user.userId || user.account?.id || user.accountId;
+    
+    if (!userId) {
+      console.error('No valid user ID found in user object:', user);
+      toast.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+      navigate('/dang-nhap');
+      return;
+    }
+
+    // Validate that we have answers
+    if (Object.keys(answers).length === 0) {
+      toast.error('Vui lòng trả lời ít nhất một câu hỏi');
+      return;
+    }
+
+    if (window.confirm('Bạn có chắc chắn muốn nộp bài? Hành động này không thể hoàn tác.')) {
+      try {
+        setIsSubmitting(true);
+        
+        console.log('=== EXAM SUBMISSION DEBUG ===');
+        console.log('User object:', user);
+        console.log('User ID found:', userId, 'Type:', typeof userId);
+        console.log('Exam ID:', id);
+        console.log('Raw answers:', answers);
+        
+        // Format answers according to backend SubmitAnswerRequest
+        const formattedAnswers = Object.entries(answers).map(([questionId, selectedAnswer]) => ({
+          questionId: parseInt(questionId), // Ensure it's a number
+          selectedAnswer: selectedAnswer.toString() // Ensure it's a string
+        }));
+
+        console.log('Formatted answers:', formattedAnswers);
+
+        // Validate formatted answers
+        if (formattedAnswers.length === 0) {
+          toast.error('Không có câu trả lời nào để nộp');
+          return;
         }
-      });
-    } catch (error) {
-      toast.error('Nộp bài thất bại');
-      console.error('Submit error:', error);
-    } finally {
-      setIsSubmitting(false);
+
+        // Create request payload matching backend SubmitExamRequest
+        const submitRequest = {
+          answers: formattedAnswers
+        };
+
+        console.log('Submit request payload:', submitRequest);
+        console.log('Submitting to exam ID:', id, 'for user ID:', userId);
+
+        // Ensure userId is a valid number
+        const validUserId = parseInt(userId);
+        if (isNaN(validUserId) || validUserId <= 0) {
+          throw new Error('Invalid user ID: ' + userId);
+        }
+
+        const result = await examService.submitExam(id, submitRequest, validUserId);
+        
+        console.log('✅ Submit result received:', result);
+        console.log('Answer details count:', result.answerDetails?.length || 0);
+        
+        toast.success('Nộp bài thành công!');
+        
+        // Navigate to result page with result data including answer details
+        if (result && result.resultId) {
+          navigate(`/exam/${id}/result`, { 
+            state: { 
+              result: result,
+              resultId: result.resultId,
+              examId: id,
+              examTitle: exam.title,
+              examData: exam,
+              hasAnswerDetails: !!(result.answerDetails && result.answerDetails.length > 0)
+            },
+            replace: true // Replace history để không quay lại được trang thi
+          });
+        } else {
+          // Fallback: chuyển về trang exam detail
+          console.warn('No resultId received, redirecting to exam detail');
+          navigate(`/exam/${id}`, { 
+            state: { 
+              message: 'Nộp bài thành công! Kết quả đang được xử lý.',
+              result: result
+            } 
+          });
+        }
+        
+      } catch (error) {
+        console.error('❌ Error submitting exam:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        
+        // Provide more specific error messages
+        if (error.message.includes('User ID not found') || error.message.includes('không tìm thấy người dùng')) {
+          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          navigate('/dang-nhap');
+        } else if (error.response?.status === 401) {
+          toast.error('Bạn cần đăng nhập để nộp bài.');
+          navigate('/dang-nhap');
+        } else {
+          toast.error('Có lỗi xảy ra khi nộp bài: ' + (error.response?.data?.message || error.message));
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
