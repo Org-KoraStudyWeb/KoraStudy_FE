@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, BookOpen, Play, Users, Star, ArrowRight, 
-  Lock, Shuffle, Brain, Target, Clock, Trophy, Trash2
+  Lock, Shuffle, Brain, Target, Clock, Trophy, Trash2, Edit
 } from 'lucide-react';
 import { useUser } from '../../contexts/UserContext';
 import { flashcardService } from '../../api/flashcardService';
@@ -25,23 +25,32 @@ const FlashCard = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      
+      // Lấy system sets mà không phụ thuộc vào trạng thái đăng nhập
       try {
-        // Luôn lấy system sets
         const systemData = await flashcardService.getSystemSets();
-        setSystemSets(systemData);
-        
-        // Chỉ lấy user sets nếu đã đăng nhập
-        if (isAuthenticated()) {
-          const userData = await flashcardService.getUserSets();
-          setUserSets(userData);
-        }
+        setSystemSets(systemData || []); // Đảm bảo luôn có mảng kể cả khi API lỗi
       } catch (error) {
-        toast.error('Không thể tải dữ liệu flashcard');
-      } finally {
-        setLoading(false);
+        console.error('Error fetching system flashcards:', error);
+        setSystemSets([]);
+        toast.error('Không thể tải dữ liệu flashcard hệ thống');
       }
+      
+      // Chỉ lấy user sets nếu đã đăng nhập
+      if (isAuthenticated()) {
+        try {
+          const userData = await flashcardService.getUserSets();
+          setUserSets(userData || []);
+        } catch (error) {
+          console.error('Error fetching user flashcards:', error);
+          setUserSets([]);
+          toast.error('Không thể tải dữ liệu flashcard của bạn');
+        }
+      }
+      
+      setLoading(false);
     };
-  
+
     fetchData();
   }, [isAuthenticated]);
 
@@ -96,6 +105,13 @@ const FlashCard = () => {
 
   const handleCreateWordList = () => {
     navigate('/flash-card/create');
+  };
+
+  // Xử lý khi người dùng muốn sửa một bộ flashcard
+  const handleEditSet = (e, setId) => {
+    e.stopPropagation(); // Ngăn sự kiện click lan tỏa lên card cha
+    e.preventDefault(); // Ngăn chuyển hướng
+    navigate(`/flash-card/edit/${setId}`);
   };
 
   // Xử lý khi người dùng muốn xóa một bộ flashcard
@@ -247,25 +263,36 @@ const FlashCard = () => {
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                     whileHover={{ y: -5 }}
                   >
-                    {/* Nút xóa ở góc trên bên phải */}
-                    <button
-                      onClick={(e) => openDeleteDialog(e, list.id)}
-                      className="absolute top-2 right-2 p-2 bg-white/10 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-all z-10"
-                      title="Xóa bộ flashcard"
-                    >
-                      <Trash2 size={18} className="text-red-500" />
-                    </button>
+                    {/* Các nút thao tác ở góc trên bên phải */}
+                    <div className="absolute top-3 right-3 flex gap-1 z-20">
+                      <button
+                        onClick={(e) => handleEditSet(e, list.id)}
+                        className="p-2 bg-white/80 hover:bg-blue-50 dark:bg-gray-700/80 dark:hover:bg-blue-900/30 rounded-full transition-all shadow-sm"
+                        title="Sửa bộ flashcard"
+                      >
+                        <Edit size={18} className="text-blue-500" />
+                      </button>
+                      <button
+                        onClick={(e) => openDeleteDialog(e, list.id)}
+                        className="p-2 bg-white/80 hover:bg-red-50 dark:bg-gray-700/80 dark:hover:bg-red-900/30 rounded-full transition-all shadow-sm"
+                        title="Xóa bộ flashcard"
+                      >
+                        <Trash2 size={18} className="text-red-500" />
+                      </button>
+                    </div>
                     
                     <div className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
-                          {list.title}
-                        </h3>
-                        {list.isCustom && (
-                          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                            Tự tạo
-                          </span>
-                        )}
+                      <div className="flex items-start mb-4">
+                        <div className="flex-grow">
+                          <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-1">
+                            {list.title}
+                          </h3>
+                          {list.isCustom && (
+                            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full inline-block mr-2">
+                              Tự tạo
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <p className="text-gray-600 dark:text-gray-300 mb-4">
