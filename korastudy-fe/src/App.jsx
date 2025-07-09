@@ -34,6 +34,7 @@ import BlogPost from '@pages/blog/blog-post.jsx';
 import FlashCard from '@pages/FlashCard/flash-card.jsx';
 import FlashCardPractice from '@pages/FlashCard/flash-card-practice.jsx';
 import CreateWordList from '@pages/FlashCard/create-word-list.jsx';
+import EditWordList from '@pages/FlashCard/edit-word-list.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -88,6 +89,7 @@ function App() {
               {/* Protected FlashCard routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/flash-card/create" element={<><NavBar /><CreateWordList /><Footer /></>} />
+                <Route path="/flash-card/edit/:setId" element={<><NavBar /><EditWordList /><Footer /></>} />
               </Route>
 
               {/* Trang xác thực */}
