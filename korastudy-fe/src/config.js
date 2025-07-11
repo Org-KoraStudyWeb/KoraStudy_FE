@@ -27,3 +27,10 @@ export const FLASHCARD_CONFIG = {
   maxCardsPerSet: 100,
   defaultCategory: 'Từ vựng'
 };
+
+// Cấu hình blog
+export const BLOG_CONFIG = {
+  postsPerPage: 9,
+  maxPostTitleLength: 100,
+  maxPostSummaryLength: 300
+};
