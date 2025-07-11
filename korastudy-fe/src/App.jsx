@@ -30,6 +30,9 @@ import LearningPath from '@pages/LearningPath/learning-path.jsx';
 import About from '@pages/about.jsx';
 import Blog from '@pages/blog/blog.jsx';
 import BlogPost from '@pages/blog/blog-post.jsx';
+// Import Blog pages
+import PostEditor from './pages/blog/PostEditor';
+import PostDetail from './pages/blog/PostDetail';
 // Import FlashCard pages
 import FlashCard from '@pages/FlashCard/flash-card.jsx';
 import FlashCardPractice from '@pages/FlashCard/flash-card-practice.jsx';
@@ -80,6 +83,10 @@ function App() {
                 <Route path="exam/:id/take" element={<ExamTest />} />
                 <Route path="exam/:id/results" element={<ExamResults />} />
                 <Route path="de-thi" element={<Exams />} />
+                
+                {/* Blog routes - public access */}
+                <Route path="blog" element={<Blog />} />
+                <Route path="blog/:id" element={<PostDetail />} />
               </Route>
 
               {/* FlashCard routes - some protected, some public */}
@@ -92,6 +99,12 @@ function App() {
                 <Route path="/flash-card/edit/:setId" element={<><NavBar /><EditWordList /><Footer /></>} />
               </Route>
 
+              {/* Protected Blog routes - require login */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/blog/create" element={<><NavBar /><PostEditor /><Footer /></>} />
+                <Route path="/blog/edit/:id" element={<><NavBar /><PostEditor /><Footer /></>} />
+              </Route>
+
               {/* Trang xác thực */}
               <Route path="/dang-nhap" element={<LoginPage />} />
               <Route path="/dang-ky" element={<Register />} />
@@ -100,7 +113,6 @@ function App() {
               {/* Các trang yêu cầu đăng nhập */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
-                <Route path="/blog" element={<><NavBar /><Blog /><Footer /></>} />
               </Route>
             </Routes>
           </div>
