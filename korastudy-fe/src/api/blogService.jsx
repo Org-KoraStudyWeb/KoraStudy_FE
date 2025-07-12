@@ -324,29 +324,55 @@ export const blogService = {
   },
 
   // USER/ADMIN: Tạo bài viết mới
-  createPost: async (postData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/posts`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(postData)
-      });
-      return await handleResponse(response);
-    } catch (error) {
-      console.error('Error creating post:', error);
-      throw error;
+  // Trong src/api/blogService.jsx
+// USER/ADMIN: Tạo bài viết mới
+createPost: async (postData) => {
+  try {
+    console.log('Creating post with data:', postData);
+    
+    const apiData = {
+      post_title: postData.postTitle,
+      post_excerpt: postData.postSummary,
+      post_content: postData.postContent,
+      published: postData.published
+    };
+    
+    const response = await fetch(`${API_BASE_URL}/api/posts`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(apiData)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
-  },
+    
+    const data = await response.json();
+    console.log('Create response:', data);
+    
+    return data;
+  } catch (error) {
+    console.error('Error creating post:', error);
+    throw error;
+  }
+},
 
   // USER/ADMIN: Cập nhật bài viết
   updatePost: async (id, postData) => {
     try {
+      console.log('Updating post with ID:', id, 'Data:', postData);
       const response = await fetch(`${API_BASE_URL}/api/posts/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(postData)
       });
-      return await handleResponse(response);
+      
+      console.log('Update response status:', response.status);
+      const result = await handleResponse(response);
+      console.log('Update response data:', result);
+      
+      return result;
     } catch (error) {
       console.error('Error updating post:', error);
       throw error;
