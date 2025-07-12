@@ -1,15 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Calendar } from 'lucide-react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, User, Calendar, Pencil, Trash } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import blogService from '../../api/blogService';
 import { formatUserName } from '../../utils/formatUserName';
 import { formatDate } from '../../utils/formatDate';
+import { useUser } from '../../contexts/UserContext';
+
 
 const BlogDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, user } = useUser();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userPermissions, setUserPermissions] = useState({
+    canEdit: false,
+    canDelete: false,
+    isOwner: false
+  });
 
   useEffect(() => {
     const fetchPostData = async () => {
@@ -23,6 +34,22 @@ const BlogDetail = () => {
           authorName: data.authorName
         });
         setPost(data);
+
+        // Kiểm tra quyền chỉnh sửa và xóa bài viết
+        if (isAuthenticated && user && data) {
+          // Lấy ID của người tạo bài viết
+          const creatorId = data.createdBy?.id || data.author?.id || null;
+          
+          // Kiểm tra người dùng có phải là admin hoặc người tạo bài viết không
+          const isAdmin = user.roles?.includes('ROLE_ADMIN') || user.roles?.includes('admin');
+          const isOwner = user.id === creatorId;
+          
+          setUserPermissions({
+            canEdit: isAdmin || isOwner,
+            canDelete: isAdmin,
+            isOwner: isOwner
+          });
+        }
       } catch (err) {
         console.error('Error fetching post:', err);
         setError(err.message || 'Không thể tải dữ liệu bài viết');
@@ -34,7 +61,7 @@ const BlogDetail = () => {
     if (id) {
       fetchPostData();
     }
-  }, [id]);
+  }, [id, isAuthenticated, user]);
 
   useEffect(() => {
     if (post) {
@@ -197,15 +224,21 @@ const BlogDetail = () => {
           </header>
 
           {/* Main Content */}
-          <div className="prose prose-lg max-w-none dark:prose-invert">
-            {post.post_content || post.postContent ? (
-              <div dangerouslySetInnerHTML={{ __html: post.post_content || post.postContent }} />
-            ) : (
-              <p className="text-gray-600 dark:text-gray-400">
-                {post.post_excerpt || post.postSummary || 'Không có nội dung'}
-              </p>
-            )}
-          </div>
+          <div className="post-content prose prose-slate max-w-none dark:prose-invert overflow-hidden break-words" 
+               dangerouslySetInnerHTML={{ __html: post.post_content || post.postContent }} />
+
+          {/* Edit and Delete buttons */}
+          {userPermissions.canEdit && (
+            <div className="mt-6 flex gap-4">
+              <Link
+                to={`/blog/edit/${post.post_id || post.id}`}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <Pencil size={16} className="mr-2" />
+                Chỉnh sửa bài viết
+              </Link>
+            </div>
+          )}
 
           {/* Back to blog list */}
           <div className="mt-12 border-t border-gray-200 dark:border-gray-700 pt-8">

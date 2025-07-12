@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import blogService from '../../api/blogService';
 import { useUser } from '../../contexts/UserContext';
@@ -19,6 +19,7 @@ const Blog = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [activeTab, setActiveTab] = useState('latest'); // 'latest', 'popular', 'featured'
   const { isAuthenticated } = useUser();
+  const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
@@ -34,7 +35,7 @@ const Blog = () => {
       // Xóa tham số khỏi URL để tránh thông báo lặp lại
       navigate('/blog', { replace: true });
     }
-  }, [currentPage, searchTerm, selectedCategory, activeTab, location.search]);
+  }, [currentPage, searchTerm, selectedCategory, activeTab, location.search, navigate]);
 
   const fetchInitialData = async () => {
     try {
