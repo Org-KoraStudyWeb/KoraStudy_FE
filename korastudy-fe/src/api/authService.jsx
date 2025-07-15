@@ -152,14 +152,16 @@ const authService = {
         localStorage.setItem('authToken', token);
       }
       
-      // Get basic user data from login response
-      const userId = response.data.id;
+      // Get user ID - có thể là account ID hoặc user ID
+      const userId = response.data.id || response.data.userId || response.data.accountId;
       if (!userId) {
         throw new Error('User ID không tồn tại trong response');
       }
       
       const basicUserData = {
-        id: userId,
+        id: userId, // Lưu ID chính (có thể là account ID)
+        userId: response.data.userId, // Lưu riêng user ID nếu có
+        accountId: response.data.id || response.data.accountId, // Lưu riêng account ID
         username: response.data.username || credentials.username,
         roles: response.data.roles || ['USER'],
       };
@@ -175,9 +177,13 @@ const authService = {
         
         const profileData = profileResponse.data;
         
-        // Extract user data from profile response, matching the flat structure seen in Postman
+        // Extract user data from profile response, ensuring we have the right IDs
         const userData = {
           ...basicUserData,
+          // Keep both IDs for compatibility
+          id: userId, // Primary ID (the one that works for API calls)
+          userId: profileData.userId || basicUserData.userId,
+          accountId: profileData.accountId || basicUserData.accountId,
           email: profileData.email || response.data.email || '',
           firstName: profileData.firstName || response.data.firstName || '',
           lastName: profileData.lastName || response.data.lastName || '',
@@ -202,7 +208,7 @@ const authService = {
         };
         
         localStorage.setItem('user', JSON.stringify(userData));
-        console.log('User data stored with full profile:', userData);
+        console.log('User data stored with IDs - Primary ID:', userData.id, 'User ID:', userData.userId, 'Account ID:', userData.accountId);
         
         return { token, user: userData };
       } catch (profileError) {
@@ -232,7 +238,7 @@ const authService = {
         };
         
         localStorage.setItem('user', JSON.stringify(userData));
-        console.warn('Using basic user data as profile fetch failed');
+        console.warn('Using basic user data as profile fetch failed. Primary ID:', userData.id);
         
         return { token, user: userData };
       }
