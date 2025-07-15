@@ -50,11 +50,14 @@ const ProfileContainer = ({ children }) => {
     console.log('Submitting profile update:', editForm);
     setShowConfirmModal(true);
   };
-  
+
+  // Trong hàm handleConfirmSave
+
+  // Tìm hàm handleConfirmSave và thay đổi phần catch như sau:
   const handleConfirmSave = async () => {
     setShowConfirmModal(false);
     setLoading(true);
-    setError('');
+    setError(''); // Reset error message
     setSuccess('');
     
     try {
@@ -71,16 +74,31 @@ const ProfileContainer = ({ children }) => {
     } catch (error) {
       console.error('Profile update error:', error);
       
-      // Handle JSON errors
-      if (error.message && (
-        error.message.includes('Unexpected token') || 
-        error.message.includes('JSON') ||
-        error.message.includes('not valid')
-      )) {
-        setSuccess('Thông tin đã được cập nhật. Vui lòng refresh trang để xem thay đổi.');
+      // Xác định rõ ràng thông báo lỗi
+      if (error.response && error.response.status === 500) {
+        const responseData = error.response.data || {};
+        const errorMessage = responseData.message || responseData.error || '';
+        
+        if (errorMessage.toLowerCase().includes('email') || 
+            errorMessage.toLowerCase().includes('duplicate') || 
+            errorMessage.toLowerCase().includes('trùng')) {
+          setError('Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.');
+        } else {
+          setError('Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại sau.');
+        }
+      } else if (error.message) {
+        // Kiểm tra message từ lỗi
+        if (error.message.toLowerCase().includes('email')) {
+          setError('Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.');
+        } else {
+          setError(error.message);
+        }
       } else {
-        setError(error.message || 'Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.');
+        setError('Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại sau.');
       }
+      
+      // Log lại error state để kiểm tra
+      console.log("Error set in state:", error.message || "Unknown error");
     } finally {
       setLoading(false);
     }

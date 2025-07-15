@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Award, Star, Target, ArrowRight } from 'lucide-react';
-import NavBar from '../../components/NavBar';
-import Footer from '../../components/Footer';
+// import NavBar from '../../components/NavBar';
+// import Footer from '../../components/Footer';
 import PathHeader from '../../components/LearningPathComponent/PathHeader';
 import PathContent from '../../components/LearningPathComponent/PathContent';
 
@@ -342,7 +342,7 @@ const LearningPath = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-dark-900 dark:to-dark-800">
-      <NavBar />
+      
       
       {/* Intro Section */}
       <section className="py-16 bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700">
@@ -567,7 +567,7 @@ const LearningPath = () => {
         }
       `}</style>
       
-      <Footer />
+     
     </div>
   );
 };

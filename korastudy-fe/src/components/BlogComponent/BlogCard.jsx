@@ -1,90 +1,59 @@
+// src/components/blog/BlogCard.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card } from '@components/ui/Card.jsx'; // Adjust the import path as necessary
+import { formatDate } from '../../utils/formatDate';
+import { formatUserName } from '../../utils/formatUserName';
 
 const BlogCard = ({ post }) => {
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const truncateContent = (content, maxLength = 150) => {
-    if (content.length <= maxLength) return content;
-    return content.substring(0, maxLength) + '...';
-  };
-
+  // Log để debug tiêu đề
+  console.log("Blog card rendering with post:", { 
+    id: post.id || post.post_id,
+    title: post.postTitle || post.post_title || "No title"
+  });
+  
   return (
-    <Card className="h-full hover:shadow-lg transition-shadow duration-300">
-      <div className="p-6">
-        {/* Category Badge */}
-        {post.category && (
-          <div className="mb-3">
-            <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-              {post.category.category_name}
-            </span>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-shadow hover:shadow-md">
+      <Link to={`/blog/${post.post_id || post.id}`} className="block">
+        {post.featured_image || post.thumbnail ? (
+          <img 
+            src={post.featured_image || post.thumbnail} 
+            alt={post.postTitle || post.post_title || "Blog post"} 
+            className="w-full h-48 object-cover"
+          />
+        ) : (
+          <div className="w-full h-48 bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center">
+            <h2 className="text-4xl font-bold text-white">
+              {/* Hiển thị chữ cái đầu tiên của tiêu đề nếu có */}
+              {(post.postTitle || post.post_title || "A").charAt(0)}
+            </h2>
           </div>
         )}
-
-        {/* Post Title */}
-        <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white line-clamp-2">
-          <Link 
-            to={`/blog/${post.post_id}`}
-            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            {post.post_title}
-          </Link>
-        </h3>
-
-        {/* Post Excerpt */}
-        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3">
-          {truncateContent(post.post_excerpt || post.post_content)}
+      </Link>
+      
+      <div className="p-5">
+        <Link to={`/blog/${post.post_id || post.id}`} className="block">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+            {/* Hiển thị đầy đủ tiêu đề */}
+            {post.postTitle || post.post_title || "Bài viết chưa có tiêu đề"}
+          </h3>
+        </Link>
+        
+        <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+          {post.postSummary || post.post_excerpt || "Không có mô tả"}
         </p>
-
-        {/* Tags */}
-        {post.tags && post.tags.length > 0 && (
-          <div className="mb-4">
-            <div className="flex flex-wrap gap-2">
-              {post.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag.tag_id}
-                  className="inline-block bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded"
-                >
-                  #{tag.tag_name}
-                </span>
-              ))}
-              {post.tags.length > 3 && (
-                <span className="text-xs text-gray-500">+{post.tags.length - 3} more</span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Post Meta */}
-        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-          <div className="flex items-center space-x-2">
-            <span>작성자: {post.user?.user_name || '익명'}</span>
-          </div>
-          <span>{formatDate(post.created_at)}</span>
-        </div>
-
-        {/* Read More Link */}
-        <div className="mt-4">
-          <Link
-            to={`/blog/${post.post_id}`}
-            className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
-          >
-            더 읽기
-            <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
+        
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500 dark:text-gray-400">
+            {/* Hiển thị tên tác giả */}
+            {post.authorName || (post.user && formatUserName(post.user)) || "Tác giả ẩn danh"}
+          </span>
+          <span className="text-gray-500 dark:text-gray-400">
+            {/* Hiển thị ngày đăng */}
+            {post.formattedDate || (post.created_at && formatDate(post.created_at)) || "Mới đăng"}
+          </span>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 

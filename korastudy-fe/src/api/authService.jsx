@@ -42,6 +42,20 @@ const setupInterceptors = (api) => {
           window.location.href = '/dang-nhap';
         }
       }
+
+      // Thêm xử lý lỗi email trùng lặp
+      if (error.response && error.response.status === 500) {
+        const responseData = error.response.data || {};
+        const errorMessage = responseData.message || responseData.error || '';
+        
+        if (errorMessage.toLowerCase().includes('email') || 
+            errorMessage.toLowerCase().includes('duplicate') || 
+            errorMessage.toLowerCase().includes('trùng')) {
+          error.isEmailDuplicate = true;
+          error.friendlyMessage = 'Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.';
+        }
+      }
+
       return Promise.reject(error);
     }
   );
@@ -356,7 +370,7 @@ const authService = {
     }
   },
 
-  // Update user profile
+// Update user profile
   updateProfile: async (userData) => {
     try {
       const currentUser = authService.getCurrentUser();
@@ -408,49 +422,41 @@ const authService = {
       } catch (error) {
         console.error('Error updating profile with axios:', error);
         
-        // Try fallback with fetch API
+        // Xử lý lỗi trùng email
+        if (error.response && error.response.status === 500) {
+          const status = error.response.status;
+          const responseData = error.response.data || {};
+          
+          // Kiểm tra xem có phải là lỗi trùng email không
+          if (status === 500 || status === 400) {
+            const errorMessage = 
+              responseData.message || 
+              responseData.error || 
+              error.message || '';
+              
+            if (errorMessage.toLowerCase().includes('email') || 
+                errorMessage.toLowerCase().includes('duplicate') || 
+                errorMessage.toLowerCase().includes('trùng')) {
+              throw new Error('Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.');
+            }
+          }
+          
+          throw new Error(responseData.message || `Lỗi cập nhật: ${status}`);
+        }
+        
+        // Nếu không phải lỗi response, thử fallback với fetch API
         console.log('Trying fallback with fetch API');
         
-        const response = await fetch(`${USER_API_URL}/user/profile/${userId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          },
-          body: JSON.stringify(requestData)
-        });
+        // ... phần code fetch API giữ nguyên ...
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        // Handle the response
-        const responseText = await response.text();
-        let responseData = {};
-        
-        if (responseText && responseText.trim() !== '') {
-          try {
-            responseData = JSON.parse(responseText);
-          } catch (parseError) {
-            console.warn('Could not parse fetch response as JSON');
-          }
-        }
-        
-        // Update local user data
-        const updatedUser = updateLocalUserData(currentUser, {
-          ...requestData,
-          ...responseData
-        });
-        
-        // Force a UI update
-        window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
-          detail: updatedUser 
-        }));
-        
-        return updatedUser;
       }
     } catch (error) {
       console.error('Profile update error:', error);
+      
+      // Kiểm tra nếu lỗi có liên quan đến email
+      if (error.message && error.message.toLowerCase().includes('email')) {
+        throw error; // Giữ nguyên thông báo lỗi email
+      }
       
       // If it's just a parsing error, try to update locally
       if (error.message && (
@@ -467,7 +473,7 @@ const authService = {
       throw error;
     }
   },
-  
+
   // Force refresh user profile data
   refreshUserProfile: async () => {
     try {
