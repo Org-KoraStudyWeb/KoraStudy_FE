@@ -20,7 +20,7 @@ import Profile from '@/pages/profile.jsx';
 import LoginPage from './pages/auth/LoginPage';
 import Register from '@pages/auth/register.jsx';
 import ForgotPassword from '@pages/auth/forgot-password.jsx';
-// Import other pages
+// Import exam pages
 import Exams from '@pages/Exam/exam.jsx';
 import ExamDetail from '@pages/Exam/exam-detail.jsx';
 import ExamTest from '@pages/Exam/exam-test.jsx';
@@ -83,16 +83,12 @@ function App() {
                   <Route path="exam/:id/take" element={<ExamTest />} />
                   <Route path="exam/:id/results" element={<ExamResults />} />
                   <Route path="de-thi" element={<Exams />} />
-                  {/* Các trang yêu cầu đăng nhập */}
-                  <Route element={<ProtectedRoute />}>
-                      <Route path="/profile" element={<Profile />} />
-                      {/* Blog routes - public access */}
-                      <Route path="/blog/create" element={<CreatePost />} />
-                      <Route path="/blog/edit/:id" element={<EditPost />} />
-                      <Route path="blog/:id" element={<PostDetail />} />
-                      <Route path="blog" element={<Blog />} />
-                  </Route>
                   
+                  {/* Blog routes - public access */}
+                  <Route path="/blog/create" element={<CreatePost />} />
+                  <Route path="/blog/edit/:id" element={<EditPost />} />
+                  <Route path="blog/:id" element={<PostDetail />} />
+                  <Route path="blog" element={<Blog />} />
                   
                 </Route>
 
@@ -104,6 +100,14 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route path="/flash-card/create" element={<><NavBar /><CreateWordList /><Footer /></>} />
                   <Route path="/flash-card/edit/:setId" element={<><NavBar /><EditWordList /><Footer /></>} />
+                </Route>
+
+                {/* Protected Exam routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/exam" element={<><NavBar /><Exams /><Footer /></>} />
+                  <Route path="/exam/:id" element={<ExamDetail />} />
+                  <Route path="/exam/:id/test" element={<ExamTest />} /> 
+                  <Route path="/exam/:id/result" element={<ExamResults />} />
                 </Route>
 
                 {/* Protected Blog routes - require login */}

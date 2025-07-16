@@ -1,150 +1,103 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Clock, Volume2, VolumeX, Play, Pause, RotateCcw, ChevronLeft, ChevronRight, Flag, X } from 'lucide-react';
-// import ExamNavigation from '../../components/ExamNavigation';
-// import ExamQuestion from '../../components/ExamQuestion';
-import ExamNavigation from '@components/ExamComponent/ExamNavigation.jsx';
-import ExamQuestion from '@components/ExamComponent/ExamQuestion.jsx';
+import { Clock, Flag, FlagOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { examService } from '../../api/ExamService';
+import { useUser } from '@contexts/UserContext.jsx';
+import { toast } from 'react-toastify';
 
 const ExamTest = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const audioRef = useRef(null);
+  const { user, isAuthenticated } = useUser();
   
-  // Exam state
+  // State management
+  const [exam, setExam] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [currentPart, setCurrentPart] = useState(1);
   const [answers, setAnswers] = useState({});
-  const [timeRemaining, setTimeRemaining] = useState(6000); // 100 minutes in seconds
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(0);
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [flaggedQuestions, setFlaggedQuestions] = useState(new Set());
+  const [flaggedQuestions, setFlaggedQuestions] = useState(new Set()); // Thêm state cho flagged questions
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
 
-  // Korean language test data
-  const examData = {
-    title: "TOPIK I Mock Test",
-    totalTime: 6000, // 100 minutes
-    parts: [
-      {
-        id: 1,
-        title: "PART 1 - 듣기 (Listening)",
-        description: "다음을 듣고 알맞은 것을 고르십시오.",
-        questions: 30,
-        timeLimit: 2400, // 40 minutes
-        hasAudio: true,
-        audioFile: "/audio/topik1-listening.mp3"
-      },
-      {
-        id: 2,
-        title: "PART 2 - 읽기 (Reading)",
-        description: "다음을 읽고 알맞은 것을 고르십시오.",
-        questions: 40,
-        timeLimit: 3600, // 60 minutes
-        hasAudio: false
-      }
-    ],
-    questions: [
-      // Listening Questions (Part 1)
-      {
-        id: 1,
-        part: 1,
-        type: "listening",
-        audioStart: 0,
-        audioEnd: 15,
-        question: "다음을 듣고 알맞은 것을 고르십시오.",
-        instruction: "Listen and choose the correct answer.",
-        options: [
-          "① 가: 어디에 가세요? 나: 학교에 가요.",
-          "② 가: 뭐 하세요? 나: 공부해요.",
-          "③ 가: 언제 가세요? 나: 내일 가요.",
-          "④ 가: 누구와 가세요? 나: 친구와 가요."
-        ],
-        correctAnswer: 0
-      },
-      {
-        id: 2,
-        part: 1,
-        type: "listening",
-        audioStart: 16,
-        audioEnd: 30,
-        question: "다음을 듣고 알맞은 것을 고르십시오.",
-        instruction: "Listen and choose the correct answer.",
-        options: [
-          "① 병원",
-          "② 학교",
-          "③ 은행",
-          "④ 시장"
-        ],
-        correctAnswer: 2
-      },
-      {
-        id: 3,
-        part: 1,
-        type: "listening",
-        audioStart: 31,
-        audioEnd: 45,
-        question: "다음을 듣고 여자가 하는 말의 의미로 알맞은 것을 고르십시오.",
-        instruction: "Listen and choose what the woman means.",
-        options: [
-          "① 시간이 없어서 못 가겠어요.",
-          "② 돈이 없어서 못 사겠어요.",
-          "③ 배가 불러서 못 먹겠어요.",
-          "④ 피곤해서 못 하겠어요."
-        ],
-        correctAnswer: 0
-      },
-      // Reading Questions (Part 2)
-      {
-        id: 31,
-        part: 2,
-        type: "reading",
-        question: "다음 글을 읽고 내용과 같은 것을 고르십시오.",
-        passage: "저는 매일 아침 7시에 일어납니다. 그리고 8시에 학교에 갑니다. 학교에서 한국어를 공부합니다. 수업은 12시에 끝납니다. 점심을 먹고 도서관에서 숙제를 합니다.",
-        options: [
-          "① 저는 아침 6시에 일어납니다.",
-          "② 저는 학교에서 한국어를 공부합니다.",
-          "③ 수업은 1시에 끝납니다.",
-          "④ 저는 집에서 숙제를 합니다."
-        ],
-        correctAnswer: 1
-      },
-      {
-        id: 32,
-        part: 2,
-        type: "reading",
-        question: "다음 중 어법에 맞는 것을 고르십시오.",
-        options: [
-          "① 저는 학생이에요.",
-          "② 저는 학생이어요.",
-          "③ 저는 학생예요.",
-          "④ 저는 학생이요."
-        ],
-        correctAnswer: 0
-      },
-      {
-        id: 33,
-        part: 2,
-        type: "reading",
-        question: "다음 글의 빈 곳에 들어갈 가장 알맞은 것을 고르십시오.",
-        passage: "오늘은 날씨가 정말 좋습니다. 하늘이 맑고 바람도 시원합니다. 이런 날에는 _______ 좋겠습니다.",
-        options: [
-          "① 집에서 잠을 자면",
-          "② 공원에서 산책하면",
-          "③ 방에서 공부하면",
-          "④ 병원에 가면"
-        ],
-        correctAnswer: 1
-      }
-    ]
-  };
-
-  // Timer effect
+  // Check authentication
   useEffect(() => {
+    if (!isAuthenticated()) {
+      toast.warning('Bạn cần đăng nhập để tham gia thi');
+      navigate('/dang-nhap', { 
+        state: { from: `/exam/${id}/test` } 
+      });
+      return;
+    }
+  }, [isAuthenticated, navigate, id]);
+
+  // Fetch exam data
+  useEffect(() => {
+    const fetchExamData = async () => {
+      try {
+        setLoading(true);
+        console.log('🔄 Fetching exam data for ID:', id);
+        
+        const examData = await examService.getExamDetail(id);
+        console.log('✅ Exam data received:', examData);
+        
+        setExam(examData);
+        
+        // Set thời gian làm bài (chuyển từ phút sang giây)
+        if (examData.durationTimes) {
+          setTimeLeft(examData.durationTimes * 60);
+        }
+        
+        // Chuyển đổi dữ liệu từ backend format sang frontend format
+        const formattedQuestions = [];
+        if (examData.parts && examData.parts.length > 0) {
+          examData.parts.forEach(part => {
+            if (part.questions && part.questions.length > 0) {
+              part.questions.forEach(question => {
+                formattedQuestions.push({
+                  id: question.questionId,
+                  partId: part.partId,
+                  partNumber: part.partNumber,
+                  partName: part.title,
+                  questionText: question.questionText,
+                  options: parseOptions(question.option), // <-- Sửa chỗ này
+                  type: part.partNumber <= 2 ? 'listening' : 'reading',
+                  audioUrl: question.audioUrl,
+                  imageUrl: question.imageUrl,
+                  correctAnswer: question.correctAnswer
+                });
+              });
+            }
+          });
+        }
+        
+        setQuestions(formattedQuestions);
+        console.log('✅ Formatted questions:', formattedQuestions);
+        
+      } catch (err) {
+        console.error('❌ Error fetching exam data:', err);
+        setError('Không thể tải dữ liệu bài thi. Vui lòng thử lại.');
+        toast.error('Không thể tải dữ liệu bài thi');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchExamData();
+    }
+  }, [id]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0) return;
+
     const timer = setInterval(() => {
-      setTimeRemaining(prev => {
+      setTimeLeft(prev => {
         if (prev <= 1) {
+          toast.warning('Hết thời gian! Tự động nộp bài.');
           handleSubmitExam();
           return 0;
         }
@@ -153,29 +106,11 @@ const ExamTest = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [timeLeft]);
 
-  // Audio event handlers
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateTime = () => setAudioCurrentTime(audio.currentTime);
-    const updateDuration = () => setAudioDuration(audio.duration);
-    const handleEnded = () => setIsPlaying(false);
-
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateDuration);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateDuration);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, []);
-
+  // Format thời gian hiển thị
   const formatTime = (seconds) => {
+    if (seconds === null) return '--:--';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -186,329 +121,528 @@ const ExamTest = () => {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getCurrentQuestion = () => {
-    return examData.questions.find(q => q.id === currentQuestion + 1);
-  };
-
-  const getQuestionsForPart = (partId) => {
-    return examData.questions.filter(q => q.part === partId);
-  };
-
-  const handleAnswerSelect = (questionId, answerIndex) => {
+  // Xử lý chọn đáp án
+  const handleAnswerSelect = (questionId, selectedAnswer) => {
     setAnswers(prev => ({
       ...prev,
-      [questionId]: answerIndex
+      [questionId]: selectedAnswer
     }));
   };
 
-  const handleNextQuestion = () => {
-    const currentPartQuestions = getQuestionsForPart(currentPart);
-    const currentIndex = currentPartQuestions.findIndex(q => q.id === currentQuestion + 1);
-    
-    if (currentIndex < currentPartQuestions.length - 1) {
-      const nextQuestion = currentPartQuestions[currentIndex + 1];
-      setCurrentQuestion(nextQuestion.id - 1);
-    } else if (currentPart < examData.parts.length) {
-      // Move to next part
-      setCurrentPart(currentPart + 1);
-      const nextPartQuestions = getQuestionsForPart(currentPart + 1);
-      if (nextPartQuestions.length > 0) {
-        setCurrentQuestion(nextPartQuestions[0].id - 1);
-      }
-    }
-  };
-
-  const handlePrevQuestion = () => {
-    const currentPartQuestions = getQuestionsForPart(currentPart);
-    const currentIndex = currentPartQuestions.findIndex(q => q.id === currentQuestion + 1);
-    
-    if (currentIndex > 0) {
-      const prevQuestion = currentPartQuestions[currentIndex - 1];
-      setCurrentQuestion(prevQuestion.id - 1);
-    } else if (currentPart > 1) {
-      // Move to previous part
-      setCurrentPart(currentPart - 1);
-      const prevPartQuestions = getQuestionsForPart(currentPart - 1);
-      if (prevPartQuestions.length > 0) {
-        setCurrentQuestion(prevPartQuestions[prevPartQuestions.length - 1].id - 1);
-      }
-    }
-  };
-
-  const handleQuestionJump = (questionId) => {
-    const question = examData.questions.find(q => q.id === questionId);
-    if (question) {
-      setCurrentPart(question.part);
-      setCurrentQuestion(questionId - 1);
-    }
-  };
-
-  const toggleFlag = (questionId) => {
+  // Xử lý toggle flag cho câu hỏi
+  const handleToggleFlag = (questionId) => {
     setFlaggedQuestions(prev => {
       const newSet = new Set(prev);
       if (newSet.has(questionId)) {
         newSet.delete(questionId);
+        toast.info(`Đã bỏ đánh dấu câu ${getCurrentQuestionNumber(questionId)}`);
       } else {
         newSet.add(questionId);
+        toast.success(`Đã đánh dấu câu ${getCurrentQuestionNumber(questionId)}`);
       }
       return newSet;
     });
   };
 
-  // Audio controls
-  const playAudio = () => {
-    const audio = audioRef.current;
-    const question = getCurrentQuestion();
-    
-    if (audio && question && question.type === 'listening') {
-      audio.currentTime = question.audioStart || 0;
-      audio.play();
-      setIsPlaying(true);
+  // Helper function để lấy số thứ tự câu hỏi
+  const getCurrentQuestionNumber = (questionId) => {
+    const index = questions.findIndex(q => q.id === questionId);
+    return index + 1;
+  };
+
+  // Chuyển câu hỏi
+  const handleNextQuestion = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(prev => prev + 1);
     }
   };
 
-  const pauseAudio = () => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.pause();
-      setIsPlaying(false);
+  const handlePreviousQuestion = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(prev => prev - 1);
     }
   };
 
-  const replayAudio = () => {
-    const audio = audioRef.current;
-    const question = getCurrentQuestion();
-    
-    if (audio && question && question.type === 'listening') {
-      audio.currentTime = question.audioStart || 0;
-      audio.play();
-      setIsPlaying(true);
-    }
+  const handleQuestionJump = (index) => {
+    setCurrentQuestion(index);
   };
 
-  const handleSubmitExam = () => {
-    // Calculate results and navigate to results page
-    const totalQuestions = examData.questions.length;
-    const answeredQuestions = Object.keys(answers).length;
+  // Nộp bài thi
+  const handleSubmitExam = async () => {
+    // Validate user authentication first
+    if (!user) {
+      console.error('User not found:', user);
+      toast.error('Vui lòng đăng nhập để nộp bài');
+      navigate('/dang-nhap');
+      return;
+    }
+
+    // Get the correct user ID - try multiple possible fields
+    const userId = user.id || user.userId || user.account?.id || user.accountId;
     
-    navigate(`/exam/${id}/results`, {
-      state: {
-        answers,
-        totalQuestions,
-        answeredQuestions,
-        examData
+    if (!userId) {
+      console.error('No valid user ID found in user object:', user);
+      toast.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+      navigate('/dang-nhap');
+      return;
+    }
+
+    // Validate that we have answers
+    if (Object.keys(answers).length === 0) {
+      toast.error('Vui lòng trả lời ít nhất một câu hỏi');
+      return;
+    }
+
+    if (window.confirm('Bạn có chắc chắn muốn nộp bài? Hành động này không thể hoàn tác.')) {
+      try {
+        setIsSubmitting(true);
+        
+        console.log('=== EXAM SUBMISSION DEBUG ===');
+        console.log('User object:', user);
+        console.log('User ID found:', userId, 'Type:', typeof userId);
+        console.log('Exam ID:', id);
+        console.log('Raw answers:', answers);
+        
+        // Format answers according to backend SubmitAnswerRequest
+        const formattedAnswers = Object.entries(answers).map(([questionId, selectedAnswer]) => ({
+          questionId: parseInt(questionId), // Ensure it's a number
+          selectedAnswer: selectedAnswer.toString() // Ensure it's a string
+        }));
+
+        console.log('Formatted answers:', formattedAnswers);
+
+        // Validate formatted answers
+        if (formattedAnswers.length === 0) {
+          toast.error('Không có câu trả lời nào để nộp');
+          return;
+        }
+
+        // Create request payload matching backend SubmitExamRequest
+        const submitRequest = {
+          answers: formattedAnswers
+        };
+
+        console.log('Submit request payload:', submitRequest);
+        console.log('Submitting to exam ID:', id, 'for user ID:', userId);
+
+        // Ensure userId is a valid number
+        const validUserId = parseInt(userId);
+        if (isNaN(validUserId) || validUserId <= 0) {
+          throw new Error('Invalid user ID: ' + userId);
+        }
+
+        const result = await examService.submitExam(id, submitRequest, validUserId);
+        
+        console.log('✅ Submit result received:', result);
+        console.log('Answer details count:', result.answerDetails?.length || 0);
+        
+        toast.success('Nộp bài thành công!');
+        
+        // Navigate to result page with result data including answer details
+        if (result && result.resultId) {
+          navigate(`/exam/${id}/result`, { 
+            state: { 
+              result: result,
+              resultId: result.resultId,
+              examId: id,
+              examTitle: exam.title,
+              examData: exam,
+              hasAnswerDetails: !!(result.answerDetails && result.answerDetails.length > 0)
+            },
+            replace: true // Replace history để không quay lại được trang thi
+          });
+        } else {
+          // Fallback: chuyển về trang exam detail
+          console.warn('No resultId received, redirecting to exam detail');
+          navigate(`/exam/${id}`, { 
+            state: { 
+              message: 'Nộp bài thành công! Kết quả đang được xử lý.',
+              result: result
+            } 
+          });
+        }
+        
+      } catch (error) {
+        console.error('❌ Error submitting exam:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        
+        // Provide more specific error messages
+        if (error.message.includes('User ID not found') || error.message.includes('không tìm thấy người dùng')) {
+          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          navigate('/dang-nhap');
+        } else if (error.response?.status === 401) {
+          toast.error('Bạn cần đăng nhập để nộp bài.');
+          navigate('/dang-nhap');
+        } else {
+          toast.error('Có lỗi xảy ra khi nộp bài: ' + (error.response?.data?.message || error.message));
+        }
+      } finally {
+        setIsSubmitting(false);
       }
-    });
+    }
   };
 
-  const currentQuestionData = getCurrentQuestion();
-  const currentPartData = examData.parts.find(p => p.id === currentPart);
-  const progress = ((currentQuestion + 1) / examData.questions.length) * 100;
-
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Audio element */}
-      <audio ref={audioRef} preload="metadata">
-        <source src="/audio/topik1-listening.mp3" type="audio/mpeg" />
-        Your browser does not support the audio element.
-      </audio>
-
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(`/exam/${id}`)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-300"
-              >
-                <X size={20} />
-              </button>
-              <h1 className="font-semibold text-lg">{examData.title}</h1>
+  // Confirm submit dialog
+  const ConfirmSubmitDialog = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="flex items-center gap-3 mb-4">
+          <AlertCircle className="h-6 w-6 text-yellow-500" />
+          <h3 className="text-lg font-medium">Xác nhận nộp bài</h3>
+        </div>
+        
+        <div className="space-y-3 mb-6">
+          <p className="text-gray-600">
+            Bạn có chắc chắn muốn nộp bài? Sau khi nộp bài sẽ không thể chỉnh sửa.
+          </p>
+          
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="flex justify-between text-sm mb-2">
+              <span>Đã trả lời:</span>
+              <span className="font-medium">{Object.keys(answers).length} / {questions.length}</span>
             </div>
-
-            <div className="flex items-center gap-6">
-              {/* Timer */}
-              <div className="flex items-center gap-2 text-red-600">
-                <Clock size={20} />
-                <span className="font-mono text-lg font-semibold">
-                  {formatTime(timeRemaining)}
-                </span>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                onClick={() => setShowSubmitModal(true)}
-                className="bg-green-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-300"
-              >
-                Nộp bài
-              </button>
+            <div className="flex justify-between text-sm mb-2">
+              <span>Chưa trả lời:</span>
+              <span className="font-medium">{questions.length - Object.keys(answers).length}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Đã đánh dấu:</span>
+              <span className="font-medium">{flaggedQuestions.size}</span>
             </div>
           </div>
+        </div>
+        
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowConfirmSubmit(false)}
+            className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={() => {
+              setShowConfirmSubmit(false);
+              handleSubmitExam();
+            }}
+            disabled={isSubmitting}
+            className="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
+          >
+            {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
-          {/* Progress Bar */}
-          <div className="pb-2">
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-primary-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              ></div>
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải bài thi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={() => navigate('/de-thi')}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Quay lại danh sách bài thi
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!exam || questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Không tìm thấy câu hỏi cho bài thi này</p>
+          <button 
+            onClick={() => navigate('/de-thi')}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Quay lại danh sách bài thi
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const currentQuestionData = questions[currentQuestion];
+  const answeredCount = Object.keys(answers).length;
+  const totalQuestions = questions.length;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-semibold">{exam.title}</h1>
+              <span className="text-sm text-gray-600">
+                Câu {currentQuestion + 1} / {totalQuestions}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Đã làm:</span>
+                <span className="text-sm font-medium">
+                  {answeredCount} / {totalQuestions}
+                </span>
+              </div>
+              
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
+                timeLeft < 300 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+              }`}>
+                <Clock className="h-4 w-4" />
+                <span className="font-medium">{formatTime(timeLeft)}</span>
+              </div>
+              
+              <button
+                onClick={() => setShowConfirmSubmit(true)}
+                disabled={isSubmitting}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                {isSubmitting ? 'Đang nộp bài...' : 'Nộp bài'}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-4 gap-6">
-          
-          {/* Question Navigation Sidebar */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Navigation Panel */}
           <div className="lg:col-span-1">
-            <ExamNavigation
-              parts={examData.parts}
-              questions={examData.questions}
-              currentQuestion={currentQuestion + 1}
-              currentPart={currentPart}
-              answers={answers}
-              flaggedQuestions={flaggedQuestions}
-              onQuestionSelect={handleQuestionJump}
-              onPartSelect={setCurrentPart}
-            />
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+              <h3 className="text-lg font-semibold mb-4">Danh sách câu hỏi</h3>
+              
+              {/* Question Grid */}
+              <div className="grid grid-cols-5 gap-2 mb-6">
+                {questions.map((question, index) => {
+                  const isAnswered = answers[question.id] !== undefined;
+                  const isCurrent = index === currentQuestion;
+                  const isFlagged = flaggedQuestions.has(question.id);
+                  
+                  return (
+                    <button
+                      key={question.id}
+                      onClick={() => handleQuestionJump(index)}
+                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-all relative ${
+                        isCurrent
+                          ? 'bg-blue-600 text-white'
+                          : isAnswered
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {index + 1}
+                      
+                      {/* Flag indicator */}
+                      {isFlagged && (
+                        <Flag 
+                          size={12} 
+                          className="absolute -top-1 -right-1 text-red-500 fill-current" 
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Legend */}
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-600 rounded"></div>
+                  <span>Câu hiện tại</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+                  <span>Đã trả lời</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-gray-100 border border-gray-300 rounded"></div>
+                  <span>Chưa trả lời</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Flag size={14} className="text-red-500 fill-current" />
+                  <span>Đã đánh dấu</span>
+                </div>
+              </div>
+
+              {/* Progress */}
+              <div className="mt-6 pt-4 border-t">
+                <div className="text-sm text-gray-600 mb-2">
+                  Tiến độ: {answeredCount}/{totalQuestions} câu
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(answeredCount / totalQuestions) * 100}%` }}
+                  ></div>
+                </div>
+                
+                {/* Flagged count */}
+                <div className="mt-2 text-sm text-gray-600">
+                  Đã đánh dấu: {flaggedQuestions.size} câu
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Main Question Area */}
+          {/* Question Panel */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-xl shadow-sm">
-              
-              {/* Part Header */}
-              <div className="border-b p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-800">
-                      {currentPartData?.title}
-                    </h2>
-                    <p className="text-gray-600 mt-1">{currentPartData?.description}</p>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              {/* Question Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                    {currentQuestion + 1}
                   </div>
-                  
-                  {/* Audio Controls for Listening Part */}
-                  {currentQuestionData?.type === 'listening' && (
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={replayAudio}
-                        className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors duration-300"
-                        title="Replay"
-                      >
-                        <RotateCcw size={20} />
-                      </button>
-                      
-                      <button
-                        onClick={isPlaying ? pauseAudio : playAudio}
-                        className="p-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors duration-300"
-                      >
-                        {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-                      </button>
-                      
-                      <button
-                        onClick={() => setIsPlaying(false)}
-                        className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors duration-300"
-                        title="Stop"
-                      >
-                        <VolumeX size={20} />
-                      </button>
-                    </div>
-                  )}
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Câu {currentQuestion + 1}
+                  </h3>
                 </div>
-
-                {/* Audio Progress Bar for Listening Questions */}
-                {currentQuestionData?.type === 'listening' && audioDuration > 0 && (
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                      <span>Audio Progress</span>
-                      <span>{formatTime(Math.floor(audioCurrentTime))} / {formatTime(Math.floor(audioDuration))}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(audioCurrentTime / audioDuration) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
+                
+                {/* Flag Button */}
+                <button
+                  onClick={() => handleToggleFlag(currentQuestionData.id)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    flaggedQuestions.has(currentQuestionData.id)
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  title={flaggedQuestions.has(currentQuestionData.id) ? 'Bỏ đánh dấu' : 'Đánh dấu câu hỏi'}
+                >
+                  {flaggedQuestions.has(currentQuestionData.id) ? (
+                    <Flag className="h-5 w-5 fill-current" />
+                  ) : (
+                    <FlagOff className="h-5 w-5" />
+                  )}
+                </button>
               </div>
 
               {/* Question Content */}
-              <div className="p-6">
-                {currentQuestionData && (
-                  <ExamQuestion
-                    question={currentQuestionData}
-                    questionNumber={currentQuestion + 1}
-                    selectedAnswer={answers[currentQuestionData.id]}
-                    onAnswerSelect={(answerIndex) => handleAnswerSelect(currentQuestionData.id, answerIndex)}
-                    isFlagged={flaggedQuestions.has(currentQuestionData.id)}
-                    onToggleFlag={() => toggleFlag(currentQuestionData.id)}
-                    isTest={true}
-                  />
+              <div className="mb-6">
+                <div className="prose max-w-none">
+                  <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                    {currentQuestionData.questionText}
+                  </p>
+                </div>
+                
+                {currentQuestionData.imageUrl && (
+                  <div className="mt-4">
+                    <img 
+                      src={currentQuestionData.imageUrl} 
+                      alt="Question illustration" 
+                      className="max-w-full h-auto rounded-lg shadow-sm"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
+                {currentQuestionData.audioUrl && (
+                  <div className="mt-4">
+                    <audio controls className="w-full">
+                      <source src={currentQuestionData.audioUrl} type="audio/mpeg" />
+                      Trình duyệt của bạn không hỗ trợ phát audio.
+                    </audio>
+                  </div>
                 )}
               </div>
 
-              {/* Navigation Footer */}
-              <div className="border-t p-6">
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={handlePrevQuestion}
-                    disabled={currentQuestion === 0}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
+              {/* Answer Options */}
+              <div className="space-y-3 mb-6">
+                {currentQuestionData.options && currentQuestionData.options.map((opt) => (
+                  <div key={opt.label} className="flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors
+                    ${answers[currentQuestionData.id] === opt.label
+                      ? 'bg-blue-50 border-blue-200 text-blue-800'
+                      : 'bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                    }"
+                    onClick={() => handleAnswerSelect(currentQuestionData.id, opt.label)}
                   >
-                    <ChevronLeft size={20} />
-                    Previous
-                  </button>
-
-                  <div className="text-sm text-gray-600">
-                    Question {currentQuestion + 1} of {examData.questions.length}
+                    <div className={`w-6 h-6 border-2 rounded-full flex items-center justify-center text-sm font-medium ${
+                      answers[currentQuestionData.id] === opt.label
+                        ? 'border-blue-500 bg-blue-500 text-white' 
+                        : 'border-gray-300'
+                    }`}>
+                      {answers[currentQuestionData.id] === opt.label ? '●' : opt.label}
+                    </div>
+                    <span className="flex-1 text-left">
+                      {opt.text}
+                    </span>
                   </div>
+                ))}
+              </div>
 
-                  <button
-                    onClick={handleNextQuestion}
-                    disabled={currentQuestion === examData.questions.length - 1}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
-                  >
-                    Next
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
+              {/* Navigation buttons */}
+              <div className="flex justify-between items-center pt-6 border-t">
+                <button
+                  onClick={handlePreviousQuestion}
+                  disabled={currentQuestion === 0}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ← Câu trước
+                </button>
+                
+                <span className="text-sm text-gray-500">
+                  {currentQuestion + 1} / {totalQuestions}
+                </span>
+
+                <button
+                  onClick={handleNextQuestion}
+                  disabled={currentQuestion === totalQuestions - 1}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Câu tiếp →
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Submit Confirmation Modal */}
-      {showSubmitModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold mb-4">Xác nhận nộp bài</h3>
-            <p className="text-gray-600 mb-6">
-              Bạn đã trả lời {Object.keys(answers).length}/{examData.questions.length} câu hỏi.
-              Bạn có chắc chắn muốn nộp bài không?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowSubmitModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-300"
-              >
-                Tiếp tục làm bài
-              </button>
-              <button
-                onClick={handleSubmitExam}
-                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-300"
-              >
-                Nộp bài
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Confirm Submit Dialog */}
+      {showConfirmSubmit && <ConfirmSubmitDialog />}
     </div>
   );
 };
 
 export default ExamTest;
+
+// Khi format dữ liệu câu hỏi từ backend, cần tách các lựa chọn (option) thành mảng để render từng đáp án A/B/C/D
+// Giả sử option từ backend là chuỗi: "A) ...?B) ...?C) ...?D) ...?"
+const parseOptions = (optionString) => {
+  if (!optionString) return [];
+  // Tách theo mẫu "A)", "B)", "C)", "D)"
+  const regex = /([A-D])\)\s*([^A-D]*)/g;
+  let match;
+  const options = [];
+  while ((match = regex.exec(optionString)) !== null) {
+    options.push({
+      label: match[1],
+      text: match[2].trim()
+    });
+  }
+  return options;
+};

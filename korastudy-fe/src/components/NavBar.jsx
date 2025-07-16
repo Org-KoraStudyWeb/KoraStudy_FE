@@ -95,7 +95,7 @@ const NavBar = () => {
           </li>
 
           <li className="relative" onMouseEnter={() => setShowExamDropdown(true)} onMouseLeave={() => setShowExamDropdown(false)}>
-             <Link to="/de-thi" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Đề thi</Link>
+             <Link to="/exam" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Đề thi</Link>
             {showExamDropdown && (
               <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-dark-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-dark-700">
                 <Link to="/de-thi/topik1" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">TOPIK I</Link>
@@ -232,7 +232,7 @@ const NavBar = () => {
                   <Link to="/lo-trinh" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Lộ trình</Link>
                   <Link to="/blog" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Blog</Link>
                   
-                  <Link to="/de-thi" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Đề thi</Link>
+                  <Link to="/exam" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Đề thi</Link>
                   <div className="ml-4 space-y-1">
                     <Link to="/de-thi/topik1" onClick={closeMobileMenu} className="block px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">TOPIK I</Link>
                     <Link to="/de-thi/topik2" onClick={closeMobileMenu} className="block px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">TOPIK II</Link>
