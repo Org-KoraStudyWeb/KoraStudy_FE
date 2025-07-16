@@ -3,6 +3,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes pulse-light {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.25);
+  }
+}
+
+.animate-pulse-light {
+  animation: pulse-light 2s infinite;
+}
+
 
 /* Base styles */
 body {

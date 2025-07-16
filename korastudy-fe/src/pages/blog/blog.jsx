@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { MessageSquare } from 'lucide-react';
 import blogService from '../../api/blogService';
+import commentService from '../../api/commentService';
 import { useUser } from '../../contexts/UserContext';
-import BlogCard from '../../components/BlogComponent/BlogCard';
+import { formatDate } from '../../utils/formatDate';
+import { formatUserName } from '../../utils/formatUserName';
 
 const Blog = () => {
   const [posts, setPosts] = useState([]);
@@ -18,18 +21,33 @@ const Blog = () => {
   const [totalPosts, setTotalPosts] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [activeTab, setActiveTab] = useState('latest'); // 'latest', 'popular', 'featured'
+  const [newPostId, setNewPostId] = useState(null); // ID của bài viết mới tạo
   const { isAuthenticated } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     fetchInitialData();
-    fetchPosts();
-    fetchFeaturedPosts();
     
     // Kiểm tra nếu vừa chuyển từ trang tạo bài về
     const params = new URLSearchParams(location.search);
-    if (params.get('created') === 'true') {
+    const newPostCreated = params.get('created') === 'true';
+    const newPostIdParam = params.get('postId');
+    
+    if (newPostIdParam) {
+      setNewPostId(newPostIdParam);
+      
+      // Tự động xóa hiệu ứng highlight sau 5 giây
+      setTimeout(() => {
+        setNewPostId(null);
+      }, 5000);
+    }
+    
+    // Fetch posts với cờ để đảm bảo không dùng cache khi bài viết mới được tạo
+    fetchPosts(newPostCreated);
+    fetchFeaturedPosts(newPostCreated);
+    
+    if (newPostCreated) {
       // Đã tạo bài viết mới, hiển thị thông báo
       toast.success('Bài viết đã được đăng thành công!');
       // Xóa tham số khỏi URL để tránh thông báo lặp lại
@@ -39,12 +57,44 @@ const Blog = () => {
 
   const fetchInitialData = async () => {
     try {
+      // Lấy tất cả các bài viết không phân trang để tính số lượng cho mỗi danh mục
+      const allPostsResponse = await blogService.getPosts(1, 1000, null, 'id', '', true, 'desc');
+      const allPosts = allPostsResponse.posts || [];
+      
+      // Lấy danh sách danh mục và tag
       const [categoriesData, tagsData] = await Promise.all([
         blogService.getCategories(),
         blogService.getTags()
       ]);
       
-      setCategories(categoriesData);
+      console.log('Raw categories from API:', categoriesData);
+      
+      // Đếm số lượng bài viết cho mỗi danh mục
+      const categoryCounts = {};
+      allPosts.forEach(post => {
+        // Kiểm tra nhiều cách lưu trữ khác nhau của category_id
+        const categoryId = post.category_id || 
+                         (post.category && (post.category.category_id || post.category.id)) || 
+                         post.categoryId;
+                         
+        if (categoryId) {
+          console.log(`Post ${post.id || post.post_id} has category ID: ${categoryId}`);
+          categoryCounts[categoryId] = (categoryCounts[categoryId] || 0) + 1;
+        }
+      });
+      
+      console.log('Category counts:', categoryCounts);
+      
+      // Cập nhật số lượng bài viết cho mỗi danh mục
+      const updatedCategories = categoriesData.map(category => {
+        const catId = category.category_id || category.id;
+        return {
+          ...category,
+          post_count: categoryCounts[catId] || 0
+        };
+      });
+      
+      setCategories(updatedCategories);
       setTags(tagsData);
     } catch (err) {
       console.error('Error fetching initial data:', err);
@@ -63,19 +113,62 @@ const Blog = () => {
     }
   };
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      // Cập nhật để phù hợp với API của bạn
+      // Luôn sắp xếp theo ID giảm dần (ID lớn hơn lên đầu tiên)
+      const sortField = 'id'; // Luôn sắp xếp theo ID bài viết
+      const sortOrder = 'desc'; // Luôn sắp xếp giảm dần
+      
+      console.log(`Fetching posts with category ID: ${selectedCategory}`);
+      
+      // Debug thông tin danh mục đã chọn
+      if (selectedCategory) {
+        const selectedCategoryInfo = categories.find(cat => cat.category_id == selectedCategory);
+        console.log('Selected category details:', selectedCategoryInfo);
+      }
+      
       const response = await blogService.getPosts(
         currentPage,
         9, // postsPerPage
         selectedCategory,
-        activeTab === 'popular' ? 'views' : 'created_at', // sort
-        searchTerm
+        sortField, // sort field
+        searchTerm,
+        forceRefresh, // Thêm tham số để bỏ qua cache khi cần
+        sortOrder // Thêm tham số để sắp xếp theo thứ tự
       );
       
-      setPosts(response.posts || []);
+      let postsData = response.posts || [];
+      
+      // Lấy số lượng bình luận cho mỗi bài viết
+      if (postsData.length > 0) {
+        const postIds = postsData.map(post => post.post_id || post.id);
+        try {
+          const commentCounts = await commentService.getCommentCounts(postIds);
+          
+          // Thêm số lượng bình luận vào dữ liệu bài viết
+          postsData = postsData.map(post => {
+            const postId = post.post_id || post.id;
+            return {
+              ...post,
+              commentCount: commentCounts[postId] || 0
+            };
+          });
+        } catch (commentErr) {
+          console.error('Error fetching comment counts:', commentErr);
+        }
+        
+        // Đảm bảo bài viết được sắp xếp theo ID lớn nhất trước
+        if (activeTab !== 'popular') {
+          postsData.sort((a, b) => {
+            const idA = parseInt(a.post_id || a.id || 0);
+            const idB = parseInt(b.post_id || b.id || 0);
+            return idB - idA; // Sắp xếp giảm dần (ID lớn -> ID nhỏ)
+          });
+        }
+      }
+      
+      setPosts(postsData);
       setTotalPages(response.totalPages || 1);
       setTotalPosts(response.totalPosts || 0);
     } catch (err) {
@@ -87,11 +180,39 @@ const Blog = () => {
     }
   };
 
-  const fetchFeaturedPosts = async () => {
+  const fetchFeaturedPosts = async (forceRefresh = false) => {
     try {
-      // Giả sử có API lấy bài viết nổi bật, nếu không thì lấy 3 bài mới nhất
-      const featuredResponse = await blogService.getPosts(1, 3, null, 'created_at');
-      setFeaturedPosts(featuredResponse.posts || []);
+      // Lấy 3 bài mới nhất (theo ID) cho phần nổi bật
+      const featuredResponse = await blogService.getPosts(1, 3, null, 'id', '', forceRefresh, 'desc');
+      let featuredData = featuredResponse.posts || [];
+      
+      // Lấy số lượng bình luận cho mỗi bài viết nổi bật
+      if (featuredData.length > 0) {
+        const postIds = featuredData.map(post => post.post_id || post.id);
+        try {
+          const commentCounts = await commentService.getCommentCounts(postIds);
+          
+          // Thêm số lượng bình luận vào dữ liệu bài viết
+          featuredData = featuredData.map(post => {
+            const postId = post.post_id || post.id;
+            return {
+              ...post,
+              commentCount: commentCounts[postId] || 0
+            };
+          });
+        } catch (commentErr) {
+          console.error('Error fetching comment counts for featured posts:', commentErr);
+        }
+        
+        // Đảm bảo bài viết nổi bật cũng được sắp xếp theo thứ tự mới nhất
+        featuredData.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.createdAt || 0);
+          const dateB = new Date(b.created_at || b.createdAt || 0);
+          return dateB - dateA; // Sắp xếp giảm dần (mới -> cũ)
+        });
+      }
+      
+      setFeaturedPosts(featuredData);
     } catch (err) {
       console.error('Error fetching featured posts:', err);
     }
@@ -108,8 +229,12 @@ const Blog = () => {
   };
 
   const handleCategoryChange = (categoryId) => {
-    setSelectedCategory(categoryId === selectedCategory ? null : categoryId);
+    const newCategoryId = categoryId === selectedCategory ? null : categoryId;
+    setSelectedCategory(newCategoryId);
     setCurrentPage(1);
+    
+    // Làm mới danh sách bài viết dựa trên danh mục đã chọn
+    fetchPosts(true);
   };
 
   const handleTabChange = (tab) => {
@@ -213,7 +338,7 @@ const Blog = () => {
               </div>
             </div>
             <div className="md:w-1/3">
-              <img src="/assets/images/study-banner.png" alt="Study" className="max-h-48 object-contain mx-auto" />
+              <img src="./banner/banner1.png" alt="Study" className="max-h-48 object-contain mx-auto" />
             </div>
           </div>
         </div>
@@ -336,14 +461,22 @@ const Blog = () => {
 
             {/* Post List */}
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                {[...Array(6)].map((_, index) => (
-                  <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 animate-pulse">
-                    <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4"></div>
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+              <div className="space-y-6">
+                {[...Array(3)].map((_, index) => (
+                  <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 animate-pulse flex flex-col md:flex-row gap-6">
+                    <div className="md:w-1/4">
+                      <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                    </div>
+                    <div className="md:w-3/4 flex flex-col">
+                      <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+                      <div className="mt-auto pt-4 flex justify-between items-center">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -359,7 +492,7 @@ const Blog = () => {
               </div>
             ) : posts.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                <div className="space-y-6">
                   {posts.map((post) => {
                     // Debug log để xem dữ liệu post
                     console.log('Rendering post:', post);
@@ -372,55 +505,176 @@ const Blog = () => {
                       return null;
                     }
                     
+                    // Kiểm tra xem đây có phải là bài viết mới không
+                    const isNewPost = postId === newPostId;
+                    
                     return (
-                      <BlogCard 
+                      <div 
                         key={postId || Math.random().toString(36).substr(2, 9)} 
-                        post={post} 
-                        onDeleteSuccess={handleDeleteSuccess} 
-                      />
+                        className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden flex flex-col md:flex-row ${
+                          isNewPost ? 'ring-2 ring-blue-500 animate-pulse-light' : ''
+                        }`}
+                      >
+                        <Link to={`/blog/${postId}`} className="block md:w-1/4">
+                          {post.featured_image || post.thumbnail ? (
+                            <img 
+                              src={post.featured_image || post.thumbnail} 
+                              alt={post.postTitle || post.post_title || "Blog post"} 
+                              className="w-full h-48 object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-48 bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center">
+                              <h2 className="text-4xl font-bold text-white">
+                                {(post.postTitle || post.post_title || "A").charAt(0)}
+                              </h2>
+                            </div>
+                          )}
+                        </Link>
+                        <div className="p-5 flex flex-col md:w-3/4">
+                          <Link to={`/blog/${postId}`} className="block">
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                              {post.postTitle || post.post_title || "Bài viết chưa có tiêu đề"}
+                            </h3>
+                          </Link>
+                          
+                          <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+                            {post.postSummary || post.post_excerpt || "Không có mô tả"}
+                          </p>
+                          
+                          {/* Hiển thị danh mục nếu có */}
+                          {(post.category || post.categoryName || post.categoryTitle) && (
+                            <div className="mb-3">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                                {post.category?.category_name || 
+                                 post.category?.name || 
+                                 post.category?.categoryTitle || 
+                                 post.categoryName || 
+                                 post.categoryTitle || 
+                                 "Chưa phân loại"}
+                              </span>
+                            </div>
+                          )}
+                          
+                          <div className="mt-auto flex items-center justify-between text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">
+                              {post.authorName || (post.user && formatUserName(post.user)) || "Tác giả ẩn danh"}
+                            </span>
+                            
+                            <div className="flex items-center gap-4">
+                              {/* Hiển thị số lượng bình luận */}
+                              {post.commentCount !== undefined && (
+                                <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                  <MessageSquare size={16} />
+                                  <span>{post.commentCount}</span>
+                                </span>
+                              )}
+                              
+                              <span className="text-gray-500 dark:text-gray-400">
+                                {post.formattedDate || (post.created_at && formatDate(post.created_at)) || "Mới đăng"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
 
-                {/* Pagination */}
+                {/* Pagination - Improved */}
                 {totalPages > 1 && (
                   <div className="flex justify-center mt-8">
-                    <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <nav className="flex items-center space-x-1" aria-label="Pagination">
                       <button
                         onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
-                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                        className="px-3 py-2 rounded-md text-sm font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <span className="sr-only">Previous</span>
-                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+                          </svg>
+                          <span className="hidden sm:inline">Trước</span>
+                        </div>
                       </button>
                       
-                      {/* Page numbers */}
-                      {[...Array(totalPages)].map((_, i) => (
-                        <button
-                          key={i + 1}
-                          onClick={() => setCurrentPage(i + 1)}
-                          className={`relative inline-flex items-center px-4 py-2 border ${
-                            currentPage === i + 1
-                              ? 'z-10 bg-blue-50 dark:bg-blue-900 border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-300'
-                              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                          } text-sm font-medium`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
+                      {/* Page numbers - With ellipsis for many pages */}
+                      {(() => {
+                        const visiblePageCount = window.innerWidth < 640 ? 3 : 5;
+                        let pageNumbers = [];
+                        
+                        if (totalPages <= visiblePageCount) {
+                          // If few pages, show all
+                          pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+                        } else {
+                          // Always show first page
+                          pageNumbers.push(1);
+                          
+                          // Calculate middle pages
+                          let startPage = Math.max(2, currentPage - Math.floor(visiblePageCount / 2));
+                          let endPage = Math.min(totalPages - 1, startPage + visiblePageCount - 3);
+                          
+                          // Adjust if we're near the end
+                          if (endPage - startPage < visiblePageCount - 3) {
+                            startPage = Math.max(2, endPage - (visiblePageCount - 3));
+                          }
+                          
+                          // Add ellipsis if needed
+                          if (startPage > 2) {
+                            pageNumbers.push('...');
+                          }
+                          
+                          // Add middle pages
+                          for (let i = startPage; i <= endPage; i++) {
+                            pageNumbers.push(i);
+                          }
+                          
+                          // Add ellipsis if needed
+                          if (endPage < totalPages - 1) {
+                            pageNumbers.push('...');
+                          }
+                          
+                          // Always show last page
+                          if (totalPages > 1) {
+                            pageNumbers.push(totalPages);
+                          }
+                        }
+                        
+                        return pageNumbers.map((page, index) => {
+                          if (page === '...') {
+                            return (
+                              <span key={`ellipsis-${index}`} className="px-3 py-2 text-gray-500 dark:text-gray-400">
+                                ...
+                              </span>
+                            );
+                          }
+                          
+                          return (
+                            <button
+                              key={`page-${page}`}
+                              onClick={() => setCurrentPage(page)}
+                              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                                currentPage === page
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        });
+                      })()}
                       
                       <button
                         onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                         disabled={currentPage === totalPages}
-                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                        className="px-3 py-2 rounded-md text-sm font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <span className="sr-only">Next</span>
-                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                        </svg>
+                        <div className="flex items-center">
+                          <span className="hidden sm:inline">Tiếp</span>
+                          <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                          </svg>
+                        </div>
                       </button>
                     </nav>
                   </div>
@@ -428,7 +682,7 @@ const Blog = () => {
               </>
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 text-center">
-                <div className="text-5xl mb-4">🔍</div>
+                <div className="text-5xl mb-4">�</div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
                   Không tìm thấy bài viết nào
                 </h3>
@@ -442,6 +696,16 @@ const Blog = () => {
                   >
                     Xóa bộ lọc
                   </button>
+                )}
+                {isAuthenticated() && (
+                  <div className="mt-4">
+                    <Link
+                      to="/blog/create"
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      Viết bài viết đầu tiên
+                    </Link>
+                  </div>
                 )}
               </div>
             )}

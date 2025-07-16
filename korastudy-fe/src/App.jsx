@@ -78,11 +78,11 @@ function App() {
                   <Route path="terms" element={<Terms />} />
                   <Route path="privacy" element={<Privacy />} />
                   <Route path="lien-he" element={<Contact />} />
-                  {/* <Route path="de-thi/:examId" element={<ExamDetail />} />
-                  <Route path="exam/:id" element={<ExamDetail />} /> */}
-                  {/* <Route path="exam/:id/take" element={<ExamTest />} />
-                  <Route path="exam/:id/results" element={<ExamResults />} /> */}
-                  {/* <Route path="de-thi" element={<Exams />} /> */}
+                  <Route path="de-thi/:examId" element={<ExamDetail />} />
+                  <Route path="exam/:id" element={<ExamDetail />} />
+                  <Route path="exam/:id/take" element={<ExamTest />} />
+                  <Route path="exam/:id/results" element={<ExamResults />} />
+                  <Route path="de-thi" element={<Exams />} />
                   
                   {/* Blog routes - public access */}
                   <Route path="/blog/create" element={<CreatePost />} />
@@ -120,11 +120,6 @@ function App() {
                 <Route path="/dang-nhap" element={<LoginPage />} />
                 <Route path="/dang-ky" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-
-                {/* Các trang yêu cầu đăng nhập */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
-                </Route>
               </Routes>
             </div>
           </Router>

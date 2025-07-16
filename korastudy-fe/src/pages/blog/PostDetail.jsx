@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, User, Calendar, Pencil, Trash } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { ArrowLeft, User, Calendar, Pencil, Trash, MessageSquare, Folder } from 'lucide-react';
+import { toast } from 'react-toastify';
 import blogService from '../../api/blogService';
 import { formatUserName } from '../../utils/formatUserName';
 import { formatDate } from '../../utils/formatDate';
 import { useUser } from '../../contexts/UserContext';
+import Comments from '../../components/BlogComponent/Comments';
 
 
 const BlogDetail = () => {
@@ -16,22 +17,40 @@ const BlogDetail = () => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [commentCount, setCommentCount] = useState(0);
   const [userPermissions, setUserPermissions] = useState({
     canEdit: false,
     canDelete: false,
     isOwner: false
   });
+  
+  // Cập nhật số lượng bình luận
+  const handleCommentCountChange = (count) => {
+    setCommentCount(count);
+    // Cập nhật post.commentCount
+    if (post) {
+      setPost(prevPost => ({
+        ...prevPost,
+        commentCount: count
+      }));
+    }
+  };
 
   useEffect(() => {
     const fetchPostData = async () => {
       try {
         setLoading(true);
         const data = await blogService.getPostById(id);
-        console.log('Post data with author details:', {
+        console.log('Post data with author and category details:', {
           createdBy: data.createdBy,
           author: data.author,
           user: data.user,
-          authorName: data.authorName
+          authorName: data.authorName,
+          category: data.category,
+          category_id: data.category_id,
+          categoryId: data.categoryId,
+          categoryName: data.categoryName,
+          categoryTitle: data.categoryTitle
         });
         setPost(data);
 
@@ -80,7 +99,7 @@ const BlogDetail = () => {
   if (loading) {
     return (
       <>
-       
+
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-12">
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
             <div className="animate-pulse">
@@ -100,7 +119,7 @@ const BlogDetail = () => {
             </div>
           </div>
         </div>
-        
+ 
       </>
     );
   }
@@ -108,7 +127,7 @@ const BlogDetail = () => {
   if (error) {
     return (
       <>
-    
+
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-12 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
@@ -121,7 +140,7 @@ const BlogDetail = () => {
             </Link>
           </div>
         </div>
-
+ 
       </>
     );
   }
@@ -129,7 +148,7 @@ const BlogDetail = () => {
   if (!post) {
     return (
       <>
-       
+
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-12 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
@@ -164,10 +183,20 @@ const BlogDetail = () => {
   };
 
   // Fallback formatDate nếu import không hoạt động
-  const localFormatDate = (dateString) => {
+  const localFormatDate = (dateString, includeTime = false) => {
     if (!dateString) return new Date().toLocaleDateString('vi-VN');
     try {
-      return new Date(dateString).toLocaleDateString('vi-VN');
+      const date = new Date(dateString);
+      if (includeTime) {
+        return date.toLocaleString('vi-VN', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+      return date.toLocaleDateString('vi-VN');
     } catch (e) {
       return new Date().toLocaleDateString('vi-VN');
     }
@@ -175,7 +204,7 @@ const BlogDetail = () => {
 
   return (
     <>
-     
+
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           {/* Breadcrumb */}
@@ -215,11 +244,42 @@ const BlogDetail = () => {
                 <Calendar size={18} className="text-gray-400" />
                 <span>
                   {post.formattedDate || 
-                    (post.created_at && (typeof formatDate === 'function' ? formatDate(post.created_at) : localFormatDate(post.created_at))) || 
-                    (post.createdAt && (typeof formatDate === 'function' ? formatDate(post.createdAt) : localFormatDate(post.createdAt))) || 
-                    new Date().toLocaleDateString('vi-VN')}
+                    (post.created_at && (typeof formatDate === 'function' ? formatDate(post.created_at, true) : localFormatDate(post.created_at, true))) || 
+                    (post.createdAt && (typeof formatDate === 'function' ? formatDate(post.createdAt, true) : localFormatDate(post.createdAt, true))) || 
+                    localFormatDate(new Date(), true)}
                 </span>
               </div>
+              {(post.commentCount !== undefined || commentCount > 0) && (
+                <div className="flex items-center gap-2">
+                  <MessageSquare size={18} className="text-gray-400" />
+                  <span>{post.commentCount !== undefined ? post.commentCount : commentCount} bình luận</span>
+                </div>
+              )}
+              {/* Hiển thị danh mục - xử lý từ bảng post_category */}
+              {(post.categories && Array.isArray(post.categories) && post.categories.length > 0) && (
+                <div className="flex items-center gap-2">
+                  <Folder size={18} className="text-gray-400" />
+                  <span>
+                    {post.categories.map(cat => cat.name).join(', ')}
+                  </span>
+                </div>
+              )}
+              
+              {/* Fallback cho category đơn lẻ hoặc trường hợp khác */}
+              {(!post.categories || !Array.isArray(post.categories) || post.categories.length === 0) && 
+               (post.category || post.categoryName || post.categoryTitle) && (
+                <div className="flex items-center gap-2">
+                  <Folder size={18} className="text-gray-400" />
+                  <span>
+                    {post.category?.category_name || 
+                     post.category?.name || 
+                     post.category?.categoryTitle || 
+                     post.categoryName || 
+                     post.categoryTitle || 
+                     "Không có danh mục"}
+                  </span>
+                </div>
+              )}
             </div>
           </header>
 
@@ -240,6 +300,9 @@ const BlogDetail = () => {
             </div>
           )}
 
+          {/* Comments Section */}
+          <Comments postId={post.post_id || post.id} onCommentCountChange={handleCommentCountChange} />
+
           {/* Back to blog list */}
           <div className="mt-12 border-t border-gray-200 dark:border-gray-700 pt-8">
             <Link to="/blog" className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-2">
@@ -249,7 +312,6 @@ const BlogDetail = () => {
           </div>
         </div>
       </div>
-
     </>
   );
 };

@@ -45,6 +45,21 @@ export const blogService = {
       
       const data = await handleResponse(response);
       console.log('Raw API response:', data);
+      console.log('🔍 Testing categories display with real API data');
+      
+      // Log structure của response để debug
+      if (Array.isArray(data) && data.length > 0) {
+        const firstPost = data[0];
+        console.log('First post structure:', {
+          id: firstPost.id,
+          title: firstPost.post_title || firstPost.title,
+          categories: firstPost.categories,
+          category_id: firstPost.category_id,
+          hasCategories: !!firstPost.categories,
+          categoriesType: typeof firstPost.categories,
+          categoriesIsArray: Array.isArray(firstPost.categories)
+        });
+      }
       
       // Kiểm tra cấu trúc dữ liệu API
       let posts = [];
@@ -66,6 +81,19 @@ export const blogService = {
       }
       
       console.log(`Extracted ${posts.length} posts from API response`);
+      
+      // Check format của posts để xem có categories không
+      console.log('Posts format check:', {
+        totalPosts: posts.length,
+        firstPost: posts[0] ? {
+          id: posts[0].id,
+          title: posts[0].post_title || posts[0].title,
+          hasCategories: posts[0].categories && Array.isArray(posts[0].categories),
+          categories: posts[0].categories,
+          category_id: posts[0].category_id,
+          categoryName: posts[0].categoryName
+        } : null
+      });
       
       // Map dữ liệu để đảm bảo mỗi post có post_id và thông tin chuẩn hóa
       return posts.map(post => {
@@ -105,6 +133,18 @@ export const blogService = {
           processedPost.author || 
           processedPost.user
         );
+        
+        // TEMP: Thêm dữ liệu categories mẫu để test giao diện
+        if (!processedPost.categories && !processedPost.category) {
+          // Thêm categories mẫu để test hiển thị
+          if (processedPost.id % 3 === 1) {
+            processedPost.categories = [{ id: 1, name: "Kinh nghiệm học", category_id: 1 }];
+          } else if (processedPost.id % 3 === 2) {
+            processedPost.categories = [{ id: 2, name: "Từ vựng", category_id: 2 }];
+          } else {
+            processedPost.categories = [{ id: 3, name: "Kỹ năng nghe", category_id: 3 }];
+          }
+        }
         
         return processedPost;
       });
@@ -192,6 +232,25 @@ export const blogService = {
       }
       
       console.log('API response data:', data);
+      console.log('Expected format check:', {
+        hasCategories: data.categories && Array.isArray(data.categories),
+        categoriesLength: data.categories ? data.categories.length : 0,
+        firstCategory: data.categories && data.categories[0] ? data.categories[0] : null,
+        category_id: data.category_id,
+        categoryName: data.categoryName,
+        expectedFormat: {
+          id: 'number',
+          title: 'string', 
+          content: 'string',
+          categories: [
+            {
+              id: 'number',
+              name: 'string',
+              category_id: 'number'
+            }
+          ]
+        }
+      });
       
       // Đảm bảo data không null/undefined
       if (!data) {
@@ -299,8 +358,84 @@ export const blogService = {
         title: processedData.post_title || processedData.postTitle,
         author: processedData.authorName,
         date: processedData.formattedDate,
-        createdBy: processedData.createdBy // Log thêm createdBy để debug
+        createdBy: processedData.createdBy, // Log thêm createdBy để debug
+        category: processedData.category // Log thêm category để debug
       });
+      
+      // Xử lý dữ liệu danh mục nếu có
+      console.log('Processing category data:', {
+        category: processedData.category,
+        categories: processedData.categories,
+        category_id: processedData.category_id,
+        categoryId: processedData.categoryId,
+        categoryName: processedData.categoryName,
+        categoryTitle: processedData.categoryTitle
+      });
+      
+      // Xử lý danh mục từ bảng post_category (có thể trả về dưới dạng array)
+      if (processedData.categories && Array.isArray(processedData.categories) && processedData.categories.length > 0) {
+        // Lấy danh mục đầu tiên nếu có nhiều danh mục
+        const firstCategory = processedData.categories[0];
+        processedData.category = {
+          category_id: firstCategory.category_id || firstCategory.id,
+          id: firstCategory.category_id || firstCategory.id,
+          category_name: firstCategory.categoryTitle || firstCategory.title || firstCategory.category_name || firstCategory.name,
+          name: firstCategory.categoryTitle || firstCategory.title || firstCategory.category_name || firstCategory.name,
+          categoryTitle: firstCategory.categoryTitle || firstCategory.title || firstCategory.category_name || firstCategory.name
+        };
+        
+        // Đặt category_id ở cấp độ post để dễ xử lý
+        processedData.category_id = firstCategory.category_id || firstCategory.id;
+      }
+      // Nếu có category_id hoặc categoryId nhưng không có đối tượng category
+      else if ((processedData.category_id || processedData.categoryId) && !processedData.category) {
+        const catId = processedData.category_id || processedData.categoryId;
+        processedData.category = { 
+          category_id: catId,
+          id: catId
+        };
+        
+        // Thêm tên danh mục nếu có
+        if (processedData.categoryName || processedData.categoryTitle) {
+          const catName = processedData.categoryName || processedData.categoryTitle;
+          processedData.category.category_name = catName;
+          processedData.category.name = catName;
+          processedData.category.categoryTitle = catName;
+        }
+      } 
+      // Nếu đã có đối tượng category nhưng cần bổ sung thông tin
+      else if (processedData.category) {
+        // Đảm bảo category có đủ trường cần thiết
+        if (!processedData.category.category_id && processedData.category.id) {
+          processedData.category.category_id = processedData.category.id;
+        }
+        
+        const catName = processedData.categoryName || processedData.categoryTitle || 
+                        processedData.category.categoryTitle || processedData.category.name;
+                        
+        if (catName) {
+          processedData.category.category_name = catName;
+          processedData.category.name = catName;
+          processedData.category.categoryTitle = catName;
+        }
+        
+        // Đặt category_id ở cấp độ post
+        processedData.category_id = processedData.category.category_id || processedData.category.id;
+      }
+      
+      // TEMP: Thêm dữ liệu categories mẫu nếu không có từ backend
+      if (!processedData.categories && !processedData.category) {
+        const sampleCategories = [
+          { id: 1, name: "Kinh nghiệm học", category_id: 1 },
+          { id: 2, name: "Từ vựng", category_id: 2 }, 
+          { id: 3, name: "Kỹ năng nghe", category_id: 3 }
+        ];
+        
+        const randomCategory = sampleCategories[parseInt(id) % 3];
+        processedData.categories = [randomCategory];
+        processedData.category = randomCategory;
+        processedData.category_id = randomCategory.category_id;
+      }
       
       return processedData;
     } catch (error) {
@@ -330,16 +465,38 @@ createPost: async (postData) => {
   try {
     console.log('Creating post with data:', postData);
     
+    // Chuẩn bị dữ liệu cho API - hỗ trợ cả hai kiểu đặt tên để tương thích
+    // Log để debug
+    console.log('Creating post with category ID:', postData.category_id);
+    console.log('Full post data received:', postData);
+    
     const apiData = {
-      post_title: postData.postTitle,
-      post_excerpt: postData.postSummary,
-      post_content: postData.postContent,
-      published: postData.published
+      post_title: postData.postTitle || postData.post_title,
+      post_excerpt: postData.postSummary || postData.post_excerpt,
+      post_content: postData.postContent || postData.post_content,
+      postTitle: postData.postTitle || postData.post_title,
+      postSummary: postData.postSummary || postData.post_excerpt, 
+      postContent: postData.postContent || postData.post_content,
+      published: postData.published,
+      // Gửi category_id riêng để backend xử lý bảng post_category
+      category_id: postData.category_id || null,
+      categoryId: postData.categoryId || postData.category_id || null,
+      // Thêm categories dưới dạng array nếu cần
+      categories: postData.category_id ? [{ category_id: postData.category_id }] : []
     };
     
-    const response = await fetch(`${API_BASE_URL}/api/posts`, {
+    console.log('API data being sent:', apiData);
+    
+    // Thêm thời gian hiện tại để tránh cache
+    const timestamp = new Date().getTime();
+    const url = `${API_BASE_URL}/api/posts?_t=${timestamp}`;
+    
+    const response = await fetch(url, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: {
+        ...getAuthHeaders(),
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      },
       body: JSON.stringify(apiData)
     });
     
@@ -350,6 +507,19 @@ createPost: async (postData) => {
     
     const data = await response.json();
     console.log('Create response:', data);
+    
+    // Xóa bộ nhớ cache dữ liệu danh sách bài viết nếu có thể
+    try {
+      if ('caches' in window) {
+        const cacheKeys = await caches.keys();
+        for (const key of cacheKeys) {
+          await caches.delete(key);
+        }
+        console.log('Cache cleared after post creation');
+      }
+    } catch (cacheError) {
+      console.warn('Error clearing cache:', cacheError);
+    }
     
     return data;
   } catch (error) {
@@ -362,10 +532,25 @@ createPost: async (postData) => {
   updatePost: async (id, postData) => {
     try {
       console.log('Updating post with ID:', id, 'Data:', postData);
+      
+      // Đảm bảo dữ liệu bao gồm category_id nếu có
+      console.log('Updating post with category ID:', postData.category_id);
+      console.log('Full update data received:', postData);
+      
+      const apiData = {
+        ...postData,
+        category_id: postData.category_id || null,
+        categoryId: postData.categoryId || postData.category_id || null,
+        // Thêm categories dưới dạng array nếu cần
+        categories: postData.category_id ? [{ category_id: postData.category_id }] : []
+      };
+      
+      console.log('Update API data being sent:', apiData);
+      
       const response = await fetch(`${API_BASE_URL}/api/posts/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify(postData)
+        body: JSON.stringify(apiData)
       });
       
       console.log('Update response status:', response.status);
@@ -444,14 +629,19 @@ createPost: async (postData) => {
   },
 
   // Compatibility methods cho code cũ - fallback to mock data if API fails
-  getPosts: async (page = 1, limit = 10, categoryId = null, sortBy = null, search = '') => {
+  getPosts: async (page = 1, limit = 10, categoryId = null, sortBy = null, search = '', forceRefresh = false, sortOrder = 'desc') => {
     try {
-      console.log('Fetching posts with params:', { page, limit, categoryId, sortBy, search });
+      console.log('Fetching posts with params:', { page, limit, categoryId, sortBy, search, forceRefresh, sortOrder });
       
+      // Sắp xếp theo ID bài viết
+      const actualSortBy = 'id'; // Luôn sắp xếp theo ID
+      
+      // Thêm timestamp để tránh cache khi forceRefresh = true
       let url = `${API_BASE_URL}/api/posts?page=${page-1}&size=${limit}`;
       if (categoryId) url += `&categoryId=${categoryId}`;
-      if (sortBy) url += `&sort=${sortBy},desc`;
+      url += `&sort=${actualSortBy},${sortOrder}`; // Luôn thêm tham số sắp xếp
       if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (forceRefresh) url += `&_t=${new Date().getTime()}`; // Thêm timestamp để bỏ qua cache
       
       console.log('API URL:', url);
       
@@ -459,7 +649,7 @@ createPost: async (postData) => {
         method: 'GET',
         headers: {
           ...getAuthHeaders(),
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Cache-Control': forceRefresh ? 'no-cache, no-store, must-revalidate' : 'default'
         }
       });
       
@@ -471,10 +661,17 @@ createPost: async (postData) => {
         // Lọc và phân trang theo các tham số
         let filtered = allPosts;
         if (categoryId) {
-          filtered = filtered.filter(post => 
-            post.category?.category_id === categoryId || 
-            post.categoryId === categoryId
-          );
+          console.log(`Filtering posts by category ID: ${categoryId}`);
+          filtered = filtered.filter(post => {
+            // Kiểm tra nhiều trường hợp lưu ID danh mục khác nhau
+            const postCategoryId = 
+              post.category_id || 
+              (post.category && (post.category.category_id || post.category.id)) || 
+              post.categoryId;
+            
+            console.log(`Post ${post.id}: category ID = ${postCategoryId}, matching ${categoryId}: ${postCategoryId == categoryId}`);
+            return postCategoryId == categoryId;
+          });
         }
         
         if (search) {
@@ -575,13 +772,73 @@ createPost: async (postData) => {
     }
   },
 
-  // Tương thích với code cũ
+  // Lấy danh sách categories từ API
   getCategories: async () => {
-    return [
-      { category_id: 1, category_name: "Kinh nghiệm học", post_count: 1 },
-      { category_id: 2, category_name: "Từ vựng", post_count: 1 },
-      { category_id: 3, category_name: "Kỹ năng nghe", post_count: 1 }
-    ];
+    try {
+      console.log('🔍 Fetching categories from backend API');
+      const response = await fetch(`${API_BASE_URL}/api/categories`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        cache: 'no-store'
+      });
+      
+      console.log('Category API response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await handleResponse(response);
+      console.log('✅ Category API response:', data);
+      
+      // Test với dữ liệu thực từ CategoryResponse.fromEntity()
+      if (Array.isArray(data) && data.length > 0) {
+        console.log('Categories from backend:', data.map(cat => ({
+          id: cat.category_id || cat.id,
+          name: cat.category_name || cat.categoryTitle || cat.title || cat.name,
+          context: cat.context
+        })));
+      }
+      
+      // Kiểm tra cấu trúc dữ liệu API
+      let categories = [];
+      
+      if (Array.isArray(data)) {
+        categories = data;
+      } else if (data.content && Array.isArray(data.content)) {
+        categories = data.content;
+      } else if (data.categories && Array.isArray(data.categories)) {
+        categories = data.categories;
+      } else if (data.data && Array.isArray(data.data)) {
+        categories = data.data;
+      } else {
+        console.warn('Unexpected API response format for categories:', data);
+      }
+      
+      // Map dữ liệu để đảm bảo định dạng chuẩn
+      const mappedCategories = categories.map(category => {
+        const mappedCategory = {
+          category_id: category.category_id || category.id,
+          category_name: category.categoryTitle || category.title || category.category_title || category.name || category.category_name,
+          context: category.context || category.category_context,
+          post_count: category.post_count || 0
+        };
+        console.log('Mapped category:', mappedCategory);
+        return mappedCategory;
+      });
+      
+      return mappedCategories;
+    } catch (error) {
+      console.error('❌ Error fetching categories:', error);
+      // Trả về dữ liệu mẫu khi API lỗi
+      const fallbackCategories = [
+        { category_id: 1, category_name: "Kinh nghiệm học", post_count: 1 },
+        { category_id: 2, category_name: "Từ vựng", post_count: 1 },
+        { category_id: 3, category_name: "Kỹ năng nghe", post_count: 1 }
+      ];
+      console.log('Using fallback categories:', fallbackCategories);
+      return fallbackCategories;
+    }
   },
 
   getTags: async () => {
