@@ -83,12 +83,16 @@ function App() {
                   <Route path="exam/:id/take" element={<ExamTest />} />
                   <Route path="exam/:id/results" element={<ExamResults />} />
                   <Route path="de-thi" element={<Exams />} />
+                  {/* Các trang yêu cầu đăng nhập */}
+                  <Route element={<ProtectedRoute />}>
+                      <Route path="/profile" element={<Profile />} />
+                      {/* Blog routes - public access */}
+                      <Route path="/blog/create" element={<CreatePost />} />
+                      <Route path="/blog/edit/:id" element={<EditPost />} />
+                      <Route path="blog/:id" element={<PostDetail />} />
+                      <Route path="blog" element={<Blog />} />
+                  </Route>
                   
-                  {/* Blog routes - public access */}
-                  <Route path="/blog/create" element={<CreatePost />} />
-                  <Route path="/blog/edit/:id" element={<EditPost />} />
-                  <Route path="blog/:id" element={<PostDetail />} />
-                  <Route path="blog" element={<Blog />} />
                   
                 </Route>
 
@@ -112,11 +116,6 @@ function App() {
                 <Route path="/dang-nhap" element={<LoginPage />} />
                 <Route path="/dang-ky" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-
-                {/* Các trang yêu cầu đăng nhập */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
-                </Route>
               </Routes>
             </div>
           </Router>
