@@ -34,11 +34,11 @@ const CourseDetail = () => {
       subtitle: "Khóa học dành cho người mới bắt đầu học tiếng Hàn",
       description: "Khóa học toàn diện dành cho người mới bắt đầu học tiếng Hàn, từ việc học bảng chữ cái Hangeul đến chuẩn bị cho kỳ thi TOPIK I. Với phương pháp giảng dạy hiện đại và tương tác, bạn sẽ nắm vững các kỹ năng cơ bản của tiếng Hàn.",
       instructor: {
-        name: "Cô Minh Anh",
+        name: "Minh Anh",
         title: "Giảng viên tiếng Hàn",
         experience: "5+ năm kinh nghiệm",
-        avatar: "/api/placeholder/80/80",
-        bio: "Cô Minh Anh có hơn 5 năm kinh nghiệm giảng dạy tiếng Hàn và đã giúp hàng nghìn học viên đạt được mục tiêu TOPIK của mình."
+        avatar: "",
+        bio: " Minh Anh có hơn 5 năm kinh nghiệm giảng dạy tiếng Hàn và đã giúp hàng nghìn học viên đạt được mục tiêu TOPIK của mình."
       },
       rating: 4.9,
       totalRatings: 2847,
@@ -170,7 +170,7 @@ const CourseDetail = () => {
       avatar: "/api/placeholder/50/50",
       rating: 5,
       date: "2 tuần trước",
-      comment: "Khóa học rất hay và dễ hiểu. Cô Minh Anh giảng dạy rất tận tình và chi tiết. Sau 3 tháng học, mình đã có thể giao tiếp cơ bản được rồi!"
+      comment: "Khóa học rất hay và dễ hiểu. Minh Anh giảng dạy rất tận tình và chi tiết. Sau 3 tháng học, mình đã có thể giao tiếp cơ bản được rồi!"
     },
     {
       id: 2,
@@ -198,7 +198,7 @@ const CourseDetail = () => {
       rating: 4.8,
       students: 1923,
       price: "299,000đ",
-      image: "topik.png"
+      image: "/topik.png"
     },
     {
       id: 3,
@@ -207,7 +207,7 @@ const CourseDetail = () => {
       rating: 4.7,
       students: 1456,
       price: "199,000đ",
-      image: "topik.png"
+      image: "/topik.png"
     }
   ];
 
@@ -308,7 +308,7 @@ const CourseDetail = () => {
               <div className="bg-white rounded-2xl shadow-xl overflow-hidden sticky top-6">
                 <div className="relative">
                   <img 
-                    src={course.image} 
+                    src={`/${course.image}`} 
                     alt={course.title}
                     className="w-full h-48 object-cover"
                   />

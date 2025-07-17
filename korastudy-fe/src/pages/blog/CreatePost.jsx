@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import { Editor } from '@tinymce/tinymce-react';
 import { useUser } from '../../contexts/UserContext';
 import blogService from '../../api/blogService';
@@ -14,6 +14,9 @@ const CreatePost = () => {
   const [content, setContent] = useState('');
   const [published, setPublished] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [loadingCategories, setLoadingCategories] = useState(true);
   
   // Kiểm tra xác thực
   useEffect(() => {
@@ -22,6 +25,24 @@ const CreatePost = () => {
       navigate('/login', { state: { from: '/blog/create' } });
     }
   }, [isAuthenticated, navigate]);
+  
+  // Lấy danh sách danh mục
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const categoriesData = await blogService.getCategories();
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast.error('Không thể lấy danh sách danh mục');
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,18 +60,35 @@ const CreatePost = () => {
     try {
       setSubmitting(true);
       
+      // Đảm bảo rằng dữ liệu có cả định dạng post_title và postTitle để phù hợp với mọi API
+      console.log('Selected category ID before create:', selectedCategoryId);
+      
       const postData = {
         postTitle: title,
+        post_title: title,
         postSummary: summary,
+        post_excerpt: summary,
         postContent: content,
-        published: published
+        post_content: content,
+        published: published,
+        category_id: selectedCategoryId ? parseInt(selectedCategoryId) : null, // Đảm bảo là số
+        categoryId: selectedCategoryId ? parseInt(selectedCategoryId) : null // Thêm cả camelCase
       };
       
       console.log('Submitting new post data:', postData);
       
-      await blogService.createPost(postData);
+      const result = await blogService.createPost(postData);
+      console.log('Create post result:', result);
+      
+      // Tạo timestamp hiện tại để đảm bảo trang blog tải lại và hiển thị bài viết mới
+      const timestamp = new Date().getTime();
+      
+      // Lấy ID của bài viết mới tạo để highlight
+      const newPostId = result?.id || result?.post_id;
+      
       toast.success('Bài viết đã được tạo thành công!');
-      navigate('/blog?created=true');
+      // Thêm timestamp và postId vào URL query để đánh dấu bài viết mới
+      navigate(`/blog?created=true&_t=${timestamp}${newPostId ? `&postId=${newPostId}` : ''}`);
     } catch (err) {
       console.error('Error creating post:', err);
       toast.error('Không thể tạo bài viết: ' + (err.message || 'Đã xảy ra lỗi'));
@@ -98,6 +136,30 @@ const CreatePost = () => {
                 placeholder="Nhập tóm tắt ngắn gọn về bài viết"
                 rows="3"
               />
+            </div>
+            
+            <div className="mb-6">
+              <label htmlFor="category" className="block mb-2 font-medium text-gray-700 dark:text-gray-200">
+                Danh mục
+              </label>
+              <select
+                id="category"
+                value={selectedCategoryId}
+                onChange={(e) => setSelectedCategoryId(e.target.value)}
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                disabled={loadingCategories}
+              >
+                <option value="">-- Chọn danh mục --</option>
+                {categories.map((category) => (
+                  <option key={category.category_id} value={category.category_id}>
+                    {category.category_name}
+                  </option>
+                ))}
+              </select>
+              
+              {loadingCategories && (
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Đang tải danh mục...</p>
+              )}
             </div>
             
             <div className="mb-6">

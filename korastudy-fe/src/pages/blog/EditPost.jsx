@@ -1,7 +1,7 @@
 // src/pages/blog/EditPost.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import { Editor } from '@tinymce/tinymce-react';
 import { useUser } from '../../contexts/UserContext';
 import blogService from '../../api/blogService';
@@ -21,6 +21,9 @@ const EditPost = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [loadingCategories, setLoadingCategories] = useState(true);
   
   // Kiểm tra xác thực
   useEffect(() => {
@@ -29,6 +32,24 @@ const EditPost = () => {
       navigate('/login', { state: { from: `/blog/edit/${id}` } });
     }
   }, [isAuthenticated, navigate, id]);
+  
+  // Lấy danh sách danh mục
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const categoriesData = await blogService.getCategories();
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast.error('Không thể lấy danh sách danh mục');
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
   
   // Lấy dữ liệu bài viết
   useEffect(() => {
@@ -54,6 +75,29 @@ const EditPost = () => {
         setSummary(data.postSummary || data.post_excerpt || '');
         setContent(data.postContent || data.post_content || '');
         setPublished(data.published || data.post_published || true);
+        
+        // Đặt danh mục đã chọn nếu có - xử lý cả trường hợp từ bảng post_category
+        console.log('Post data for edit:', data);
+        
+        let categoryId = null;
+        
+        // Kiểm tra từ mảng categories (từ bảng post_category)
+        if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+          categoryId = data.categories[0].category_id || data.categories[0].id;
+        }
+        // Kiểm tra từ trường category_id trực tiếp  
+        else if (data.category_id) {
+          categoryId = data.category_id;
+        }
+        // Kiểm tra từ object category
+        else if (data.category && (data.category.category_id || data.category.id)) {
+          categoryId = data.category.category_id || data.category.id;
+        }
+        
+        if (categoryId) {
+          console.log('Setting selected category ID:', categoryId);
+          setSelectedCategoryId(String(categoryId)); // Đảm bảo là string
+        }
       } catch (err) {
         console.error('Error fetching post:', err);
         setError('Không thể tải bài viết. Vui lòng thử lại sau.');
@@ -79,13 +123,19 @@ const EditPost = () => {
       setSubmitting(true);
       
       // Xác định đúng cấu trúc dữ liệu để gửi lên API
-      // Sử dụng cùng cấu trúc với dữ liệu đã nhận
+      console.log('Selected category ID before submit:', selectedCategoryId);
+      
       const postData = {
         id: post.id || post.post_id,
         postTitle: title,
+        post_title: title, // Thêm cả snake_case
         postContent: content,
+        post_content: content, // Thêm cả snake_case
         postSummary: summary,
-        published: published
+        post_excerpt: summary, // Thêm cả snake_case
+        published: published,
+        category_id: selectedCategoryId ? parseInt(selectedCategoryId) : null, // Đảm bảo là số
+        categoryId: selectedCategoryId ? parseInt(selectedCategoryId) : null, // Thêm cả camelCase
       };
       
       // Thêm trường createdBy nếu có trong dữ liệu gốc để đảm bảo giữ nguyên thông tin tác giả
@@ -187,6 +237,30 @@ const EditPost = () => {
                 placeholder="Nhập tóm tắt ngắn gọn về bài viết"
                 rows="3"
               />
+            </div>
+            
+            <div className="mb-6">
+              <label htmlFor="category" className="block mb-2 font-medium text-gray-700 dark:text-gray-200">
+                Danh mục
+              </label>
+              <select
+                id="category"
+                value={selectedCategoryId}
+                onChange={(e) => setSelectedCategoryId(e.target.value)}
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                disabled={loadingCategories}
+              >
+                <option value="">-- Chọn danh mục --</option>
+                {categories.map((category) => (
+                  <option key={category.category_id} value={category.category_id}>
+                    {category.category_name}
+                  </option>
+                ))}
+              </select>
+              
+              {loadingCategories && (
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Đang tải danh mục...</p>
+              )}
             </div>
             
             <div className="mb-6">

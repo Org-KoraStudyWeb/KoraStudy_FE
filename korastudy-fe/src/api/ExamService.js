@@ -134,7 +134,7 @@ export const examService = {
   },
 
   // Thêm comment cho bài thi
-    addExamComment: async (examId, context, id) => {
+    addExamComment: async (examId, context, userId) => {
   try {
     console.log(`Adding comment for exam ${examId}`);
     
