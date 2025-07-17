@@ -87,8 +87,7 @@ const NavBar = () => {
             <Link to="/blog" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Blog</Link>
             {showTopikDropdown && (
               <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-dark-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-dark-700">
-                <Link to="/blog/korean-culture" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">Văn hóa Hàn Quốc</Link>
-                <Link to="/blog/learning-tips" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">Mẹo học tập</Link>
+                
                 <Link to="/blog/korean-news" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">Tin tức</Link>
               </div>
             )}
