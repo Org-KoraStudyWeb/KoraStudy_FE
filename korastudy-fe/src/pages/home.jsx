@@ -149,19 +149,19 @@ const Home = () => {
       name: "Nguyễn Minh Anh",
       level: "TOPIK 5",
       content: "Nhờ KoraStudy mà mình đã đạt được TOPIK 5 và có cơ hội du học Hàn Quốc. Tài liệu rất chi tiết và dễ hiểu!",
-      avatar: "/api/placeholder/60/60"
+      avatar: "/teamdev/Thien.jpg"
     },
     {
       name: "Trần Thị Hoa",
-      level: "TOPIK 4",
+      level: "TOPIK 6",
       content: "Phương pháp học tại KoraStudy rất hiệu quả. Từ không biết gì về tiếng Hàn, giờ mình đã có thể giao tiếp tự tin.",
-      avatar: "/api/placeholder/60/60"
+      avatar: "/teamdev/Thien.jpg"
     },
     {
       name: "Lê Văn Nam",
       level: "TOPIK 6",
       content: "Đề thi thử của KoraStudy giúp mình chuẩn bị tốt cho kỳ thi TOPIK. Kết quả vượt ngoài mong đợi!",
-      avatar: "/api/placeholder/60/60"
+      avatar: "/teamdev/Thien.jpg"
     }
   ], []);
 
@@ -188,7 +188,7 @@ const Home = () => {
       duration: "6 tháng",
       lessons: "240 bài học",
       price: "299,000đ",
-      image: "/api/placeholder/300/200"
+      image: "topik.png"
     },
     {
       title: "TOPIK ESP",
@@ -196,7 +196,7 @@ const Home = () => {
       duration: "4 tháng",
       lessons: "180 bài học",
       price: "499,000đ",
-      image: "/api/placeholder/300/200"
+      image: "topik.png"
     }
   ], []);
 
