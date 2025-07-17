@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, Flag, FlagOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { examService } from '../../api/ExamService';
@@ -9,7 +9,7 @@ const ExamTest = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useUser();
-  
+  const audioRef = useRef(null);
   // State management
   const [exam, setExam] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -89,7 +89,19 @@ const ExamTest = () => {
       fetchExamData();
     }
   }, [id]);
-
+  useEffect(() => {
+    // Nếu có audio đang phát, dừng và reset nó
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      
+      // Cập nhật src cho audio nếu câu hỏi mới có audio
+      if (questions[currentQuestion]?.audioUrl) {
+        audioRef.current.src = questions[currentQuestion].audioUrl;
+        audioRef.current.load();
+      }
+    }
+  }, [currentQuestion, questions]);
   // Timer countdown
   useEffect(() => {
     if (timeLeft === null || timeLeft <= 0) return;
@@ -135,15 +147,13 @@ const ExamTest = () => {
       const newSet = new Set(prev);
       if (newSet.has(questionId)) {
         newSet.delete(questionId);
-        toast.info(`Đã bỏ đánh dấu câu ${getCurrentQuestionNumber(questionId)}`);
       } else {
         newSet.add(questionId);
-        toast.success(`Đã đánh dấu câu ${getCurrentQuestionNumber(questionId)}`);
       }
       return newSet;
     });
   };
-
+  
   // Helper function để lấy số thứ tự câu hỏi
   const getCurrentQuestionNumber = (questionId) => {
     const index = questions.findIndex(q => q.id === questionId);
@@ -374,7 +384,7 @@ const ExamTest = () => {
         <div className="text-center">
           <p className="text-gray-600 mb-4">Không tìm thấy câu hỏi cho bài thi này</p>
           <button 
-            onClick={() => navigate('/de-thi')}
+            onClick={() => navigate('/exam')}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Quay lại danh sách bài thi
@@ -561,14 +571,19 @@ const ExamTest = () => {
                   </div>
                 )}
 
-                {currentQuestionData.audioUrl && (
-                  <div className="mt-4">
-                    <audio controls className="w-full">
-                      <source src={currentQuestionData.audioUrl} type="audio/mpeg" />
-                      Trình duyệt của bạn không hỗ trợ phát audio.
-                    </audio>
-                  </div>
-                )}
+                    {currentQuestionData.audioUrl && (
+                      <div className="mt-4">
+                        <audio 
+                          ref={audioRef}
+                          key={currentQuestionData.id || currentQuestion}
+                          controls 
+                          className="w-full"
+                          src={currentQuestionData.audioUrl}
+                        >
+                          Trình duyệt của bạn không hỗ trợ phát audio.
+                        </audio>
+                      </div>
+                    )}
               </div>
 
               {/* Answer Options */}
