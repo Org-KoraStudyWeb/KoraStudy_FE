@@ -5,8 +5,7 @@ import { toast } from 'react-toastify';
 import { Editor } from '@tinymce/tinymce-react';
 import { useUser } from '../../contexts/UserContext';
 import blogService from '../../api/blogService';
-import NavBar from '../../components/NavBar';
-import Footer from '../../components/Footer';
+
 
 const EditPost = () => {
   const { id } = useParams();
@@ -162,7 +161,7 @@ const EditPost = () => {
   if (loading) {
     return (
       <>
-        <NavBar />
+
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pt-20 pb-12">
           <div className="max-w-4xl mx-auto px-4">
             <div className="animate-pulse">
@@ -173,7 +172,7 @@ const EditPost = () => {
             </div>
           </div>
         </div>
-        <Footer />
+
       </>
     );
   }
@@ -181,7 +180,7 @@ const EditPost = () => {
   if (error) {
     return (
       <>
-        <NavBar />
+
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pt-20 pb-12">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
@@ -195,14 +194,14 @@ const EditPost = () => {
             </button>
           </div>
         </div>
-        <Footer />
+
       </>
     );
   }
   
   return (
     <>
-      <NavBar />
+
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pt-20 pb-12">
         <div className="max-w-4xl mx-auto px-4">
           <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
@@ -322,7 +321,7 @@ const EditPost = () => {
           </form>
         </div>
       </div>
-      <Footer />
+
     </>
   );
 };
