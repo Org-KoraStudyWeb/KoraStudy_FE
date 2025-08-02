@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Sun, Moon, User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, X, Sun, Moon, User, Settings, LogOut, ChevronDown, Bell } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
+import notificationService from '../api/notificationService';
+import NotificationDropdown from './NotificationDropdown';
 
 const NavBar = () => {
   const [showTopikDropdown, setShowTopikDropdown] = useState(false);
   const [showExamDropdown, setShowExamDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const notificationRef = useRef(null);
 
   const { theme, toggleTheme } = useTheme();
   const { user, isAuthenticated, logout } = useUser();
@@ -60,6 +65,45 @@ const NavBar = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showUserMenu]);
+
+  // Thêm useEffect để lấy số lượng thông báo chưa đọc
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (isAuthenticated()) {
+        try {
+          const count = await notificationService.getUnreadCount();
+          setUnreadCount(count);
+        } catch (error) {
+          console.error('Error fetching unread count:', error);
+        }
+      }
+    };
+
+    fetchUnreadCount();
+    
+    // Cập nhật số lượng thông báo mỗi 30 giây
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // Thêm useEffect để xử lý click outside cho dropdown thông báo
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setNotificationOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Thêm hàm toggle thông báo
+  const toggleNotifications = () => {
+    setNotificationOpen(prev => !prev);
+  };
 
   console.log('NavBar - isAuthenticated:', isAuthenticated(), 'user:', user); // Debug log
 
@@ -115,7 +159,29 @@ const NavBar = () => {
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            
+            {/* Notification Bell - Thêm vào trước phần user menu */}
+              {isAuthenticated() && (
+                <div className="relative" ref={notificationRef}>
+                  <button
+                    onClick={toggleNotifications}
+                    className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full transition-colors"
+                    aria-label="Thông báo"
+                  >
+                    <Bell size={20} />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full min-w-[18px] h-[18px]">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                  <NotificationDropdown 
+                    isOpen={notificationOpen} 
+                    onClose={() => setNotificationOpen(false)}
+                    onMarkAsRead={() => setUnreadCount(prev => Math.max(prev - 1, 0))}
+                    onMarkAllAsRead={() => setUnreadCount(0)}
+                  />
+                </div>
+              )}
             {isAuthenticated() && user ? (
               <div className="relative user-menu-container">
                 <button
@@ -242,6 +308,26 @@ const NavBar = () => {
               </div>
               
               {/* Mobile User Section */}
+              {/* Thông báo (Mobile) */}
+              {isAuthenticated() && (
+                <Link 
+                  to="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleNotifications();
+                    closeMobileMenu();
+                  }} 
+                  className="flex items-center gap-3 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors"
+                >
+                  <Bell size={18} />
+                  <span>Thông báo</span>
+                  {unreadCount > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ml-auto">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
               <div className="border-t border-gray-200 dark:border-dark-700 p-4">
                 {isAuthenticated() && user ? (
                   <div className="space-y-3">
