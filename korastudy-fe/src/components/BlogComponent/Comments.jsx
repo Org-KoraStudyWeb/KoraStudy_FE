@@ -16,6 +16,12 @@ const Comments = ({ postId, onCommentCountChange }) => {
   const [submitting, setSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editText, setEditText] = useState('');
+  // Reply state
+  const [replyToId, setReplyToId] = useState(null);
+  // Keep separate text per comment id to avoid resets
+  const [replyTexts, setReplyTexts] = useState({});
+  // Control expand/collapse of reply threads (default open)
+  const [repliesOpenById, setRepliesOpenById] = useState({});
   const { isAuthenticated, user } = useUser();
   const navigate = useNavigate();
   
@@ -30,11 +36,29 @@ const Comments = ({ postId, onCommentCountChange }) => {
       setLoading(true);
       const data = await commentService.getComments(postId);
       const commentsArray = Array.isArray(data) ? data : [];
-      setComments(commentsArray);
+
+      // Helper to get comparable date
+      const getDateMs = (c) => {
+        const d = c?.publishedAt || c?.createdAt || c?.created_at || c?.lastModified || c?.updatedAt || c?.date;
+        const ms = d ? new Date(d).getTime() : 0;
+        return Number.isFinite(ms) ? ms : 0;
+      };
+
+      // Sort recursively newest-first to support nested replies
+      const sortRecursively = (arr) =>
+        (arr || [])
+          .map((item) => ({
+            ...item,
+            children: sortRecursively(item.children),
+          }))
+          .sort((a, b) => getDateMs(b) - getDateMs(a));
+
+      const sorted = sortRecursively(commentsArray);
+      setComments(sorted);
       
       // Notify parent component about comment count change
       if (typeof onCommentCountChange === 'function') {
-        onCommentCountChange(commentsArray.length);
+        onCommentCountChange(sorted.length);
       }
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -42,6 +66,28 @@ const Comments = ({ postId, onCommentCountChange }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Resolve the display name for a comment's author
+  const getCommentAuthorName = (comment) => {
+    if (!comment) return 'Tác giả ẩn danh';
+    // Try common user-holder fields first
+    const srcUser = comment.user || comment.author || comment.createdBy;
+    if (srcUser) return formatUserName(srcUser);
+    // Fall back to flat fields often returned by APIs
+    return (
+      comment.authorName ||
+      comment.username ||
+      comment.user_name ||
+      comment.name ||
+      'Tác giả ẩn danh'
+    );
+  };
+
+  // Build avatar initial from author name
+  const getInitial = (comment) => {
+    const name = getCommentAuthorName(comment);
+    return (name || 'U').trim().charAt(0).toUpperCase();
   };
   
   const handleAddComment = async (e) => {
@@ -92,6 +138,35 @@ const Comments = ({ postId, onCommentCountChange }) => {
       setSubmitting(false);
     }
   };
+
+  // Add reply to a specific comment
+  const handleAddReply = async (parentId) => {
+    if (!isAuthenticated) {
+      toast.info("Vui lòng đăng nhập để trả lời");
+      navigate('/dang-nhap', { state: { returnUrl: `/blog/${postId}` } });
+      return;
+    }
+
+    const text = (replyTexts[parentId] || '').trim();
+    if (!text) {
+      toast.warning("Vui lòng nhập nội dung trả lời");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await commentService.addComment(postId, { context: text, parentId });
+      setReplyTexts(prev => ({ ...prev, [parentId]: '' }));
+      setReplyToId(null);
+      toast.success("Đã thêm trả lời");
+      fetchComments();
+    } catch (error) {
+      console.error("Error adding reply:", error);
+      toast.error("Không thể thêm trả lời");
+    } finally {
+      setSubmitting(false);
+    }
+  };
   
   const handleDeleteComment = async (commentId) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa bình luận này?")) {
@@ -129,6 +204,164 @@ const Comments = ({ postId, onCommentCountChange }) => {
     return comment.userId === user.id || comment.user?.id === user.id || user.id === comment.user_id;
   };
   
+  // Reusable renderer for a comment (supports nesting)
+  const CommentItem = ({ comment, depth = 0 }) => (
+    <div className="">
+      <div className="flex">
+        {depth > 0 && (
+          <div className="relative w-6 mr-2">
+            <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-gray-300 dark:bg-gray-700"></div>
+            <div className="absolute top-5 left-3 w-3 h-[2px] bg-gray-300 dark:bg-gray-700"></div>
+          </div>
+        )}
+        <div className="flex-1">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="flex justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 flex items-center justify-center text-sm font-semibold">
+            {getInitial(comment)}
+          </div>
+          <div className="leading-tight">
+            <div className="font-semibold text-gray-900 dark:text-white">
+              {getCommentAuthorName(comment)}
+            </div>
+            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+              <Calendar size={14} />
+              <span>
+                {formatDate(comment.publishedAt || comment.createdAt)}
+                {comment.lastModified && ' (đã chỉnh sửa)'}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="hidden sm:block text-sm text-gray-400"></div>
+      </div>
+
+      {editingCommentId === comment.id ? (
+        <div className="mt-2">
+          <input
+            type="text"
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            disabled={submitting}
+          />
+          <div className="flex justify-end gap-2 mt-2">
+            <button
+              type="button"
+              onClick={cancelEditing}
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 dark:text-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              <X size={16} className="mr-1" />
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={() => handleEditComment(comment.id)}
+              disabled={submitting}
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <Send size={16} className="mr-1" />
+              {submitting ? 'Đang lưu...' : 'Lưu'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="mt-2 text-gray-800 dark:text-gray-200 leading-relaxed">
+            {comment.context}
+          </div>
+
+          <div className="flex items-center gap-4 mt-3 text-sm">
+            <button
+              onClick={() => {
+                setReplyToId(comment.id);
+                setReplyTexts(prev => ({ ...prev, [comment.id]: prev[comment.id] || '' }));
+              }}
+              className="inline-flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+              type="button"
+            >
+              <MessageSquare size={16} className="mr-1" />
+              Trả lời
+            </button>
+            {canModifyComment(comment) && (
+              <>
+                <button
+                  onClick={() => startEditing(comment)}
+                  className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                >
+                  <Edit size={16} className="mr-1" />
+                  Sửa
+                </button>
+                <button
+                  onClick={() => handleDeleteComment(comment.id)}
+                  className="inline-flex items-center text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                >
+                  <Trash2 size={16} className="mr-1" />
+                  Xóa
+                </button>
+              </>
+            )}
+            {Array.isArray(comment.children) && comment.children.length > 0 && (
+              <button
+                type="button"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                onClick={() => setRepliesOpenById(prev => ({ ...prev, [comment.id]: !(prev[comment.id] ?? true) }))}
+              >
+                {(repliesOpenById[comment.id] ?? true) ? 'Thu gọn trả lời' : `Hiển thị ${comment.children.length} trả lời`}
+              </button>
+            )}
+          </div>
+
+          {replyToId === comment.id && (
+            <div className="mt-3">
+              <input
+                type="text"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Viết câu trả lời..."
+                value={replyTexts[comment.id] || ''}
+                onChange={(e) => setReplyTexts(prev => ({ ...prev, [comment.id]: e.target.value }))}
+                autoFocus
+                disabled={!isAuthenticated || submitting}
+              />
+              <div className="flex justify-end mt-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setReplyToId(null); setReplyTexts(prev => ({ ...prev, [comment.id]: '' })); }}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 dark:text-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                >
+                  <X size={16} className="mr-1" />
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddReply(comment.id)}
+                  disabled={!isAuthenticated || submitting || !(replyTexts[comment.id] || '').trim()}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                  <Send size={16} className="mr-1" />
+                  Gửi trả lời
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Children */}
+          {(comment.children && comment.children.length > 0 && (repliesOpenById[comment.id] ?? true)) && (
+            <div className="mt-4 space-y-4">
+              {comment.children.map((child) => (
+                <CommentItem key={child.id} comment={child} depth={depth + 1} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+          </div>
+        </div>
+      </div>
+  </div>
+  );
+
   return (
     <div className="mt-10 border-t border-gray-200 dark:border-gray-700 pt-8">
       <div className="flex items-center justify-between mb-6">
@@ -150,14 +383,14 @@ const Comments = ({ postId, onCommentCountChange }) => {
       {/* Comment form */}
       <form onSubmit={handleAddComment} className="mb-8">
         <div className="mb-4">
-          <textarea
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            rows="3"
+          <input
+            type="text"
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder={isAuthenticated ? "Viết bình luận của bạn..." : "Đăng nhập để bình luận"}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             disabled={!isAuthenticated || submitting}
-          ></textarea>
+          />
         </div>
         <div className="flex justify-end">
           <button
@@ -190,79 +423,7 @@ const Comments = ({ postId, onCommentCountChange }) => {
       ) : comments.length > 0 ? (
         <div className="space-y-6">
           {comments.map((comment) => (
-            <div key={comment.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-              <div className="flex justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <User size={18} className="text-gray-500" />
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    Tác giả ẩn danh
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                  <Calendar size={16} />
-                  <span>
-                    {formatDate(comment.publishedAt || comment.createdAt)}
-                    {comment.lastModified && ' (đã chỉnh sửa)'}
-                  </span>
-                </div>
-              </div>
-              
-              {editingCommentId === comment.id ? (
-                <div className="mt-2">
-                  <textarea
-                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows="3"
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    disabled={submitting}
-                  ></textarea>
-                  <div className="flex justify-end gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={cancelEditing}
-                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 dark:text-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                    >
-                      <X size={16} className="mr-1" />
-                      Hủy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleEditComment(comment.id)}
-                      disabled={submitting}
-                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      <Send size={16} className="mr-1" />
-                      {submitting ? 'Đang lưu...' : 'Lưu'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="mt-2 text-gray-700 dark:text-gray-300">
-                    {comment.context}
-                  </div>
-                  
-                  {canModifyComment(comment) && (
-                    <div className="flex items-center gap-3 mt-3 justify-end">
-                      <button
-                        onClick={() => startEditing(comment)}
-                        className="inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                      >
-                        <Edit size={16} className="mr-1" />
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDeleteComment(comment.id)}
-                        className="inline-flex items-center text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-                      >
-                        <Trash2 size={16} className="mr-1" />
-                        Xóa
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+            <CommentItem key={comment.id} comment={comment} />
           ))}
         </div>
       ) : (

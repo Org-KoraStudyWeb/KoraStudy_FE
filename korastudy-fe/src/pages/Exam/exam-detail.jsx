@@ -130,7 +130,13 @@ const ExamDetail = () => {
         if (!exam) return;
         
         const commentsData = await examService.getExamComments(id);
-        setComments(commentsData || []);
+        const getDateMs = (c) => {
+          const d = c?.createdAt || c?.created_at || c?.updatedAt || c?.date;
+          const ms = d ? new Date(d).getTime() : 0;
+          return Number.isFinite(ms) ? ms : 0;
+        };
+        const sorted = Array.isArray(commentsData) ? [...commentsData].sort((a,b)=>getDateMs(b)-getDateMs(a)) : [];
+        setComments(sorted);
       } catch (err) {
         console.error('Error fetching comments:', err);
         setComments([]);
@@ -163,7 +169,13 @@ const ExamDetail = () => {
       
       // Refresh comments
       const updatedComments = await examService.getExamComments(id);
-      setComments(updatedComments || []);
+      const getDateMs = (c) => {
+        const d = c?.createdAt || c?.created_at || c?.updatedAt || c?.date;
+        const ms = d ? new Date(d).getTime() : 0;
+        return Number.isFinite(ms) ? ms : 0;
+      };
+      const sorted = Array.isArray(updatedComments) ? [...updatedComments].sort((a,b)=>getDateMs(b)-getDateMs(a)) : [];
+      setComments(sorted || []);
       
       setNewComment('');
       

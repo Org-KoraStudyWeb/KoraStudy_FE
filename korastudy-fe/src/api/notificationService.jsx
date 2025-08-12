@@ -24,13 +24,24 @@ notificationApi.interceptors.request.use(
 );
 
 export const notificationService = {
-  // Lấy thông báo của người dùng đang đăng nhập
+  // Lấy tất cả thông báo của người dùng đang đăng nhập
   getMyNotifications: async () => {
     try {
       const response = await notificationApi.get('/me');
       return response.data;
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      return [];
+    }
+  },
+
+  // Lấy thông báo theo loại
+  getMyNotificationsByType: async (type) => {
+    try {
+      const response = await notificationApi.get(`/me/type/${type}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching ${type} notifications:`, error);
       return [];
     }
   },
@@ -42,6 +53,17 @@ export const notificationService = {
       return response.data.count;
     } catch (error) {
       console.error('Error fetching unread count:', error);
+      return 0;
+    }
+  },
+
+  // Đếm số thông báo chưa đọc theo loại
+  getUnreadCountByType: async (type) => {
+    try {
+      const response = await notificationApi.get(`/unread-count/type/${type}`);
+      return response.data.count;
+    } catch (error) {
+      console.error(`Error fetching unread count for ${type}:`, error);
       return 0;
     }
   },

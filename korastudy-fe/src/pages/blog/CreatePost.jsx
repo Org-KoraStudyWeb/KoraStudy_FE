@@ -167,33 +167,43 @@ const CreatePost = () => {
                 Nội dung <span className="text-red-500">*</span>
               </label>
               <Editor
-                apiKey={TINYMCE_API_KEY} // Sử dụng biến môi trường
+                apiKey={TINYMCE_API_KEY}
                 value={content}
                 onEditorChange={(newContent) => setContent(newContent)}
                 init={{
-                  height: 500,
-                  menubar: true,
+                  height: 520,
+                  menubar: 'file edit view insert format tools table help',
+                  toolbar_sticky: true,
                   plugins: [
-                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                    'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+                    'advlist autolink lists link image charmap preview anchor',
+                    'searchreplace visualblocks code fullscreen',
+                    'insertdatetime media table help wordcount',
+                    'quickbars emoticons checklist'
                   ],
-                  toolbar:
-                    'undo redo | formatselect | bold italic backcolor | ' +
-                    'alignleft aligncenter alignright alignjustify | ' +
-                    'bullist numlist outdent indent | removeformat | image | help',
-                  content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 16px; }',
+                  toolbar: [
+                    'undo redo | blocks | bold italic underline | forecolor backcolor',
+                    'alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent',
+                    '| link image table | removeformat | code fullscreen'
+                  ].join(' '),
+                  quickbars_selection_toolbar: 'bold italic | forecolor backcolor | h2 h3 blockquote | bullist numlist',
+                  content_style: `
+                    body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif; font-size: 16px; }
+                    mark, span.highlight { background: #fff3a3; padding: 0 .15em; }
+                  `,
+                  // Allow mark/highlight elements
+                  extended_valid_elements: 'mark[class|style],span[class|style]',
+                  style_formats: [
+                    { title: 'Highlight', inline: 'mark' },
+                    { title: 'Inline code', inline: 'code' },
+                    { title: 'Small', inline: 'small' }
+                  ],
                   image_advtab: true,
                   file_picker_types: 'image',
                   automatic_uploads: true,
-                  images_upload_handler: async (blobInfo, progress) => {
-                    // Nếu bạn muốn thêm tính năng upload ảnh, thêm code xử lý tại đây
-                    // Ví dụ đơn giản: chuyển ảnh thành base64
+                  images_upload_handler: async (blobInfo) => {
                     return new Promise((resolve) => {
                       const reader = new FileReader();
-                      reader.onload = () => {
-                        resolve(reader.result);
-                      };
+                      reader.onload = () => resolve(reader.result);
                       reader.readAsDataURL(blobInfo.blob());
                     });
                   }
