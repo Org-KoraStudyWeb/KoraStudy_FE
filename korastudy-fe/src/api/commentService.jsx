@@ -27,18 +27,65 @@ const handleResponse = async (response) => {
   }
 };
 
+// Try multiple endpoint patterns to avoid 404 between posts/blog/api versions
+const buildCandidateUrls = (postId, commentId = null) => {
+  const bases = [
+    `${API_BASE_URL}/api`,
+    `${API_BASE_URL}/api/v1`,
+  ];
+  const resources = [
+    // [postResource, commentResource]
+    ['posts', 'comments'],
+    ['blog', 'comments'],
+    ['blogs', 'comments'],
+  ];
+
+  const paths = [];
+  for (const base of bases) {
+    for (const [postRes, commentRes] of resources) {
+      const basePath = `${base}/${postRes}/${postId}/${commentRes}`;
+      paths.push(commentId ? `${basePath}/${commentId}` : basePath);
+    }
+  }
+  return paths;
+};
+
+const requestWithFallback = async (method, postId, { body, commentId } = {}) => {
+  const candidates = buildCandidateUrls(postId, commentId);
+  let lastError;
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: getAuthHeaders(),
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      if (!res.ok) {
+        lastError = new Error(`HTTP ${res.status} at ${url}`);
+        // Only try next when 404/405; otherwise throw immediately
+        if (![404, 405].includes(res.status)) {
+          const text = await res.text();
+          throw new Error(`HTTP ${res.status} ${text}`);
+        }
+        continue;
+      }
+      // For DELETE that returns no content
+      if (method === 'DELETE') return true;
+      return await handleResponse(res);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error('All comment endpoints failed');
+};
+
 export const commentService = {
   // Get all comments for a post
   getComments: async (postId) => {
     try {
-      console.log(`Fetching comments for post ${postId}`);
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/comments`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      
-      console.log('API response status:', response.status);
-      return await handleResponse(response);
+  console.log(`Fetching comments for post ${postId}`);
+  const data = await requestWithFallback('GET', postId);
+  return data;
     } catch (error) {
       console.error('Error fetching comments:', error);
       throw error;
@@ -48,19 +95,10 @@ export const commentService = {
   // Add a new comment (requires authentication)
   addComment: async (postId, commentData) => {
     try {
-      console.log(`Adding comment to post ${postId}`, commentData);
-      
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/comments`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(commentData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to add comment: ${response.status}`);
-      }
-      
-      return await handleResponse(response);
+  console.log(`Adding comment to post ${postId}`, commentData);
+  // commentData can include parentId for replies
+  const data = await requestWithFallback('POST', postId, { body: commentData });
+  return data;
     } catch (error) {
       console.error('Error adding comment:', error);
       throw error;
@@ -70,19 +108,9 @@ export const commentService = {
   // Update an existing comment (only for comment author or admin)
   updateComment: async (postId, commentId, commentData) => {
     try {
-      console.log(`Updating comment ${commentId} for post ${postId}`, commentData);
-      
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/comments/${commentId}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(commentData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to update comment: ${response.status}`);
-      }
-      
-      return await handleResponse(response);
+  console.log(`Updating comment ${commentId} for post ${postId}`, commentData);
+  const data = await requestWithFallback('PUT', postId, { body: commentData, commentId });
+  return data;
     } catch (error) {
       console.error('Error updating comment:', error);
       throw error;
@@ -92,18 +120,9 @@ export const commentService = {
   // Delete a comment (only for comment author or admin)
   deleteComment: async (postId, commentId) => {
     try {
-      console.log(`Deleting comment ${commentId} from post ${postId}`);
-      
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to delete comment: ${response.status}`);
-      }
-      
-      return true; // Return success
+  console.log(`Deleting comment ${commentId} from post ${postId}`);
+  await requestWithFallback('DELETE', postId, { commentId });
+  return true;
     } catch (error) {
       console.error('Error deleting comment:', error);
       throw error;

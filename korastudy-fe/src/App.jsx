@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import './App.css';
 // Import react-toastify
@@ -11,6 +11,8 @@ import { UserProvider } from '@contexts/UserContext.jsx';
 import NavBar from '@components/NavBar.jsx';
 import Footer from '@components/Footer.jsx';
 import ScrollToTop from '@components/ScrollToTop.jsx';
+// Import websocket service
+import websocketService from './api/websocketService';
 // Import pages
 import Home from '@pages/home.jsx';
 import Courses from '@pages/Course/courses.jsx';
@@ -41,96 +43,108 @@ import EditWordList from '@pages/FlashCard/edit-word-list.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+  // Kết nối WebSocket khi ứng dụng khởi động nếu người dùng đã đăng nhập
+  useEffect(() => {
+    // Kết nối WebSocket nếu đã đăng nhập
+    if (localStorage.getItem('authToken')) {
+      websocketService.connect()
+        .then(() => {
+          console.log('WebSocket kết nối thành công khi khởi động ứng dụng');
+        })
+        .catch(error => {
+          console.error('Không thể kết nối WebSocket khi khởi động:', error);
+        });
+    }
+    
+    // Clean up khi unmount
+    return () => {
+      websocketService.disconnect();
+    };
+  }, []);
+  
   return (
-      <ThemeProvider>
-        <UserProvider>
-          <Router>
-            <ScrollToTop />
-            {/* Thêm ToastContainer */}
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="colored"
-            />
-
-            <div className="App bg-white dark:bg-dark-900 min-h-screen transition-colors duration-300">
-              <Routes>
-                {/* Layout cho các trang công khai */}
-                <Route path="/" element={<><NavBar /><Outlet /><Footer /></>}>
-                  <Route index element={<Home />} />
-                  <Route path="courses" element={<Courses />} />
-                  <Route path="course/:courseId" element={<CourseDetail />} />
-                  <Route path="flash-card" element={<FlashCard />} />
-                  <Route path="ly-thuyet" element={<LyThuyet />} />
-                  <Route path="lo-trinh" element={<LearningPath />} />
-                  <Route path="topik1" element={<Topik1 />} />
-                  <Route path="topik2" element={<Topik2 />} />
-                  <Route path="topik-esp" element={<TopikESP />} />
-                  <Route path="nang-cap" element={<NangCap />} />
-                  <Route path="about" element={<About />} />
-                  <Route path="terms" element={<Terms />} />
-                  <Route path="privacy" element={<Privacy />} />
-                  <Route path="lien-he" element={<Contact />} />
-                  {/* <Route path="de-thi/:examId" element={<ExamDetail />} />
-                  <Route path="exam/:id" element={<ExamDetail />} /> */}
-                  {/* <Route path="exam/:id/take" element={<ExamTest />} />
-                  <Route path="exam/:id/results" element={<ExamResults />} /> */}
-                  {/* <Route path="de-thi" element={<Exams />} /> */}
-                  
-                  {/* Blog routes - public access */}
-                  <Route path="/blog/create" element={<CreatePost />} />
-                  <Route path="/blog/edit/:id" element={<EditPost />} />
-                  <Route path="blog/:id" element={<PostDetail />} />
-                  <Route path="blog" element={<Blog />} />
-                  
-                </Route>
-
-                {/* FlashCard routes - some protected, some public */}
-                <Route path="/flash-card/practice/:topicId" element={<><NavBar /><FlashCardPractice /><Footer /></>} />
-                <Route path="/flash-card/practice/user/:listId" element={<><NavBar /><FlashCardPractice /><Footer /></>} />
+    <ThemeProvider>
+      <UserProvider>
+        <Router>
+          <ScrollToTop />
+          <div className="App bg-white dark:bg-dark-900 min-h-screen transition-colors duration-300">
+            <Routes>
+              {/* Layout cho các trang công khai */}
+              <Route path="/" element={<><NavBar /><Outlet /><Footer /></>}>
+                <Route index element={<Home />} />
+                <Route path="courses" element={<Courses />} />
+                <Route path="course/:courseId" element={<CourseDetail />} />
+                <Route path="flash-card" element={<FlashCard />} />
+                <Route path="ly-thuyet" element={<LyThuyet />} />
+                <Route path="lo-trinh" element={<LearningPath />} />
+                <Route path="topik1" element={<Topik1 />} />
+                <Route path="topik2" element={<Topik2 />} />
+                <Route path="topik-esp" element={<TopikESP />} />
+                <Route path="nang-cap" element={<NangCap />} />
+                <Route path="about" element={<About />} />
+                <Route path="terms" element={<Terms />} />
+                <Route path="privacy" element={<Privacy />} />
+                <Route path="lien-he" element={<Contact />} />
                 
-                {/* Protected FlashCard routes */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/flash-card/create" element={<><NavBar /><CreateWordList /><Footer /></>} />
-                  <Route path="/flash-card/edit/:setId" element={<><NavBar /><EditWordList /><Footer /></>} />
-                </Route>
+                {/* Blog routes - public access */}
+                <Route path="/blog/create" element={<CreatePost />} />
+                <Route path="/blog/edit/:id" element={<EditPost />} />
+                <Route path="blog/:id" element={<PostDetail />} />
+                <Route path="blog" element={<Blog />} />
+              </Route>
 
-                {/* Protected Exam routes */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/exam" element={<><NavBar /><Exams /><Footer /></>} />
-                  <Route path="/exam/:id" element={<ExamDetail />} />
-                  <Route path="/exam/:id/test" element={<ExamTest />} /> 
-                  <Route path="/exam/:id/result" element={<ExamResults />} />
-                </Route>
+              {/* FlashCard routes - some protected, some public */}
+              <Route path="/flash-card/practice/:topicId" element={<><NavBar /><FlashCardPractice /><Footer /></>} />
+              <Route path="/flash-card/practice/user/:listId" element={<><NavBar /><FlashCardPractice /><Footer /></>} />
+              
+              {/* Protected FlashCard routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/flash-card/create" element={<><NavBar /><CreateWordList /><Footer /></>} />
+                <Route path="/flash-card/edit/:setId" element={<><NavBar /><EditWordList /><Footer /></>} />
+              </Route>
 
-                {/* Protected Blog routes - require login */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/blog/create" element={<><NavBar /><EditPost /><Footer /></>} />
-                  <Route path="/blog/edit/:id" element={<><NavBar /><EditPost /><Footer /></>} />
-                </Route>
+              {/* Protected Exam routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/exam" element={<><NavBar /><Exams /><Footer /></>} />
+                <Route path="/exam/:id" element={<ExamDetail />} />
+                <Route path="/exam/:id/test" element={<ExamTest />} /> 
+                <Route path="/exam/:id/result" element={<ExamResults />} />
+              </Route>
 
-                {/* Trang xác thực */}
-                <Route path="/dang-nhap" element={<LoginPage />} />
-                <Route path="/dang-ky" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* Protected Blog routes - require login */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/blog/create" element={<><NavBar /><EditPost /><Footer /></>} />
+                <Route path="/blog/edit/:id" element={<><NavBar /><EditPost /><Footer /></>} />
+              </Route>
 
-                {/* Các trang yêu cầu đăng nhập */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
-                </Route>
-              </Routes>
-            </div>
-          </Router>
-        </UserProvider>
-      </ThemeProvider>
+              {/* Trang xác thực */}
+              <Route path="/dang-nhap" element={<LoginPage />} />
+              <Route path="/dang-ky" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
+              {/* Các trang yêu cầu đăng nhập */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
+              </Route>
+            </Routes>
+          </div>
+          
+          {/* Đặt ToastContainer bên ngoài Router nhưng vẫn trong các Provider */}
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+          />
+        </Router>
+      </UserProvider>
+    </ThemeProvider>
   );
 }
 
