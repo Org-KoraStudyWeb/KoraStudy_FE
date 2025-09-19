@@ -16,7 +16,11 @@ import websocketService from './api/websocketService';
 // Import pages
 import Home from '@pages/home.jsx';
 import Courses from '@pages/Course/courses.jsx';
+import CoursesNew from '@pages/Course/CoursesNew.jsx';
+import MyCourses from '@pages/Course/my-courses.jsx';
+
 import CourseDetail from '@/pages/Course/course-details.jsx';
+import CourseDetailNew from '@/pages/Course/CourseDetailNew.jsx';
 import Profile from '@/pages/profile.jsx';
 // Import auth pages
 import LoginPage from './pages/auth/LoginPage';
@@ -72,8 +76,10 @@ function App() {
               {/* Layout cho các trang công khai */}
               <Route path="/" element={<><NavBar /><Outlet /><Footer /></>}>
                 <Route index element={<Home />} />
-                <Route path="courses" element={<Courses />} />
-                <Route path="course/:courseId" element={<CourseDetail />} />
+                <Route path="courses" element={<CoursesNew />} />
+                <Route path="courses-old" element={<Courses />} />
+                <Route path="course/:courseId" element={<CourseDetailNew />} />
+                <Route path="course-old/:courseId" element={<CourseDetail />} />
                 <Route path="flash-card" element={<FlashCard />} />
                 <Route path="ly-thuyet" element={<LyThuyet />} />
                 <Route path="lo-trinh" element={<LearningPath />} />
@@ -86,43 +92,24 @@ function App() {
                 <Route path="privacy" element={<Privacy />} />
                 <Route path="lien-he" element={<Contact />} />
                 
-                {/* Blog routes - public access */}
-                <Route path="/blog/create" element={<CreatePost />} />
-                <Route path="/blog/edit/:id" element={<EditPost />} />
+                {/* Blog routes - chỉ đọc công khai */}
                 <Route path="blog/:id" element={<PostDetail />} />
                 <Route path="blog" element={<Blog />} />
               </Route>
 
-              {/* FlashCard routes - some protected, some public */}
+              {/* FlashCard routes - chỉ luyện tập công khai */}
               <Route path="/flash-card/practice/:topicId" element={<><NavBar /><FlashCardPractice /><Footer /></>} />
-              <Route path="/flash-card/practice/user/:listId" element={<><NavBar /><FlashCardPractice /><Footer /></>} />
-              
-              {/* Protected FlashCard routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/flash-card/create" element={<><NavBar /><CreateWordList /><Footer /></>} />
-                <Route path="/flash-card/edit/:setId" element={<><NavBar /><EditWordList /><Footer /></>} />
-              </Route>
-
-              {/* Protected Exam routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/exam" element={<><NavBar /><Exams /><Footer /></>} />
-                <Route path="/exam/:id" element={<ExamDetail />} />
-                <Route path="/exam/:id/test" element={<ExamTest />} /> 
-                <Route path="/exam/:id/result" element={<ExamResults />} />
-              </Route>
-
-              {/* Protected Blog routes - require login */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/blog/create" element={<><NavBar /><EditPost /><Footer /></>} />
-                <Route path="/blog/edit/:id" element={<><NavBar /><EditPost /><Footer /></>} />
-              </Route>
 
               {/* Trang xác thực */}
               <Route path="/dang-nhap" element={<LoginPage />} />
               <Route path="/dang-ky" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* Trang khóa học của tôi - yêu cầu đăng nhập */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/my-courses" element={<><NavBar /><MyCourses /><Footer /></>} />
+              </Route>
 
-              {/* Các trang yêu cầu đăng nhập */}
+              {/* Chỉ giữ trang profile cơ bản */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/profile" element={<><NavBar /><Profile /><Footer /></>} />
               </Route>

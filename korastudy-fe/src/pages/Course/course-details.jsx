@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft,
   Play,
   Clock,
   Users,
   Star,
-//   Award,
+  Loader,
   CheckCircle,
   BookOpen,
 //   Download,
@@ -19,15 +19,42 @@ import {
 //   Target,
 //   TrendingUp
 } from 'lucide-react';
+import courseService from '../../api/courseService';
+import { toast } from 'react-toastify';
 
 const CourseDetail = () => {
   const { courseId } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedModule, setExpandedModule] = useState(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    const fetchCourseDetails = async () => {
+      try {
+        setLoading(true);
+        const data = await courseService.getCourseById(courseId);
+        setCourse(data);
+        setError(null);
+      } catch (err) {
+        console.error(`Lỗi khi lấy thông tin khóa học ID=${courseId}:`, err);
+        setError("Không thể tải thông tin khóa học. Vui lòng thử lại sau.");
+        toast.error("Không thể tải thông tin khóa học");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Mock course data - in real app, this would come from API
-  const courseData = {
+    if (courseId) {
+      fetchCourseDetails();
+    }
+  }, [courseId]);
+
+  // Dữ liệu mẫu trong trường hợp API chưa hoàn thiện
+  const courseDataSample = {
     1: {
       id: 1,
       title: "TOPIK I - Khóa học cơ bản",
@@ -127,7 +154,46 @@ const CourseDetail = () => {
     }
   };
 
-  const course = courseData[courseId] || courseData[1];
+  // Fallback to sample data if API fails
+  const courseData = course || courseDataSample[courseId] || courseDataSample[1];
+  
+  // TODO: Cập nhật tất cả các tham chiếu đến "course" thành "courseData" trong component này
+  
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <Loader size={48} className="text-primary-500 animate-spin" />
+        <span className="ml-4 text-xl text-gray-700">Đang tải thông tin khóa học...</span>
+      </div>
+    );
+  }
+  
+  // Error state
+  if (error && !course) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center p-4">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center max-w-2xl w-full">
+          <h2 className="text-2xl font-semibold text-red-700 mb-4">Không thể tải thông tin khóa học</h2>
+          <p className="text-red-600 mb-6">{error}</p>
+          <div className="flex justify-center gap-4">
+            <button 
+              onClick={() => navigate('/courses')}
+              className="px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+            >
+              Quay lại danh sách khóa học
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-primary-500 text-white hover:bg-primary-600 rounded-lg transition-colors"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const curriculum = [
     {
@@ -228,7 +294,7 @@ const CourseDetail = () => {
             <span>/</span>
             <Link to="/courses" className="hover:text-primary-500">Khóa học</Link>
             <span>/</span>
-            <span className="text-gray-900">{course.title}</span>
+            <span className="text-gray-900">{courseData.title}</span>
           </div>
         </div>
       </div>

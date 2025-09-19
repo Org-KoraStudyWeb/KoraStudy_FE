@@ -6,8 +6,7 @@ import { useUser } from '../../contexts/UserContext';
 import commentService from '../../api/commentService';
 import { formatDate } from '../../utils/formatDate';
 import { formatUserName } from '../../utils/formatUserName';
-import NavBar from '../../components/NavBar';
-import Footer from '../../components/Footer';
+
 
 const Comments = ({ postId, onCommentCountChange }) => {
   const [comments, setComments] = useState([]);
@@ -207,159 +206,162 @@ const Comments = ({ postId, onCommentCountChange }) => {
   // Reusable renderer for a comment (supports nesting)
   const CommentItem = ({ comment, depth = 0 }) => (
     <div className="">
-      <div className="flex">
+      <div className="flex items-start">
         {depth > 0 && (
-          <div className="relative w-6 mr-2">
-            <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-gray-300 dark:bg-gray-700"></div>
-            <div className="absolute top-5 left-3 w-3 h-[2px] bg-gray-300 dark:bg-gray-700"></div>
+          <div className="relative w-8 mr-2 flex-shrink-0">
+            {/* Horizontal connector from thread line to avatar (straight, no rounded corner) */}
+            <div className="absolute top-[18px] left-4 w-4 h-[2px] bg-gray-300 dark:bg-gray-600"></div>
           </div>
         )}
-        <div className="flex-1">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
-      <div className="flex justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 flex items-center justify-center text-sm font-semibold">
-            {getInitial(comment)}
-          </div>
-          <div className="leading-tight">
-            <div className="font-semibold text-gray-900 dark:text-white">
-              {getCommentAuthorName(comment)}
-            </div>
-            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <Calendar size={14} />
-              <span>
-                {formatDate(comment.publishedAt || comment.createdAt)}
-                {comment.lastModified && ' (đã chỉnh sửa)'}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="hidden sm:block text-sm text-gray-400"></div>
-      </div>
-
-      {editingCommentId === comment.id ? (
-        <div className="mt-2">
-          <input
-            type="text"
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            disabled={submitting}
-          />
-          <div className="flex justify-end gap-2 mt-2">
-            <button
-              type="button"
-              onClick={cancelEditing}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 dark:text-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              <X size={16} className="mr-1" />
-              Hủy
-            </button>
-            <button
-              type="button"
-              onClick={() => handleEditComment(comment.id)}
-              disabled={submitting}
-              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <Send size={16} className="mr-1" />
-              {submitting ? 'Đang lưu...' : 'Lưu'}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="mt-2 text-gray-800 dark:text-gray-200 leading-relaxed">
-            {comment.context}
-          </div>
-
-          <div className="flex items-center gap-4 mt-3 text-sm">
-            <button
-              onClick={() => {
-                setReplyToId(comment.id);
-                setReplyTexts(prev => ({ ...prev, [comment.id]: prev[comment.id] || '' }));
-              }}
-              className="inline-flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
-              type="button"
-            >
-              <MessageSquare size={16} className="mr-1" />
-              Trả lời
-            </button>
-            {canModifyComment(comment) && (
-              <>
-                <button
-                  onClick={() => startEditing(comment)}
-                  className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                >
-                  <Edit size={16} className="mr-1" />
-                  Sửa
-                </button>
-                <button
-                  onClick={() => handleDeleteComment(comment.id)}
-                  className="inline-flex items-center text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-                >
-                  <Trash2 size={16} className="mr-1" />
-                  Xóa
-                </button>
-              </>
-            )}
-            {Array.isArray(comment.children) && comment.children.length > 0 && (
-              <button
-                type="button"
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                onClick={() => setRepliesOpenById(prev => ({ ...prev, [comment.id]: !(prev[comment.id] ?? true) }))}
-              >
-                {(repliesOpenById[comment.id] ?? true) ? 'Thu gọn trả lời' : `Hiển thị ${comment.children.length} trả lời`}
-              </button>
-            )}
-          </div>
-
-          {replyToId === comment.id && (
-            <div className="mt-3">
+        <div className="flex-1 min-w-0">
+          {editingCommentId === comment.id ? (
+            <div className="mt-2">
               <input
                 type="text"
-                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Viết câu trả lời..."
-                value={replyTexts[comment.id] || ''}
-                onChange={(e) => setReplyTexts(prev => ({ ...prev, [comment.id]: e.target.value }))}
-                autoFocus
-                disabled={!isAuthenticated || submitting}
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                disabled={submitting}
               />
-              <div className="flex justify-end mt-2 gap-2">
+              <div className="flex justify-end gap-2 mt-2">
                 <button
                   type="button"
-                  onClick={() => { setReplyToId(null); setReplyTexts(prev => ({ ...prev, [comment.id]: '' })); }}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 dark:text-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                  onClick={cancelEditing}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 dark:text-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                 >
                   <X size={16} className="mr-1" />
                   Hủy
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleAddReply(comment.id)}
-                  disabled={!isAuthenticated || submitting || !(replyTexts[comment.id] || '').trim()}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  onClick={() => handleEditComment(comment.id)}
+                  disabled={submitting}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Send size={16} className="mr-1" />
-                  Gửi trả lời
+                  {submitting ? 'Đang lưu...' : 'Lưu'}
                 </button>
               </div>
             </div>
-          )}
+          ) : (
+            <>
+              <div className="flex items-start gap-3">
+                <div className="relative h-9 w-9 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                  {getInitial(comment)}
+                </div>
+                <div className="min-w-0">
+                  <div className="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-2xl inline-block max-w-full">
+                    <div className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                      {getCommentAuthorName(comment)}
+                    </div>
+                    <div className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed break-words">
+                      {comment.context}
+                    </div>
+                  </div>
 
-          {/* Children */}
-          {(comment.children && comment.children.length > 0 && (repliesOpenById[comment.id] ?? true)) && (
-            <div className="mt-4 space-y-4">
-              {comment.children.map((child) => (
-                <CommentItem key={child.id} comment={child} depth={depth + 1} />
-              ))}
-            </div>
+                  {/* Actions + timestamp */}
+                  <div className="flex items-center gap-4 mt-1 ml-3 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <Calendar size={12} />
+                      {formatDate(comment.publishedAt || comment.createdAt)}
+                      {comment.lastModified && ' (đã chỉnh sửa)'}
+                    </span>
+
+                    <button
+                      onClick={() => {
+                        setReplyToId(comment.id);
+                        setReplyTexts((prev) => ({ ...prev, [comment.id]: prev[comment.id] || '' }));
+                      }}
+                      className="inline-flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+                      type="button"
+                    >
+                      <MessageSquare size={14} className="mr-1" />
+                      Trả lời
+                    </button>
+
+                    {canModifyComment(comment) && (
+                      <>
+                        <button
+                          onClick={() => startEditing(comment)}
+                          className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                        >
+                          <Edit size={14} className="mr-1" />
+                          Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          className="inline-flex items-center text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                        >
+                          <Trash2 size={14} className="mr-1" />
+                          Xóa
+                        </button>
+                      </>
+                    )}
+
+                    {Array.isArray(comment.children) && comment.children.length > 0 && (
+                      <button
+                        type="button"
+                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        onClick={() => setRepliesOpenById((prev) => ({ ...prev, [comment.id]: !(prev[comment.id] ?? true) }))}
+                      >
+                        {(repliesOpenById[comment.id] ?? true) ? 'Thu gọn trả lời' : `Hiển thị ${comment.children.length} trả lời`}
+                      </button>
+                    )}
+                  </div>
+
+                  {replyToId === comment.id && (
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Viết câu trả lời..."
+                        value={replyTexts[comment.id] || ''}
+                        onChange={(e) => setReplyTexts((prev) => ({ ...prev, [comment.id]: e.target.value }))}
+                        autoFocus
+                        disabled={!isAuthenticated || submitting}
+                      />
+                      <div className="flex justify-end mt-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyToId(null);
+                            setReplyTexts((prev) => ({ ...prev, [comment.id]: '' }));
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 dark:text-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                        >
+                          <X size={16} className="mr-1" />
+                          Hủy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddReply(comment.id)}
+                          disabled={!isAuthenticated || submitting || !(replyTexts[comment.id] || '').trim()}
+                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                        >
+                          <Send size={16} className="mr-1" />
+                          Gửi trả lời
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Children */}
+                  {(comment.children && comment.children.length > 0 && (repliesOpenById[comment.id] ?? true)) && (
+                    <div className="mt-3 relative pl-8 flex flex-col gap-3">
+                      {/* Thread vertical line spanning all children (continuous) */}
+                      <div className="absolute left-4 top-0 bottom-0 w-[2px] bg-gray-300 dark:bg-gray-600"></div>
+                      {comment.children.map((child) => (
+                        <CommentItem key={child.id} comment={child} depth={depth + 1} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
           )}
-        </>
-      )}
-          </div>
         </div>
       </div>
-  </div>
+    </div>
   );
 
   return (

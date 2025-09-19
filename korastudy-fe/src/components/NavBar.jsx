@@ -12,6 +12,7 @@ const NavBar = () => {
   // Các state hiện có
   const [showTopikDropdown, setShowTopikDropdown] = useState(false);
   const [showExamDropdown, setShowExamDropdown] = useState(false);
+  const [showCourseDropdown, setShowCourseDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -199,7 +200,25 @@ useEffect(() => {
         </div>
 
         <ul className="hidden md:flex list-none m-0 p-0 gap-8 items-center">
-          <li><Link to="/courses" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Khóa học</Link></li>
+          {/* Course dropdown */}
+          <li className="relative" onMouseEnter={() => setShowCourseDropdown(true)} onMouseLeave={() => setShowCourseDropdown(false)}>
+            <Link to="/courses" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center">
+              Khóa học
+              <ChevronDown size={16} className="ml-1" />
+            </Link>
+            {showCourseDropdown && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-dark-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-dark-700 z-20">
+                <Link to="/courses" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                  Tất cả khóa học
+                </Link>
+                {isAuthenticated() && (
+                  <Link to="/courses/my-courses" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                    Khóa học của tôi
+                  </Link>
+                )}
+              </div>
+            )}
+          </li>
           <li><Link to="/flash-card" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">FlashCard</Link></li>
           <li><Link to="/lo-trinh" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Lộ trình</Link></li>
 
@@ -367,6 +386,9 @@ useEffect(() => {
               <div className="flex-1 overflow-y-auto py-4">
                 <nav className="space-y-2 px-4">
                   <Link to="/courses" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Khóa học</Link>
+                  {isAuthenticated() && (
+                    <Link to="/courses/my-courses" onClick={closeMobileMenu} className="block px-4 py-2 ml-4 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Khóa học của tôi</Link>
+                  )}
                   <Link to="/flash-card" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">FlashCard</Link>
                   <Link to="/lo-trinh" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Lộ trình</Link>
                   <Link to="/blog" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Blog</Link>
