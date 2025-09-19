@@ -9,7 +9,9 @@ import {
   Play,
   FileText, 
   CheckCircle, 
-  AlertCircle 
+  AlertCircle,
+  Trash2, // Thêm icon Trash2
+  MessageSquare // Thêm icon MessageSquare
 } from 'lucide-react';
 import { examService } from '../../api/ExamService';
 import { useUser } from '../../contexts/UserContext';
@@ -151,6 +153,13 @@ const ExamDetail = () => {
       return;
     }
 
+    // Kiểm tra xem user có ID hay không
+    if (!user.id) {
+      alert('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại');
+      navigate('/dang-nhap');
+      return;
+    }
+
     if (!newComment.trim()) {
       alert('Vui lòng nhập nội dung bình luận');
       return;
@@ -158,6 +167,11 @@ const ExamDetail = () => {
 
     try {
       setIsSubmittingComment(true);
+      console.log('User info:', {
+        id: user.id,
+        username: user.username,
+        token: !!localStorage.getItem('authToken')
+      });
       
       await examService.addExamComment(id, newComment.trim(), user.id);
       
@@ -169,10 +183,50 @@ const ExamDetail = () => {
       
     } catch (err) {
       console.error('Error submitting comment:', err);
-      alert('Không thể gửi bình luận. Vui lòng thử lại.');
+      
+      // Xử lý lỗi cụ thể
+      if (err.message.includes('người dùng') || err.message.includes('xác thực')) {
+        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        navigate('/dang-nhap');
+      } else {
+        alert('Không thể gửi bình luận: ' + err.message);
+      }
     } finally {
       setIsSubmittingComment(false);
     }
+  };
+
+  // Xóa comment
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa bình luận này không?')) {
+      return;
+    }
+
+    try {
+      await examService.deleteExamComment(id, commentId);
+      
+      // Refresh comments
+      const updatedComments = await examService.getExamComments(id);
+      setComments(updatedComments || []);
+      
+      alert('Đã xóa bình luận thành công');
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      alert('Không thể xóa bình luận: ' + err.message);
+    }
+  };
+
+  // Check if user can delete a comment
+  const canDeleteComment = (comment) => {
+    if (!user) return false;
+    
+    // Admin can delete any comment
+    if (user.roles && (user.roles.includes('ROLE_ADMIN') || user.roles.includes('admin'))) {
+      return true;
+    }
+    
+    // User can delete their own comments
+    return user.id === comment.userId || user.id === comment.user?.id;
   };
 
   // Format date
@@ -550,9 +604,22 @@ const ExamDetail = () => {
                                   <span className="font-medium text-gray-900">
                                     {comment.username || 'Người dùng'}
                                   </span>
-                                  <span className="text-sm text-gray-500">
-                                    {formatDate(comment.createdAt)}
-                                  </span>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-500">
+                                      {formatDate(comment.createdAt)}
+                                    </span>
+                                    
+                                    {/* Delete Button */}
+                                    {canDeleteComment(comment) && (
+                                      <button 
+                                        onClick={() => handleDeleteComment(comment.id)}
+                                        className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                        title="Xóa bình luận"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                                 <p className="text-gray-700">{comment.context}</p>
                               </div>

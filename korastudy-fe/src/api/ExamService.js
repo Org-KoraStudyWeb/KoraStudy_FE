@@ -134,23 +134,45 @@ export const examService = {
   },
 
   // Thêm comment cho bài thi
-    addExamComment: async (examId, context, userId) => {
-  try {
-    console.log(`Adding comment for exam ${examId}`);
-    
-    // Thay đổi: Gửi dữ liệu dưới dạng JSON body thay vì query parameters
-    const response = await api.post(`/exams/${examId}/comments`, {
-      context: context,
-      userId: userId
-    });
-    
-    console.log('Add comment response:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Error adding comment:', error);
-    throw error;
-  }
-},
+  addExamComment: async (examId, context, userId) => {
+    try {
+      console.log(`Adding comment for exam ${examId}, userId: ${userId}, content: "${context}"`);
+      
+      // Thử các cách khác nhau để gửi userId
+      const requestBody = {
+        context: context,
+        userId: userId
+      };
+      
+      console.log('Request body:', requestBody);
+      
+      // Thêm userId vào cả query parameters và body để đảm bảo
+      const response = await api.post(`/exams/${examId}/comments?userId=${userId}`, requestBody);
+      
+      console.log('Add comment response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      if (error.response?.data?.message?.includes('người dùng') || 
+          error.response?.data?.message?.includes('User not found')) {
+        throw new Error('Không thể xác thực người dùng. Vui lòng đăng nhập lại và thử lại.');
+      }
+      throw error;
+    }
+  },
+
+  // Xóa comment bài thi
+  deleteExamComment: async (examId, commentId) => {
+    try {
+      console.log(`Deleting comment ${commentId} for exam ${examId}`);
+      const response = await api.delete(`/exams/${examId}/comments/${commentId}`);
+      console.log('Delete comment response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      throw error;
+    }
+  },
 
   // Nộp bài practice test
   submitPracticeTest: async (examId, partIds, answers, userId) => {
