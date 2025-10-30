@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  BookOpen, 
-  Clock, 
-  Users, 
-  Star, 
-  Play, 
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  BookOpen,
+  Clock,
+  Users,
+  Star,
+  Play,
   Filter,
   Search,
   ArrowRight,
   Award,
   Target,
   TrendingUp,
-  Loader
-} from 'lucide-react';
-import courseService from '../../api/courseService';
+  Loader,
+} from "lucide-react";
+import courseService from "../../api/courseService";
 
 // Course Card Component
 const CourseCard = ({ course, featured = false }) => {
@@ -24,30 +24,38 @@ const CourseCard = ({ course, featured = false }) => {
   }
 
   return (
-    <div className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full ${featured ? 'border-2 border-primary-500' : ''}`}>
+    <div
+      className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full ${
+        featured ? "border-2 border-primary-500" : ""
+      }`}
+    >
       {featured && (
         <div className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-center py-2 text-sm font-semibold">
           ⭐ Khóa học nổi bật
         </div>
       )}
-      
+
       <Link to={`/course/${course.id}`} className="block">
         <div className="relative">
-          <img 
-            src={course.image || '/topik.png'} // Fallback image nếu không có
+          <img
+            src={course.image || "/topik.png"} // Fallback image nếu không có
             alt={course.title}
             className="w-full h-48 object-cover"
-            onError={(e) => {e.target.src = '/topik.png'}} // Fallback nếu ảnh lỗi
+            onError={(e) => {
+              e.target.src = "/topik.png";
+            }} // Fallback nếu ảnh lỗi
           />
           <div className="absolute top-3 left-3 flex gap-2">
-            {course.tags && Array.isArray(course.tags) && course.tags.map((tag, index) => (
-              <span 
-                key={index}
-                className="bg-primary-500 text-white px-2 py-1 rounded-full text-xs font-medium"
-              >
-                {tag}
-              </span>
-            ))}
+            {course.tags &&
+              Array.isArray(course.tags) &&
+              course.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="bg-primary-500 text-white px-2 py-1 rounded-full text-xs font-medium"
+                >
+                  {tag}
+                </span>
+              ))}
           </div>
           <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-2">
             <Play size={16} className="text-primary-500" />
@@ -72,19 +80,19 @@ const CourseCard = ({ course, featured = false }) => {
             {course.title}
           </h3>
         </Link>
-        
+
         <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">
-          {course.description || 'Không có mô tả'}
+          {course.description || "Không có mô tả"}
         </p>
 
         <div className="flex items-center gap-2 mb-4">
-          <img 
-            src="/api/placeholder/32/32" 
-            alt={course.instructor || 'Giảng viên'}
+          <img
+            src="/api/placeholder/32/32"
+            alt={course.instructor || "Giảng viên"}
             className="w-8 h-8 rounded-full"
           />
           <span className="text-gray-700 text-sm font-medium">
-            {course.instructor || 'Chưa cập nhật'}
+            {course.instructor || "Chưa cập nhật"}
           </span>
         </div>
 
@@ -99,7 +107,11 @@ const CourseCard = ({ course, featured = false }) => {
             {course.students !== undefined && (
               <div className="flex items-center gap-1">
                 <Users size={14} />
-                <span>{typeof course.students === 'number' ? course.students.toLocaleString() : course.students}</span>
+                <span>
+                  {typeof course.students === "number"
+                    ? course.students.toLocaleString()
+                    : course.students}
+                </span>
               </div>
             )}
           </div>
@@ -116,10 +128,12 @@ const CourseCard = ({ course, featured = false }) => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-col">
               <span className="text-2xl font-bold text-primary-500">
-                {course.price || 'Miễn phí'}
+                {course.price || "Miễn phí"}
               </span>
               {course.originalPrice && (
-                <span className="text-gray-400 line-through text-sm">{course.originalPrice}</span>
+                <span className="text-gray-400 line-through text-sm">
+                  {course.originalPrice}
+                </span>
               )}
             </div>
             <div className="text-right text-sm text-gray-500">
@@ -128,8 +142,8 @@ const CourseCard = ({ course, featured = false }) => {
               )}
             </div>
           </div>
-          
-          <Link 
+
+          <Link
             to={`/course/${course.id}`}
             className="w-full bg-primary-500 text-white py-3 px-4 rounded-lg hover:bg-primary-600 transition-colors duration-300 flex items-center justify-center gap-2 text-sm font-semibold"
           >
@@ -144,29 +158,29 @@ const CourseCard = ({ course, featured = false }) => {
 
 const Courses = () => {
   // State Management
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedLevel, setSelectedLevel] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedLevel, setSelectedLevel] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Categories and Levels definitions
   const categories = [
-    { id: 'all', name: 'Tất cả', count: 0 },
-    { id: 'topik1', name: 'TOPIK I', count: 0 },
-    { id: 'topik2', name: 'TOPIK II', count: 0 },
-    { id: 'grammar', name: 'Ngữ pháp', count: 0 },
-    { id: 'vocabulary', name: 'Từ vựng', count: 0 },
-    { id: 'speaking', name: 'Giao tiếp', count: 0 },
-    { id: 'writing', name: 'Viết', count: 0 }
+    { id: "all", name: "Tất cả", count: 0 },
+    { id: "topik1", name: "TOPIK I", count: 0 },
+    { id: "topik2", name: "TOPIK II", count: 0 },
+    { id: "grammar", name: "Ngữ pháp", count: 0 },
+    { id: "vocabulary", name: "Từ vựng", count: 0 },
+    { id: "speaking", name: "Giao tiếp", count: 0 },
+    { id: "writing", name: "Viết", count: 0 },
   ];
 
   const levels = [
-    { id: 'all', name: 'Tất cả cấp độ' },
-    { id: 'beginner', name: 'Sơ cấp (1-2)' },
-    { id: 'intermediate', name: 'Trung cấp (3-4)' },
-    { id: 'advanced', name: 'Cao cấp (5-6)' }
+    { id: "all", name: "Tất cả cấp độ" },
+    { id: "beginner", name: "Sơ cấp (1-2)" },
+    { id: "intermediate", name: "Trung cấp (3-4)" },
+    { id: "advanced", name: "Cao cấp (5-6)" },
   ];
 
   // Fetch courses on component mount
@@ -205,12 +219,13 @@ const Courses = () => {
       image: "topik.png",
       category: "topik1",
       featured: true,
-      tags: ["Phổ biến", "Miễn phí"]
+      tags: ["Phổ biến", "Miễn phí"],
     },
     {
       id: 2,
       title: "TOPIK II - Nâng cao kỹ năng",
-      description: "Phát triển kỹ năng tiếng Hàn từ trung cấp đến cao cấp, chuẩn bị cho TOPIK II",
+      description:
+        "Phát triển kỹ năng tiếng Hàn từ trung cấp đến cao cấp, chuẩn bị cho TOPIK II",
       instructor: "Thầy Đức Nam",
       rating: 4.8,
       students: 1923,
@@ -222,12 +237,13 @@ const Courses = () => {
       image: "topik.png",
       category: "topik2",
       featured: true,
-      tags: ["Bán chạy", "Giảm giá"]
+      tags: ["Bán chạy", "Giảm giá"],
     },
     {
       id: 3,
       title: "Ngữ pháp tiếng Hàn từ A-Z",
-      description: "Hệ thống hóa toàn bộ ngữ pháp tiếng Hàn từ cơ bản đến nâng cao",
+      description:
+        "Hệ thống hóa toàn bộ ngữ pháp tiếng Hàn từ cơ bản đến nâng cao",
       instructor: "Cô Thu Hà",
       rating: 4.7,
       students: 1456,
@@ -239,7 +255,7 @@ const Courses = () => {
       image: "topik.png",
       category: "grammar",
       featured: false,
-      tags: ["Mới"]
+      tags: ["Mới"],
     },
     {
       id: 4,
@@ -256,7 +272,7 @@ const Courses = () => {
       image: "topik.png",
       category: "vocabulary",
       featured: false,
-      tags: []
+      tags: [],
     },
     {
       id: 5,
@@ -273,7 +289,7 @@ const Courses = () => {
       image: "topik.png",
       category: "speaking",
       featured: false,
-      tags: ["Thực hành"]
+      tags: ["Thực hành"],
     },
     {
       id: 6,
@@ -290,8 +306,8 @@ const Courses = () => {
       image: "topik.png",
       category: "writing",
       featured: false,
-      tags: []
-    }
+      tags: [],
+    },
   ];
 
   // Search functionality
@@ -324,33 +340,38 @@ const Courses = () => {
   };
 
   // Filter courses based on category, level and search term
-  const filteredCourses = courses.filter(course => {
+  const filteredCourses = courses.filter((course) => {
     // Kiểm tra xem course có tồn tại và có đầy đủ thuộc tính không
     if (!course || !course.title || !course.description) {
       return false;
     }
-    
-    const matchesCategory = selectedCategory === 'all' || (course.category && course.category === selectedCategory);
-    const matchesLevel = selectedLevel === 'all' || (course.level && 
-      ((selectedLevel === 'beginner' && course.level === 'Sơ cấp') ||
-      (selectedLevel === 'intermediate' && course.level === 'Trung cấp') ||
-      (selectedLevel === 'advanced' && course.level === 'Cao cấp')));
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+
+    const matchesCategory =
+      selectedCategory === "all" ||
+      (course.category && course.category === selectedCategory);
+    const matchesLevel =
+      selectedLevel === "all" ||
+      (course.level &&
+        ((selectedLevel === "beginner" && course.level === "Sơ cấp") ||
+          (selectedLevel === "intermediate" && course.level === "Trung cấp") ||
+          (selectedLevel === "advanced" && course.level === "Cao cấp")));
+    const matchesSearch =
+      course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesCategory && matchesLevel && matchesSearch;
   });
 
   // Update category counts
-  const categoriesWithCounts = categories.map(category => {
-    if (category.id === 'all') {
+  const categoriesWithCounts = categories.map((category) => {
+    if (category.id === "all") {
       return { ...category, count: courses.length };
     }
-    
-    const count = courses.filter(course => 
-      course.category === category.id
+
+    const count = courses.filter(
+      (course) => course.category === category.id
     ).length;
-    
+
     return { ...category, count };
   });
 
@@ -366,16 +387,19 @@ const Courses = () => {
             <p className="text-xl mb-8 opacity-90">
               Hơn 20+ khóa học chất lượng cao từ cơ bản đến nâng cao
             </p>
-            
+
             {/* Search Bar */}
             <div className="max-w-2xl mx-auto relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Search
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={20}
+              />
               <input
                 type="text"
                 placeholder="Tìm kiếm khóa học..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 className="w-full pl-12 pr-4 py-4 rounded-xl text-gray-800 text-lg outline-none focus:ring-4 focus:ring-white/30"
               />
             </div>
@@ -427,18 +451,20 @@ const Courses = () => {
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-800 mb-3">Danh mục</h4>
                   <div className="space-y-2">
-                    {categoriesWithCounts.map(category => (
+                    {categoriesWithCounts.map((category) => (
                       <button
                         key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors duration-200 flex justify-between items-center ${
-                          selectedCategory === category.id 
-                            ? 'bg-primary-500 text-white' 
-                            : 'hover:bg-gray-100 text-gray-700'
+                          selectedCategory === category.id
+                            ? "bg-primary-500 text-white"
+                            : "hover:bg-gray-100 text-gray-700"
                         }`}
                       >
                         <span>{category.name}</span>
-                        <span className="text-sm opacity-75">({category.count})</span>
+                        <span className="text-sm opacity-75">
+                          ({category.count})
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -448,14 +474,14 @@ const Courses = () => {
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-800 mb-3">Cấp độ</h4>
                   <div className="space-y-2">
-                    {levels.map(level => (
+                    {levels.map((level) => (
                       <button
                         key={level.id}
                         onClick={() => setSelectedLevel(level.id)}
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors duration-200 ${
-                          selectedLevel === level.id 
-                            ? 'bg-primary-500 text-white' 
-                            : 'hover:bg-gray-100 text-gray-700'
+                          selectedLevel === level.id
+                            ? "bg-primary-500 text-white"
+                            : "hover:bg-gray-100 text-gray-700"
                         }`}
                       >
                         {level.name}
@@ -468,8 +494,10 @@ const Courses = () => {
                 <div className="bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl p-4 text-white text-center">
                   <Target className="w-8 h-8 mx-auto mb-2" />
                   <h4 className="font-semibold mb-2">Không biết chọn gì?</h4>
-                  <p className="text-sm mb-3 opacity-90">Làm bài test trình độ để tìm khóa học phù hợp</p>
-                  <Link 
+                  <p className="text-sm mb-3 opacity-90">
+                    Làm bài test trình độ để tìm khóa học phù hợp
+                  </p>
+                  <Link
                     to="/dang-ky"
                     className="bg-white text-primary-500 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors duration-300"
                   >
@@ -485,15 +513,19 @@ const Courses = () => {
               {loading && (
                 <div className="flex justify-center items-center py-12">
                   <Loader size={48} className="text-primary-500 animate-spin" />
-                  <span className="ml-4 text-xl text-gray-700">Đang tải khóa học...</span>
+                  <span className="ml-4 text-xl text-gray-700">
+                    Đang tải khóa học...
+                  </span>
                 </div>
               )}
 
               {/* Error State */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-                  <h3 className="text-xl font-semibold text-red-600 mb-2">{error}</h3>
-                  <button 
+                  <h3 className="text-xl font-semibold text-red-600 mb-2">
+                    {error}
+                  </h3>
+                  <button
                     onClick={() => window.location.reload()}
                     className="mt-4 bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors"
                   >
@@ -520,20 +552,28 @@ const Courses = () => {
                   </div>
 
                   {/* Featured Courses */}
-                  {selectedCategory === 'all' && (
+                  {selectedCategory === "all" && (
                     <div className="mb-12">
-                      <h3 className="text-xl font-semibold text-gray-800 mb-6">Khóa học nổi bật</h3>
+                      <h3 className="text-xl font-semibold text-gray-800 mb-6">
+                        Khóa học nổi bật
+                      </h3>
                       <div className="grid md:grid-cols-2 gap-6">
-                        {featuredCourses.filter(course => course.featured).map(course => (
-                          <CourseCard key={course.id} course={course} featured={true} />
-                        ))}
+                        {featuredCourses
+                          .filter((course) => course.featured)
+                          .map((course) => (
+                            <CourseCard
+                              key={course.id}
+                              course={course}
+                              featured={true}
+                            />
+                          ))}
                       </div>
                     </div>
                   )}
 
                   {/* All Courses */}
                   <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredCourses.map(course => (
+                    {filteredCourses.map((course) => (
                       <CourseCard key={course.id} course={course} />
                     ))}
                   </div>
@@ -548,11 +588,11 @@ const Courses = () => {
                       <p className="text-gray-500 mb-4">
                         Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
                       </p>
-                      <button 
+                      <button
                         onClick={() => {
-                          setSelectedCategory('all');
-                          setSelectedLevel('all');
-                          setSearchTerm('');
+                          setSelectedCategory("all");
+                          setSelectedLevel("all");
+                          setSearchTerm("");
                         }}
                         className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-300"
                       >
@@ -576,16 +616,16 @@ const Courses = () => {
           <p className="text-xl text-gray-300 mb-8">
             Đăng ký tài khoản để truy cập tất cả khóa học và tính năng học tập
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
+            <Link
               to="/dang-ky"
               className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-lg inline-flex items-center justify-center gap-2"
             >
               Đăng ký miễn phí
               <ArrowRight size={20} />
             </Link>
-            <Link 
+            <Link
               to="/dang-nhap"
               className="bg-transparent text-white px-8 py-4 rounded-xl font-semibold text-lg border-2 border-white/30 transition-all duration-300 hover:border-white hover:bg-white/10"
             >
