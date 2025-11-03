@@ -16,134 +16,7 @@ import {
 } from 'lucide-react';
 import courseService from '../../api/courseService';
 
-// Course Card Component
-const CourseCard = ({ course, featured = false }) => {
-  // Kiểm tra course có tồn tại và có đầy đủ thuộc tính cần thiết không
-  if (!course || !course.id || !course.title) {
-    return null; // Không hiển thị gì nếu thiếu thông tin cơ bản
-  }
-
-  return (
-    <div className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full ${featured ? 'border-2 border-primary-500' : ''}`}>
-      {featured && (
-        <div className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-center py-2 text-sm font-semibold">
-          ⭐ Khóa học nổi bật
-        </div>
-      )}
-      
-      <Link to={`/course/${course.id}`} className="block">
-        <div className="relative">
-          <img 
-            src={course.image || '/topik.png'} // Fallback image nếu không có
-            alt={course.title}
-            className="w-full h-48 object-cover"
-            onError={(e) => {e.target.src = '/topik.png'}} // Fallback nếu ảnh lỗi
-          />
-          <div className="absolute top-3 left-3 flex gap-2">
-            {course.tags && Array.isArray(course.tags) && course.tags.map((tag, index) => (
-              <span 
-                key={index}
-                className="bg-primary-500 text-white px-2 py-1 rounded-full text-xs font-medium"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-2">
-            <Play size={16} className="text-primary-500" />
-          </div>
-        </div>
-      </Link>
-
-      <div className="p-6 flex flex-col flex-grow">
-        <div className="flex items-center gap-2 mb-3">
-          {course.level && (
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-              {course.level}
-            </span>
-          )}
-          {course.category && (
-            <span className="text-gray-500 text-sm">{course.category}</span>
-          )}
-        </div>
-
-        <Link to={`/course/${course.id}`}>
-          <h3 className="font-semibold text-lg text-gray-800 mb-2 line-clamp-2 min-h-[3.5rem] hover:text-primary-500 transition-colors">
-            {course.title}
-          </h3>
-        </Link>
-        
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">
-          {course.description || 'Không có mô tả'}
-        </p>
-
-        <div className="flex items-center gap-2 mb-4">
-          <img 
-            src="/api/placeholder/32/32" 
-            alt={course.instructor || 'Giảng viên'}
-            className="w-8 h-8 rounded-full"
-          />
-          <span className="text-gray-700 text-sm font-medium">
-            {course.instructor || 'Chưa cập nhật'}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-          <div className="flex items-center gap-3">
-            {course.rating !== undefined && (
-              <div className="flex items-center gap-1">
-                <Star size={14} className="text-yellow-400 fill-current" />
-                <span>{course.rating}</span>
-              </div>
-            )}
-            {course.students !== undefined && (
-              <div className="flex items-center gap-1">
-                <Users size={14} />
-                <span>{typeof course.students === 'number' ? course.students.toLocaleString() : course.students}</span>
-              </div>
-            )}
-          </div>
-          {course.duration && (
-            <div className="flex items-center gap-1">
-              <Clock size={14} />
-              <span>{course.duration}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Price and Button Section - Fixed at bottom */}
-        <div className="mt-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex flex-col">
-              <span className="text-2xl font-bold text-primary-500">
-                {course.price || 'Miễn phí'}
-              </span>
-              {course.originalPrice && (
-                <span className="text-gray-400 line-through text-sm">{course.originalPrice}</span>
-              )}
-            </div>
-            <div className="text-right text-sm text-gray-500">
-              {course.lessons !== undefined && (
-                <div>{course.lessons} bài học</div>
-              )}
-            </div>
-          </div>
-          
-          <Link 
-            to={`/course/${course.id}`}
-            className="w-full bg-primary-500 text-white py-3 px-4 rounded-lg hover:bg-primary-600 transition-colors duration-300 flex items-center justify-center gap-2 text-sm font-semibold"
-          >
-            Xem chi tiết
-            <ArrowRight size={16} />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const Courses = () => {
-  // State Management
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -151,25 +24,6 @@ const Courses = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Categories and Levels definitions
-  const categories = [
-    { id: 'all', name: 'Tất cả', count: 0 },
-    { id: 'topik1', name: 'TOPIK I', count: 0 },
-    { id: 'topik2', name: 'TOPIK II', count: 0 },
-    { id: 'grammar', name: 'Ngữ pháp', count: 0 },
-    { id: 'vocabulary', name: 'Từ vựng', count: 0 },
-    { id: 'speaking', name: 'Giao tiếp', count: 0 },
-    { id: 'writing', name: 'Viết', count: 0 }
-  ];
-
-  const levels = [
-    { id: 'all', name: 'Tất cả cấp độ' },
-    { id: 'beginner', name: 'Sơ cấp (1-2)' },
-    { id: 'intermediate', name: 'Trung cấp (3-4)' },
-    { id: 'advanced', name: 'Cao cấp (5-6)' }
-  ];
-
-  // Fetch courses on component mount
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -188,7 +42,43 @@ const Courses = () => {
     fetchCourses();
   }, []);
 
-  // Sample featured courses for development/testing
+  const categories = [
+    { id: 'all', name: 'Tất cả', count: 0 },
+    { id: 'topik1', name: 'TOPIK I', count: 0 },
+    { id: 'topik2', name: 'TOPIK II', count: 0 },
+    { id: 'grammar', name: 'Ngữ pháp', count: 0 },
+    { id: 'vocabulary', name: 'Từ vựng', count: 0 },
+    { id: 'speaking', name: 'Giao tiếp', count: 0 },
+    { id: 'writing', name: 'Viết', count: 0 }
+  ];
+
+  // Cập nhật số lượng khóa học trong từng danh mục
+  useEffect(() => {
+    if (courses.length > 0) {
+      const updatedCategories = categories.map(category => {
+        if (category.id === 'all') {
+          return { ...category, count: courses.length };
+        }
+        
+        const count = courses.filter(course => 
+          course.category === category.id
+        ).length;
+        
+        return { ...category, count };
+      });
+      
+      // Không cập nhật state categories vì nó có thể gây re-render không cần thiết
+    }
+  }, [courses]);
+
+  const levels = [
+    { id: 'all', name: 'Tất cả cấp độ' },
+    { id: 'beginner', name: 'Sơ cấp (1-2)' },
+    { id: 'intermediate', name: 'Trung cấp (3-4)' },
+    { id: 'advanced', name: 'Cao cấp (5-6)' }
+  ];
+
+  // Mẫu dữ liệu khóa học nổi bật
   const featuredCourses = [
     {
       id: 1,
@@ -240,9 +130,8 @@ const Courses = () => {
       category: "grammar",
       featured: false,
       tags: ["Mới"]
-    },
-    {
-      id: 4,
+    }
+  ];
       title: "Từ vựng TOPIK theo chủ đề",
       description: "Học từ vựng tiếng Hàn theo chủ đề, phù hợp cho thi TOPIK",
       instructor: "Cô Lan Anh",
@@ -294,10 +183,10 @@ const Courses = () => {
     }
   ];
 
-  // Search functionality
+  // Handle search
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
-      // If searchTerm is empty, get all courses
+      // Nếu searchTerm trống, lấy lại tất cả khóa học
       try {
         setLoading(true);
         const data = await courseService.getAllPublishedCourses();
@@ -323,13 +212,7 @@ const Courses = () => {
     }
   };
 
-  // Filter courses based on category, level and search term
   const filteredCourses = courses.filter(course => {
-    // Kiểm tra xem course có tồn tại và có đầy đủ thuộc tính không
-    if (!course || !course.title || !course.description) {
-      return false;
-    }
-    
     const matchesCategory = selectedCategory === 'all' || (course.category && course.category === selectedCategory);
     const matchesLevel = selectedLevel === 'all' || (course.level && 
       ((selectedLevel === 'beginner' && course.level === 'Sơ cấp') ||
@@ -341,18 +224,109 @@ const Courses = () => {
     return matchesCategory && matchesLevel && matchesSearch;
   });
 
-  // Update category counts
-  const categoriesWithCounts = categories.map(category => {
-    if (category.id === 'all') {
-      return { ...category, count: courses.length };
-    }
+
+
+const CourseCard = ({ course, featured = false }) => (
+  <div className={`bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full ${featured ? 'border-2 border-primary-500' : ''}`}>
+    {featured && (
+      <div className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-center py-2 text-sm font-semibold">
+        ⭐ Khóa học nổi bật
+      </div>
+    )}
     
-    const count = courses.filter(course => 
-      course.category === category.id
-    ).length;
-    
-    return { ...category, count };
-  });
+    <Link to={`/course/${course.id}`} className="block">
+      <div className="relative">
+        <img 
+          src={course.image} 
+          alt={course.title}
+          className="w-full h-48 object-cover"
+        />
+        <div className="absolute top-3 left-3 flex gap-2">
+          {course.tags && course.tags.map((tag, index) => (
+            <span 
+              key={index}
+              className="bg-primary-500 text-white px-2 py-1 rounded-full text-xs font-medium"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-2">
+          <Play size={16} className="text-primary-500" />
+        </div>
+      </div>
+    </Link>
+
+    <div className="p-6 flex flex-col flex-grow">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+          {course.level}
+        </span>
+        <span className="text-gray-500 text-sm">{course.category}</span>
+      </div>
+
+      <Link to={`/course/${course.id}`}>
+        <h3 className="font-semibold text-lg text-gray-800 mb-2 line-clamp-2 min-h-[3.5rem] hover:text-primary-500 transition-colors">
+          {course.title}
+        </h3>
+      </Link>
+      
+      <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">
+        {course.description}
+      </p>
+
+      <div className="flex items-center gap-2 mb-4">
+        <img 
+          src="/api/placeholder/32/32" 
+          alt={course.instructor}
+          className="w-8 h-8 rounded-full"
+        />
+        <span className="text-gray-700 text-sm font-medium">{course.instructor}</span>
+      </div>
+
+      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <Star size={14} className="text-yellow-400 fill-current" />
+            <span>{course.rating}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Users size={14} />
+            <span>{course.students.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <Clock size={14} />
+          <span>{course.duration}</span>
+        </div>
+      </div>
+
+      {/* Price and Button Section - Fixed at bottom */}
+      <div className="mt-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col">
+            <span className="text-2xl font-bold text-primary-500">{course.price}</span>
+            {course.originalPrice && (
+              <span className="text-gray-400 line-through text-sm">{course.originalPrice}</span>
+            )}
+          </div>
+          <div className="text-right text-sm text-gray-500">
+            <div>{course.lessons} bài học</div>
+          </div>
+        </div>
+        
+        <Link 
+          to={`/course/${course.id}`}
+          className="w-full bg-primary-500 text-white py-3 px-4 rounded-lg hover:bg-primary-600 transition-colors duration-300 flex items-center justify-center gap-2 text-sm font-semibold"
+        >
+          Xem chi tiết
+          <ArrowRight size={16} />
+        </Link>
+      </div>
+    </div>
+  </div>
+);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -375,7 +349,6 @@ const Courses = () => {
                 placeholder="Tìm kiếm khóa học..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="w-full pl-12 pr-4 py-4 rounded-xl text-gray-800 text-lg outline-none focus:ring-4 focus:ring-white/30"
               />
             </div>
@@ -427,7 +400,7 @@ const Courses = () => {
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-800 mb-3">Danh mục</h4>
                   <div className="space-y-2">
-                    {categoriesWithCounts.map(category => (
+                    {categories.map(category => (
                       <button
                         key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
@@ -481,86 +454,61 @@ const Courses = () => {
 
             {/* Course Grid */}
             <div className="lg:w-3/4">
-              {/* Loading State */}
-              {loading && (
-                <div className="flex justify-center items-center py-12">
-                  <Loader size={48} className="text-primary-500 animate-spin" />
-                  <span className="ml-4 text-xl text-gray-700">Đang tải khóa học...</span>
-                </div>
-              )}
+              {/* Results Header */}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Tìm thấy {filteredCourses.length} khóa học
+                </h2>
+                <select className="border border-gray-300 rounded-lg px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                  <option>Sắp xếp theo</option>
+                  <option>Phổ biến nhất</option>
+                  <option>Mới nhất</option>
+                  <option>Giá thấp đến cao</option>
+                  <option>Giá cao đến thấp</option>
+                  <option>Đánh giá cao nhất</option>
+                </select>
+              </div>
 
-              {/* Error State */}
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-                  <h3 className="text-xl font-semibold text-red-600 mb-2">{error}</h3>
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="mt-4 bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors"
-                  >
-                    Thử lại
-                  </button>
-                </div>
-              )}
-
-              {!loading && !error && (
-                <>
-                  {/* Results Header */}
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                      Tìm thấy {filteredCourses.length} khóa học
-                    </h2>
-                    <select className="border border-gray-300 rounded-lg px-4 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                      <option>Sắp xếp theo</option>
-                      <option>Phổ biến nhất</option>
-                      <option>Mới nhất</option>
-                      <option>Giá thấp đến cao</option>
-                      <option>Giá cao đến thấp</option>
-                      <option>Đánh giá cao nhất</option>
-                    </select>
-                  </div>
-
-                  {/* Featured Courses */}
-                  {selectedCategory === 'all' && (
-                    <div className="mb-12">
-                      <h3 className="text-xl font-semibold text-gray-800 mb-6">Khóa học nổi bật</h3>
-                      <div className="grid md:grid-cols-2 gap-6">
-                        {featuredCourses.filter(course => course.featured).map(course => (
-                          <CourseCard key={course.id} course={course} featured={true} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* All Courses */}
-                  <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredCourses.map(course => (
-                      <CourseCard key={course.id} course={course} />
+              {/* Featured Courses */}
+              {selectedCategory === 'all' && (
+                <div className="mb-12">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-6">Khóa học nổi bật</h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {featuredCourses.filter(course => course.featured).map(course => (
+                      <CourseCard key={course.id} course={course} featured={true} />
                     ))}
                   </div>
+                </div>
+              )}
 
-                  {/* No Results */}
-                  {filteredCourses.length === 0 && (
-                    <div className="text-center py-12">
-                      <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                        Không tìm thấy khóa học nào
-                      </h3>
-                      <p className="text-gray-500 mb-4">
-                        Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
-                      </p>
-                      <button 
-                        onClick={() => {
-                          setSelectedCategory('all');
-                          setSelectedLevel('all');
-                          setSearchTerm('');
-                        }}
-                        className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-300"
-                      >
-                        Xóa bộ lọc
-                      </button>
-                    </div>
-                  )}
-                </>
+              {/* All Courses */}
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredCourses.map(course => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+
+              {/* No Results */}
+              {filteredCourses.length === 0 && (
+                <div className="text-center py-12">
+                  <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                    Không tìm thấy khóa học nào
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
+                  </p>
+                  <button 
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      setSelectedLevel('all');
+                      setSearchTerm('');
+                    }}
+                    className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors duration-300"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                </div>
               )}
             </div>
           </div>

@@ -1,53 +1,169 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Sun, Moon, User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, X, Sun, Moon, User, Settings, LogOut, ChevronDown, Bell } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUser } from '../contexts/UserContext';
+import notificationService from '../api/notificationService';
+import websocketService from '../api/websocketService';
+import NotificationDropdown from './NotificationDropdown';
+import { toast } from 'react-toastify';
 
 const NavBar = () => {
+  // Các state hiện có
   const [showTopikDropdown, setShowTopikDropdown] = useState(false);
   const [showExamDropdown, setShowExamDropdown] = useState(false);
+  const [showCourseDropdown, setShowCourseDropdown] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const notificationRef = useRef(null);
 
   const { theme, toggleTheme } = useTheme();
   const { user, isAuthenticated, logout } = useUser();
   const navigate = useNavigate();
 
-
+  // Các hàm xử lý hiện có
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      setShowUserMenu(false);
-      setIsMobileMenuOpen(false);
-      // Navigate to home after logout
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
+const handleLogout = async () => {
+  try {
+    // Ngắt kết nối WebSocket trước khi logout
+    websocketService.disconnect();
+    
+    await logout();
+    setShowUserMenu(false);
+    setIsMobileMenuOpen(false);
+    
+    // Reset unreadCount khi logout
+    setUnreadCount(0);
+    
+    // Navigate to home after logout
+    navigate('/');
+  } catch (error) {
+    console.error('Logout error:', error);
+    toast.error('Đã xảy ra lỗi khi đăng xuất');
+  }
+};
 
+  // Các hàm xử lý khác giữ nguyên
   const getInitials = (name) => {
     if (!name) return 'U';
     return name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2);
   };
 
-  // Get display name for user
   const getDisplayName = () => {
-  // Replace with this code:
-  if (user?.firstName && user?.lastName) {
-    return `${user.firstName} ${user.lastName}`;
-  }
-  if (user?.firstName) {
-    return user.firstName;
-  }
-  return user?.fullName || user?.username || user?.name || 'User';
-};
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user?.firstName) {
+      return user.firstName;
+    }
+    return user?.fullName || user?.username || user?.name || 'User';
+  };
 
-  // Close user menu when clicking outside
+// Kết nối WebSocket khi component được mount và người dùng đã đăng nhập
+useEffect(() => {
+  let mounted = true;
+  
+  const connectWebSocket = async () => {
+    if (isAuthenticated()) {
+      try {
+        console.log('Đang kết nối WebSocket trong NavBar...');
+        await websocketService.connect();
+        
+        if (mounted) {
+          console.log('WebSocket kết nối thành công trong NavBar');
+          
+          // Thiết lập callback cho thông báo mới
+          websocketService.setNotificationCallback((notification) => {
+            if (!mounted) return;
+            
+            console.log('Nhận thông báo mới trong NavBar:', notification);
+            
+            // Cập nhật số lượng thông báo chưa đọc - Thêm tham số function để đảm bảo update đúng
+            setUnreadCount(prevCount => {
+              console.log('Cập nhật số thông báo từ', prevCount, 'thành', prevCount + 1);
+              return prevCount + 1;
+            });
+            
+            // Hiển thị toast thông báo
+            toast.info(
+              <div onClick={() => setNotificationOpen(true)}>
+                <h4 className="font-medium">{notification.title}</h4>
+                <p>{notification.content}</p>
+              </div>, 
+              { 
+                autoClose: 8000,
+                onClick: () => setNotificationOpen(true)
+              }
+            );
+          });
+        }
+      } catch (error) {
+        if (mounted) {
+          console.error('Lỗi kết nối WebSocket trong NavBar:', error);
+          // Hiển thị thông báo lỗi nhưng không ngăn app hoạt động
+          toast.warning('Không thể kết nối đến dịch vụ thông báo. Thử lại sau.');
+          
+          // Thử kết nối lại sau 10 giây
+          setTimeout(connectWebSocket, 10000);
+        }
+      }
+    }
+  };
+
+  connectWebSocket();
+  
+  // Cleanup khi component unmount
+  return () => {
+    mounted = false;
+    // Không ngắt kết nối hoàn toàn vì có thể các component khác vẫn cần
+    websocketService.setNotificationCallback(null);
+  };
+}, [isAuthenticated]);
+
+// Debug unreadCount - thêm để kiểm tra giá trị
+useEffect(() => {
+  console.log('unreadCount đã thay đổi:', unreadCount);
+}, [unreadCount]);
+
+  // Lấy số lượng thông báo chưa đọc khi component được mount
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (isAuthenticated()) {
+        try {
+          const count = await notificationService.getUnreadCount();
+          setUnreadCount(count);
+        } catch (error) {
+          console.error('Error fetching unread count:', error);
+        }
+      }
+    };
+
+    fetchUnreadCount();
+    
+    // Cập nhật số lượng thông báo mỗi 30 giây
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // Xử lý click outside cho dropdown thông báo
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setNotificationOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Xử lý click outside cho user menu
   React.useEffect(() => {
     const handleClickOutside = (event) => {
       if (showUserMenu && !event.target.closest('.user-menu-container')) {
@@ -61,13 +177,18 @@ const NavBar = () => {
     };
   }, [showUserMenu]);
 
-  console.log('NavBar - isAuthenticated:', isAuthenticated(), 'user:', user); // Debug log
+  // Toggle thông báo
+  const toggleNotifications = () => {
+    setNotificationOpen(prev => !prev);
+  };
 
-  
-
+  // Phần render UI giữ nguyên
   return (
     <>
+      {/* Phần UI hiện tại giữ nguyên không thay đổi */}
       <nav className="sticky top-0 z-50 bg-white dark:bg-dark-800 px-4 md:px-8 py-1 shadow-xl border-b border-gray-200 dark:border-dark-700 flex justify-between items-center transition-colors duration-300">
+        {/* ... Phần code UI giữ nguyên ... */}
+        
         <div className="nav-logo flex items-center">
           <Link to="/" className="flex items-center">
             <img
@@ -79,18 +200,31 @@ const NavBar = () => {
         </div>
 
         <ul className="hidden md:flex list-none m-0 p-0 gap-8 items-center">
-          <li><Link to="/courses" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Khóa học</Link></li>
+          {/* Course dropdown */}
+          <li className="relative" onMouseEnter={() => setShowCourseDropdown(true)} onMouseLeave={() => setShowCourseDropdown(false)}>
+            <Link to="/courses" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center">
+              Khóa học
+              <ChevronDown size={16} className="ml-1" />
+            </Link>
+            {showCourseDropdown && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-dark-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-dark-700 z-20">
+                <Link to="/courses" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                  Tất cả khóa học
+                </Link>
+                {isAuthenticated() && (
+                  <Link to="/courses/my-courses" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                    Khóa học của tôi
+                  </Link>
+                )}
+              </div>
+            )}
+          </li>
           <li><Link to="/flash-card" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">FlashCard</Link></li>
           <li><Link to="/lo-trinh" className="text-gray-800 dark:text-gray-200 text-base px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Lộ trình</Link></li>
 
-          <li className="relative" onMouseEnter={() => setShowTopikDropdown(true)} onMouseLeave={() => setShowTopikDropdown(false)}>
+          <li className="relative">
             <Link to="/blog" className="text-gray-800 dark:text-gray-200 px-4 py-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Blog</Link>
-            {showTopikDropdown && (
-              <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-dark-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-dark-700">
-                
-                <Link to="/blog/korean-news" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">Tin tức</Link>
-              </div>
-            )}
+            
           </li>
 
           <li className="relative" onMouseEnter={() => setShowExamDropdown(true)} onMouseLeave={() => setShowExamDropdown(false)}>
@@ -115,7 +249,29 @@ const NavBar = () => {
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            
+            {/* Notification Bell - Thêm vào trước phần user menu */}
+              {isAuthenticated() && (
+                <div className="relative" ref={notificationRef}>
+                  <button
+                    onClick={toggleNotifications}
+                    className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-full transition-colors"
+                    aria-label="Thông báo"
+                  >
+                    <Bell size={20} />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full min-w-[18px] h-[18px]">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                  <NotificationDropdown 
+                    isOpen={notificationOpen} 
+                    onClose={() => setNotificationOpen(false)}
+                    onMarkAsRead={() => setUnreadCount(prev => Math.max(prev - 1, 0))}
+                    onMarkAllAsRead={() => setUnreadCount(0)}
+                  />
+                </div>
+              )}
             {isAuthenticated() && user ? (
               <div className="relative user-menu-container">
                 <button
@@ -134,6 +290,7 @@ const NavBar = () => {
                   />
                 </button>
                 
+                {/* Phần UI menu user dropdown - Giữ nguyên */}
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-dark-800 rounded-lg shadow-lg py-2 border border-gray-200 dark:border-dark-700 z-50">
                     {/* User Info */}
@@ -209,11 +366,13 @@ const NavBar = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Giữ nguyên */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
+          {/* ... Phần code mobile menu giữ nguyên ... */}
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={closeMobileMenu}></div>
           <div className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white dark:bg-dark-800 shadow-xl">
+            {/* Phần nội dung mobile menu - Giữ nguyên */}
             <div className="flex flex-col h-full">
               {/* Mobile Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-dark-700">
@@ -227,6 +386,9 @@ const NavBar = () => {
               <div className="flex-1 overflow-y-auto py-4">
                 <nav className="space-y-2 px-4">
                   <Link to="/courses" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Khóa học</Link>
+                  {isAuthenticated() && (
+                    <Link to="/courses/my-courses" onClick={closeMobileMenu} className="block px-4 py-2 ml-4 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Khóa học của tôi</Link>
+                  )}
                   <Link to="/flash-card" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">FlashCard</Link>
                   <Link to="/lo-trinh" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Lộ trình</Link>
                   <Link to="/blog" onClick={closeMobileMenu} className="block px-4 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">Blog</Link>
@@ -242,6 +404,26 @@ const NavBar = () => {
               </div>
               
               {/* Mobile User Section */}
+              {/* Thông báo (Mobile) */}
+              {isAuthenticated() && (
+                <Link 
+                  to="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleNotifications();
+                    closeMobileMenu();
+                  }} 
+                  className="flex items-center gap-3 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors"
+                >
+                  <Bell size={18} />
+                  <span>Thông báo</span>
+                  {unreadCount > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center ml-auto">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
               <div className="border-t border-gray-200 dark:border-dark-700 p-4">
                 {isAuthenticated() && user ? (
                   <div className="space-y-3">

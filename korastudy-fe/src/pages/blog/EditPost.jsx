@@ -5,8 +5,7 @@ import { toast } from 'react-toastify';
 import { Editor } from '@tinymce/tinymce-react';
 import { useUser } from '../../contexts/UserContext';
 import blogService from '../../api/blogService';
-import NavBar from '../../components/NavBar';
-import Footer from '../../components/Footer';
+
 
 const EditPost = () => {
   const { id } = useParams();
@@ -162,7 +161,7 @@ const EditPost = () => {
   if (loading) {
     return (
       <>
-        <NavBar />
+
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pt-20 pb-12">
           <div className="max-w-4xl mx-auto px-4">
             <div className="animate-pulse">
@@ -173,7 +172,7 @@ const EditPost = () => {
             </div>
           </div>
         </div>
-        <Footer />
+
       </>
     );
   }
@@ -181,7 +180,7 @@ const EditPost = () => {
   if (error) {
     return (
       <>
-        <NavBar />
+
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pt-20 pb-12">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
@@ -195,14 +194,14 @@ const EditPost = () => {
             </button>
           </div>
         </div>
-        <Footer />
+
       </>
     );
   }
   
   return (
     <>
-      <NavBar />
+
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pt-20 pb-12">
         <div className="max-w-4xl mx-auto px-4">
           <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
@@ -268,22 +267,38 @@ const EditPost = () => {
                 Nội dung <span className="text-red-500">*</span>
               </label>
               <Editor
-                apiKey={TINYMCE_API_KEY} // Sử dụng biến môi trường
+                apiKey={TINYMCE_API_KEY}
                 value={content}
                 onEditorChange={(newContent) => setContent(newContent)}
                 init={{
-                  height: 500,
-                  menubar: true,
+                  height: 520,
+                  menubar: 'file edit view insert format tools table help',
+                  toolbar_sticky: true,
                   plugins: [
-                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                    'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+                    'advlist autolink lists link image charmap preview anchor',
+                    'searchreplace visualblocks code fullscreen',
+                    'insertdatetime media table help wordcount',
+                    'quickbars emoticons checklist'
                   ],
-                  toolbar:
-                    'undo redo | formatselect | bold italic backcolor | \
-                    alignleft aligncenter alignright alignjustify | \
-                    bullist numlist outdent indent | removeformat | image | help',
-                  content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 16px; }'
+                  toolbar: [
+                    'undo redo | blocks | bold italic underline | forecolor backcolor',
+                    'alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent',
+                    '| link image table | removeformat | code fullscreen'
+                  ].join(' '),
+                  quickbars_selection_toolbar: 'bold italic | forecolor backcolor | h2 h3 blockquote | bullist numlist',
+                  content_style: `
+                    body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif; font-size: 16px; }
+                    mark, span.highlight { background: #fff3a3; padding: 0 .15em; }
+                  `,
+                  extended_valid_elements: 'mark[class|style],span[class|style]',
+                  style_formats: [
+                    { title: 'Highlight', inline: 'mark' },
+                    { title: 'Inline code', inline: 'code' },
+                    { title: 'Small', inline: 'small' }
+                  ],
+                  image_advtab: true,
+                  file_picker_types: 'image',
+                  automatic_uploads: true
                 }}
               />
             </div>
@@ -322,7 +337,7 @@ const EditPost = () => {
           </form>
         </div>
       </div>
-      <Footer />
+
     </>
   );
 };

@@ -1,23 +1,31 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Clock, Star, Play, CheckCircle, Lock, ArrowRight } from 'lucide-react';
+import { BookOpen, Clock, Star, Play, CheckCircle, Lock, ArrowRight, Users } from 'lucide-react';
 
-const CourseCard = ({ course, delay }) => {
+const CourseCard = ({ course, delay, enrollmentStatus }) => {
+  // Format price display
+  const formatPrice = (price) => {
+    if (course.isFree) {
+      return 'Miễn phí';
+    }
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price || 0);
+  };
+  
   // Render status icon (completed, in-progress, locked)
   const renderStatusIcon = () => {
-    if (course.status === 'completed') {
+    if (enrollmentStatus === 'completed') {
       return (
         <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-green-500 text-white rounded-full p-1.5 sm:p-2 shadow-lg backdrop-blur-sm bg-opacity-90 animate-pulse-slow">
           <CheckCircle size={14} />
         </div>
       );
-    } else if (course.status === 'in-progress') {
+    } else if (enrollmentStatus === 'in-progress') {
       return (
         <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-primary-500 text-white rounded-full p-1.5 sm:p-2 shadow-lg backdrop-blur-sm bg-opacity-90">
           <Play size={14} className="animate-ping-slow" />
         </div>
       );
-    } else if (course.status === 'locked') {
+    } else if (enrollmentStatus === 'locked') {
       return (
         <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-gray-500 text-white rounded-full p-1.5 sm:p-2 shadow-lg backdrop-blur-sm bg-opacity-90">
           <Lock size={14} />
