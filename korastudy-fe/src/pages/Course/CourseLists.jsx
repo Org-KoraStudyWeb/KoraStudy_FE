@@ -12,6 +12,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import courseService from "../../api/courseService";
+import { getMyEnrollments } from "../../api/enrollmentService";
+import { useUser } from "../../contexts/UserContext";
 
 const CoursesNew = () => {
   const [courses, setCourses] = useState([]);
@@ -21,24 +23,55 @@ const CoursesNew = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("all");
 
-  // Fetch courses from API
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        const data = await courseService.getAllPublishedCourses();
-        setCourses(data);
-        setFilteredCourses(data);
-      } catch (err) {
-        setError("Không thể tải danh sách khóa học. Vui lòng thử lại sau.");
-        console.error("Error fetching courses:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { isAuthenticated } = useUser();
 
+  // Fetch courses from API (exported so listeners can call it)
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const data = await courseService.getAllPublishedCourses();
+
+      let visibleCourses = data || [];
+
+      // If user is authenticated, fetch their enrollments and exclude those courses
+      try {
+        if (isAuthenticated()) {
+          const enrollments = await getMyEnrollments();
+          const enrolledCourseIds = new Set(
+            (enrollments || []).map(
+              (e) => e.course?.id || e.courseId || e.course_id
+            )
+          );
+          visibleCourses = (data || []).filter(
+            (c) => !enrolledCourseIds.has(c.id)
+          );
+        }
+      } catch (ignore) {
+        // if anything fails when fetching enrollments, show full list
+        visibleCourses = data || [];
+      }
+
+      setCourses(visibleCourses);
+      setFilteredCourses(visibleCourses);
+    } catch (err) {
+      setError("Không thể tải danh sách khóa học. Vui lòng thử lại sau.");
+      console.error("Error fetching courses:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchCourses();
-  }, []);
+
+    // Listen for enrollment changes and refresh list
+    const handler = (e) => {
+      console.log("enrollment:changed event received", e?.detail);
+      fetchCourses();
+    };
+    window.addEventListener("enrollment:changed", handler);
+    return () => window.removeEventListener("enrollment:changed", handler);
+  }, [isAuthenticated]);
 
   // Filter courses based on search term and level
   useEffect(() => {
