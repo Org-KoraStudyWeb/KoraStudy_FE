@@ -16,6 +16,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import courseService from "../../api/courseService";
+import DOMPurify from "dompurify";
 
 const CourseDetailNew = () => {
   const { courseId } = useParams();
@@ -161,7 +162,7 @@ const CourseDetailNew = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-4">
@@ -356,7 +357,13 @@ const CourseDetailNew = () => {
                           Mô tả khóa học
                         </h3>
                         <div className="prose prose-gray max-w-none">
-                          <p>{course.courseDescription}</p>
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: DOMPurify.sanitize(
+                                course.courseDescription || ""
+                              ),
+                            }}
+                          />
                         </div>
                       </div>
                     </div>
