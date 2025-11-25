@@ -26,7 +26,11 @@ import Profile from "@/pages/profile.jsx";
 // Import auth pages
 import LoginPage from "./pages/auth/LoginPage";
 import Register from "@pages/auth/register.jsx";
-import ForgotPassword from "@pages/auth/forgot-password.jsx";
+import EmailVerification from "./components/auth/EmailVerification";
+import ResendVerification from "./components/auth/ResendVerification";
+import ForgotPassword from "@/pages/auth/ForgotPassword.jsx";
+import ResetPassword from "./pages/auth/ResetPassword";
+
 // Import exam pages
 import Exams from "@pages/Exam/exam.jsx";
 import ExamDetail from "@pages/Exam/exam-detail.jsx";
@@ -209,7 +213,13 @@ function App() {
               {/* Trang xác thực */}
               <Route path="/dang-nhap" element={<LoginPage />} />
               <Route path="/dang-ky" element={<Register />} />
+              <Route
+                path="/resend-verification"
+                element={<ResendVerification />}
+              />
+              <Route path="/verify-email" element={<EmailVerification />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Các trang yêu cầu đăng nhập */}
               <Route element={<ProtectedRoute />}>
