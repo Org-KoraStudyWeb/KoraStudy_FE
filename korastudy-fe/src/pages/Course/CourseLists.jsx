@@ -14,6 +14,7 @@ import {
 import courseService from "../../api/courseService";
 import { getMyEnrollments } from "../../api/enrollmentService";
 import { useUser } from "../../contexts/UserContext";
+import DOMPurify from "dompurify";
 
 const CoursesNew = () => {
   const [courses, setCourses] = useState([]);
@@ -172,7 +173,20 @@ const CoursesNew = () => {
         </h3>
 
         <p className="text-gray-600 mb-4 text-sm line-clamp-3 min-h-[3.75rem]">
-          {course.courseDescription}
+          {(() => {
+            try {
+              const temp = document.createElement("div");
+              temp.innerHTML = DOMPurify.sanitize(
+                course.courseDescription || ""
+              );
+              let txt = temp.textContent || temp.innerText || "";
+              txt = txt.replace(/\s+/g, " ").trim();
+              if (txt.length > 180) return txt.slice(0, 180).trim() + "...";
+              return txt;
+            } catch (e) {
+              return course.courseDescription || "";
+            }
+          })()}
         </p>
 
         <div className="flex items-center gap-4 mb-4 text-sm text-gray-500 min-h-[1.25rem]">
@@ -250,9 +264,9 @@ const CoursesNew = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <section className="py-12 bg-gradient-to-r from-primary-600 to-secondary-600 text-white">
+      <section className="py-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Khóa học tiếng Hàn</h1>

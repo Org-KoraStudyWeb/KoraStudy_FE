@@ -208,13 +208,10 @@ const NavBar = () => {
     setNotificationOpen((prev) => !prev);
   };
 
-  // Phần render UI giữ nguyên
   return (
     <>
-      {/* Phần UI hiện tại giữ nguyên không thay đổi */}
       <nav className="sticky top-0 z-50 bg-white dark:bg-dark-800 px-4 md:px-8 py-1 shadow-xl border-b border-gray-200 dark:border-dark-700 flex justify-between items-center transition-colors duration-300">
-        {/* ... Phần code UI giữ nguyên ... */}
-
+        {/* Logo */}
         <div className="nav-logo flex items-center">
           <Link to="/" className="flex items-center">
             <img
@@ -225,8 +222,9 @@ const NavBar = () => {
           </Link>
         </div>
 
+        {/* Desktop Navigation */}
         <ul className="hidden md:flex list-none m-0 p-0 gap-8 items-center">
-          {/* Course dropdown - Updated */}
+          {/* Course dropdown */}
           <li className="relative group">
             <Link
               to="/courses"
@@ -276,6 +274,7 @@ const NavBar = () => {
               </div>
             </div>
           </li>
+
           <li>
             <Link
               to="/flash-card"
@@ -284,6 +283,7 @@ const NavBar = () => {
               FlashCard
             </Link>
           </li>
+
           <li>
             <Link
               to="/lo-trinh"
@@ -302,7 +302,7 @@ const NavBar = () => {
             </Link>
           </li>
 
-          {/* Exam dropdown - Updated */}
+          {/* Exam dropdown */}
           <li className="relative group">
             <Link
               to="/exam"
@@ -366,6 +366,7 @@ const NavBar = () => {
 
           {/* User Authentication Section */}
           <div className="flex items-center space-x-4 ml-8">
+            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
@@ -373,7 +374,8 @@ const NavBar = () => {
             >
               {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            {/* Notification Bell - Thêm vào trước phần user menu */}
+
+            {/* Notification Bell */}
             {isAuthenticated() && (
               <div className="relative" ref={notificationRef}>
                 <button
@@ -398,15 +400,26 @@ const NavBar = () => {
                 />
               </div>
             )}
+
+            {/* User Menu */}
             {isAuthenticated() && user ? (
               <div className="relative user-menu-container">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                    {getInitials(getDisplayName())}
-                  </div>
+                  {/* ✅ SỬA: Hiển thị avatar nếu có */}
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={getDisplayName()}
+                      className="w-8 h-8 rounded-full object-cover border border-gray-300 dark:border-dark-600"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                      {getInitials(getDisplayName())}
+                    </div>
+                  )}
                   <span className="text-gray-700 dark:text-gray-300 font-medium max-w-[120px] truncate">
                     {getDisplayName()}
                   </span>
@@ -418,7 +431,7 @@ const NavBar = () => {
                   />
                 </button>
 
-                {/* Phần UI menu user dropdown - Giữ nguyên */}
+                {/* User Dropdown Menu */}
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-dark-800 rounded-lg shadow-lg py-2 border border-gray-200 dark:border-dark-700 z-50">
                     {/* User Info */}
@@ -494,16 +507,14 @@ const NavBar = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu - Giữ nguyên */}
+      {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          {/* ... Phần code mobile menu giữ nguyên ... */}
           <div
             className="fixed inset-0 bg-black bg-opacity-50"
             onClick={closeMobileMenu}
           ></div>
           <div className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white dark:bg-dark-800 shadow-xl">
-            {/* Phần nội dung mobile menu - Giữ nguyên */}
             <div className="flex flex-col h-full">
               {/* Mobile Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-dark-700">
@@ -625,11 +636,19 @@ const NavBar = () => {
               <div className="border-t border-gray-200 dark:border-dark-700 p-4">
                 {isAuthenticated() && user ? (
                   <div className="space-y-3">
-                    {/* User Info */}
+                    {/* ✅ SỬA: User Info với avatar */}
                     <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                      <div className="w-10 h-10 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {getInitials(getDisplayName())}
-                      </div>
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={getDisplayName()}
+                          className="w-10 h-10 rounded-full object-cover border border-gray-300 dark:border-dark-600"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center text-white font-semibold">
+                          {getInitials(getDisplayName())}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           {getDisplayName()}

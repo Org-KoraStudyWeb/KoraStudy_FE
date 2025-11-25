@@ -572,7 +572,7 @@ const authService = {
     }
   },
 
-  // Update user profile
+  // Update user profile - CHỈ UPDATE TEXT INFO, KHÔNG ẢNH HƯỞNG ĐẾN AVATAR
   updateProfile: async (userData) => {
     try {
       const currentUser = JSON.parse(localStorage.getItem("user") || "null");
@@ -582,15 +582,26 @@ const authService = {
         throw new Error("User ID not found. Please login again.");
       }
 
+      // CHỈ GỬI NHỮNG FIELD CÓ GIÁ TRỊ, KHÔNG GỬI avatar
       const requestData = {
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        phoneNumber: userData.phoneNumber,
-        gender: userData.gender,
-        avatar: userData.avatar || null,
-        dateOfBirth: userData.dateOfBirth || null,
+        email: userData.email || currentUser.email,
+        firstName: userData.firstName || currentUser.firstName,
+        lastName: userData.lastName || currentUser.lastName,
+        phoneNumber: userData.phoneNumber || currentUser.phoneNumber,
+        gender: userData.gender || currentUser.gender,
+        dateOfBirth: userData.dateOfBirth || currentUser.dateOfBirth,
       };
+
+      // LOẠI BỎ NHỮNG FIELD KHÔNG CÓ GIÁ TRỊ
+      Object.keys(requestData).forEach((key) => {
+        if (
+          requestData[key] === undefined ||
+          requestData[key] === null ||
+          requestData[key] === ""
+        ) {
+          delete requestData[key];
+        }
+      });
 
       console.log("Updating profile for user:", userId, requestData);
 
@@ -611,10 +622,10 @@ const authService = {
         }
       }
 
-      // Update local user data
+      // Update local user data - CHỈ UPDATE TEXT FIELDS, GIỮ NGUYÊN AVATAR
       const updatedUser = updateLocalUserData(currentUser, {
         ...requestData,
-        ...responseData,
+        // KHÔNG động đến avatar
       });
 
       // Force a UI update by dispatching a custom event
@@ -716,6 +727,97 @@ const authService = {
         throw new Error(message);
       }
       throw error;
+    }
+  },
+
+  // Upload avatar - CHỈ XỬ LÝ AVATAR, KHÔNG ẢNH HƯỞNG ĐẾN THÔNG TIN KHÁC
+  uploadAvatar: async (formData) => {
+    try {
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      const userId = currentUser?.id;
+
+      if (!userId) {
+        throw new Error("User ID not found. Please login again.");
+      }
+
+      console.log("Uploading avatar for user:", userId);
+
+      // 1. Upload avatar lên Cloudinary
+      const uploadResponse = await userApi.post("/upload/avatar", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        timeout: 30000,
+      });
+
+      console.log("Avatar uploaded to Cloudinary:", uploadResponse.data);
+
+      const avatarUrl = uploadResponse.data.url;
+
+      if (!avatarUrl) {
+        throw new Error("Không nhận được URL avatar từ server");
+      }
+
+      // 2. Cập nhật profile với avatar URL mới - CHỈ CẬP NHẬT AVATAR
+      const updateData = {
+        avatar: avatarUrl,
+        // GIỮ NGUYÊN các thông tin khác
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName,
+        email: currentUser.email,
+        phoneNumber: currentUser.phoneNumber,
+        gender: currentUser.gender,
+        dateOfBirth: currentUser.dateOfBirth,
+      };
+
+      console.log("Updating profile with new avatar:", updateData);
+
+      const updateResponse = await userApi.put(
+        `/user/profile/${userId}`,
+        updateData
+      );
+
+      console.log("Profile updated with new avatar:", updateResponse.data);
+
+      // 3. Update local user data - CHỈ CẬP NHẬT AVATAR
+      const updatedUser = {
+        ...currentUser,
+        avatar: avatarUrl,
+      };
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      // 4. Force UI update
+      window.dispatchEvent(
+        new CustomEvent("userProfileUpdated", {
+          detail: updatedUser,
+        })
+      );
+
+      return {
+        success: true,
+        data: {
+          avatarUrl: avatarUrl,
+        },
+        message: "Cập nhật ảnh đại diện thành công",
+      };
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+
+      // ✅ THÊM: Log chi tiết lỗi từ server
+      if (error.response) {
+        console.error("Server response error:", error.response.data);
+        const errorData = error.response.data;
+        const message =
+          errorData?.message || errorData?.error || "Lỗi khi upload avatar";
+        throw new Error(message);
+      } else if (error.request) {
+        throw new Error(
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng."
+        );
+      } else {
+        throw new Error(error.message || "Đã xảy ra lỗi khi upload avatar");
+      }
     }
   },
 };
