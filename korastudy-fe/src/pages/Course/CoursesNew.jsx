@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  BookOpen, 
-  Clock, 
-  Users, 
-  Star, 
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  BookOpen,
+  Clock,
+  Users,
+  Star,
   Filter,
   Search,
   ArrowRight,
   Loader,
-  AlertCircle
-} from 'lucide-react';
-import courseService from '../../api/courseService';
+  AlertCircle,
+} from "lucide-react";
+import courseService from "../../api/courseService";
 
 const CoursesNew = () => {
   const [courses, setCourses] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('all');
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedLevel, setSelectedLevel] = useState("all");
 
   // Fetch courses from API
   useEffect(() => {
@@ -30,8 +30,8 @@ const CoursesNew = () => {
         setCourses(data);
         setFilteredCourses(data);
       } catch (err) {
-        setError('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
-        console.error('Error fetching courses:', err);
+        setError("Không thể tải danh sách khóa học. Vui lòng thử lại sau.");
+        console.error("Error fetching courses:", err);
       } finally {
         setLoading(false);
       }
@@ -46,15 +46,20 @@ const CoursesNew = () => {
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(course => 
-        course.courseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.courseDescription?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (course) =>
+          course.courseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          course.courseDescription
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase())
       );
     }
 
     // Filter by level
-    if (selectedLevel !== 'all') {
-      filtered = filtered.filter(course => course.courseLevel === selectedLevel);
+    if (selectedLevel !== "all") {
+      filtered = filtered.filter(
+        (course) => course.courseLevel === selectedLevel
+      );
     }
 
     setFilteredCourses(filtered);
@@ -71,11 +76,14 @@ const CoursesNew = () => {
       const searchResults = await courseService.searchCourses(keyword);
       setFilteredCourses(searchResults);
     } catch (err) {
-      console.error('Error searching courses:', err);
-      // Fallback to client-side filtering
-      const filtered = courses.filter(course => 
-        course.courseName?.toLowerCase().includes(keyword.toLowerCase()) ||
-        course.courseDescription?.toLowerCase().includes(keyword.toLowerCase())
+      console.error("Error searching courses:", err);
+      // Fallback to client-side filtering (với thuộc tính đúng)
+      const filtered = courses.filter(
+        (course) =>
+          course.courseName?.toLowerCase().includes(keyword.toLowerCase()) ||
+          course.courseDescription
+            ?.toLowerCase()
+            .includes(keyword.toLowerCase())
       );
       setFilteredCourses(filtered);
     } finally {
@@ -84,55 +92,57 @@ const CoursesNew = () => {
   };
 
   const levels = [
-    { id: 'all', name: 'Tất cả cấp độ' },
-    { id: 'BEGINNER', name: 'Người mới bắt đầu' },
-    { id: 'INTERMEDIATE', name: 'Trung cấp' },
-    { id: 'ADVANCED', name: 'Nâng cao' }
+    { id: "all", name: "Tất cả cấp độ" },
+    { id: "Sơ cấp", name: "Sơ cấp" },
+    { id: "Trung cấp", name: "Trung cấp" },
+    { id: "Cao cấp", name: "Cao cấp" },
   ];
 
   const formatPrice = (price, isFree) => {
-    if (isFree) return 'Miễn phí';
-    if (!price || price === 0) return 'Miễn phí';
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
+    if (isFree) return "Miễn phí";
+    if (!price || price === 0) return "Miễn phí";
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(price);
   };
 
   const CourseCard = ({ course }) => (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full">
       <div className="relative">
-        <img 
-          src={course.courseImageUrl || '/placeholder-course.jpg'} 
+        <img
+          src={course.courseImageUrl || "/placeholder-course.jpg"}
           alt={course.courseName}
           className="w-full h-48 object-cover"
         />
         <div className="absolute top-4 left-4">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            course.isFree 
-              ? 'bg-green-500 text-white' 
-              : 'bg-primary-500 text-white'
-          }`}>
-            {course.isFree ? 'Miễn phí' : 'Có phí'}
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              course.isFree
+                ? "bg-green-500 text-white"
+                : "bg-primary-500 text-white"
+            }`}
+          >
+            {course.isFree ? "Miễn phí" : "Có phí"}
           </span>
         </div>
         <div className="absolute top-4 right-4">
-          <span className="bg-white/90 px-2 py-1 rounded-full text-xs font-medium">
+          <span className="bg-blue-500/90 px-2.5 py-1 rounded-full text-xs font-semibold text-white shadow-sm ring-1 ring-white/30">
             {course.courseLevel}
           </span>
         </div>
       </div>
 
-      <div className="p-6">
-        <h3 className="font-bold text-lg mb-2 line-clamp-2">
+      <div className="p-6 flex flex-col flex-grow">
+        <h3 className="font-bold text-lg mb-2 line-clamp-2 min-h-[3.5rem]">
           {course.courseName}
         </h3>
-        
-        <p className="text-gray-600 mb-4 text-sm line-clamp-3">
+
+        <p className="text-gray-600 mb-4 text-sm line-clamp-3 min-h-[3.75rem]">
           {course.courseDescription}
         </p>
 
-        <div className="flex items-center gap-4 mb-4 text-sm text-gray-500">
+        <div className="flex items-center gap-4 mb-4 text-sm text-gray-500 min-h-[1.25rem]">
           <div className="flex items-center gap-1">
             <Users size={14} />
             <span>{course.enrollmentCount || 0} học viên</span>
@@ -144,11 +154,13 @@ const CoursesNew = () => {
         </div>
 
         {/* Rating */}
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4 min-h-[1.5rem]">
           <div className="flex items-center gap-1">
             <Star className="text-yellow-400 fill-current" size={16} />
             <span className="font-semibold">
-              {course.averageRating ? course.averageRating.toFixed(1) : '5.0'}
+              {course.averageRating
+                ? Number(course.averageRating).toFixed(1)
+                : "N/A"}
             </span>
           </div>
           <span className="text-gray-500 text-sm">
@@ -156,16 +168,16 @@ const CoursesNew = () => {
           </span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-2xl font-bold text-primary-500">
+        <div className="grid grid-cols-[1fr_auto] items-end gap-4 mt-auto">
+          <div className="flex flex-col min-w-0">
+            <span className="text-base md:text-lg font-semibold text-primary-600 whitespace-nowrap shrink-0 leading-6">
               {formatPrice(course.coursePrice, course.isFree)}
             </span>
           </div>
-          
-          <Link 
+
+          <Link
             to={`/course/${course.id}`}
-            className="bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 transition-colors duration-300 flex items-center gap-2 text-sm font-semibold"
+            className="bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 transition-colors duration-300 flex items-center gap-2 text-sm font-semibold whitespace-nowrap"
           >
             Xem chi tiết
             <ArrowRight size={16} />
@@ -226,14 +238,17 @@ const CoursesNew = () => {
               {/* Search */}
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <Search
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    size={20}
+                  />
                   <input
                     type="text"
                     placeholder="Tìm kiếm khóa học..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         handleSearch(searchTerm);
                       }
                     }}
@@ -249,7 +264,7 @@ const CoursesNew = () => {
                   onChange={(e) => setSelectedLevel(e.target.value)}
                   className="w-full py-3 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  {levels.map(level => (
+                  {levels.map((level) => (
                     <option key={level.id} value={level.id}>
                       {level.name}
                     </option>
@@ -298,7 +313,7 @@ const CoursesNew = () => {
           )}
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredCourses.map(course => (
+            {filteredCourses.map((course) => (
               <CourseCard key={course.id} course={course} />
             ))}
           </div>

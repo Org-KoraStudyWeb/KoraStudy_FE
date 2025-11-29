@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { 
+import React, { useState, useEffect } from "react";
+import { Link, useParams } from "react-router-dom";
+import {
   ArrowLeft,
   Play,
   Clock,
@@ -13,9 +13,9 @@ import {
   ChevronDown,
   ChevronUp,
   Loader,
-  AlertCircle
-} from 'lucide-react';
-import courseService from '../../api/courseService';
+  AlertCircle,
+} from "lucide-react";
+import courseService from "../../api/courseService";
 
 const CourseDetailNew = () => {
   const { courseId } = useParams();
@@ -23,32 +23,73 @@ const CourseDetailNew = () => {
   const [sections, setSections] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
   const [expandedSection, setExpandedSection] = useState(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState(null);
+
+  const levelToLabel = (level) => {
+    if (!level) return "";
+    const value = String(level).toLowerCase();
+    if (value.includes("begin")) return "Khóa học sơ cấp";
+    if (value.includes("inter")) return "Khóa học trung cấp";
+    if (value.includes("adv")) return "Khóa học cao cấp";
+    return level;
+  };
+
+  const getTotals = () => {
+    const totalSections = Array.isArray(sections) ? sections.length : 0;
+    const totalLessons = Array.isArray(sections)
+      ? sections.reduce((sum, s) => sum + (s?.lessons?.length || 0), 0)
+      : 0;
+    // Try to compute total duration in minutes if lessons have duration fields
+    const totalDurationMinutes = Array.isArray(sections)
+      ? sections.reduce((sum, s) => {
+          const lessonMinutes = (s?.lessons || []).reduce((acc, l) => {
+            const d = l?.durationMinutes ?? l?.duration_min ?? l?.duration;
+            return acc + (typeof d === "number" && Number.isFinite(d) ? d : 0);
+          }, 0);
+          return sum + lessonMinutes;
+        }, 0)
+      : 0;
+    return { totalSections, totalLessons, totalDurationMinutes };
+  };
+
+  const formatMinutes = (minutes) => {
+    if (!minutes || !Number.isFinite(minutes) || minutes <= 0) return "";
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hrs > 0 && mins > 0) return `${hrs} giờ ${mins} phút`;
+    if (hrs > 0) return `${hrs} giờ`;
+    return `${mins} phút`;
+  };
 
   useEffect(() => {
     const fetchCourseData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch course details
         const courseData = await courseService.getCourseById(courseId);
         setCourse(courseData);
-        
+
         // Fetch sections and lessons
-        const sectionsData = await courseService.getSectionsByCourseId(courseId);
+        const sectionsData = await courseService.getSectionsByCourseId(
+          courseId
+        );
         setSections(sectionsData);
-        
+
         // Fetch reviews
-        const reviewsData = await courseService.getCourseReviews(courseId, 0, 10);
+        const reviewsData = await courseService.getCourseReviews(
+          courseId,
+          0,
+          10
+        );
         setReviews(reviewsData.content || reviewsData || []);
-        
       } catch (err) {
-        setError('Không thể tải thông tin khóa học. Vui lòng thử lại sau.');
-        console.error('Error fetching course data:', err);
+        setError("Không thể tải thông tin khóa học. Vui lòng thử lại sau.");
+        console.error("Error fetching course data:", err);
       } finally {
         setLoading(false);
       }
@@ -62,26 +103,26 @@ const CourseDetailNew = () => {
   const handleEnroll = async () => {
     try {
       const enrollmentData = await courseService.enrollCourse(courseId);
-      setEnrollmentStatus('enrolled');
-      alert('Đăng ký khóa học thành công!');
+      setEnrollmentStatus("enrolled");
+      alert("Đăng ký khóa học thành công!");
     } catch (err) {
-      console.error('Error enrolling course:', err);
-      alert('Có lỗi xảy ra khi đăng ký khóa học.');
+      console.error("Error enrolling course:", err);
+      alert("Có lỗi xảy ra khi đăng ký khóa học.");
     }
   };
 
   const formatPrice = (price, isFree) => {
-    if (isFree) return 'Miễn phí';
-    if (!price || price === 0) return 'Miễn phí';
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
+    if (isFree) return "Miễn phí";
+    if (!price || price === 0) return "Miễn phí";
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(price);
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('vi-VN');
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
   if (loading) {
@@ -105,8 +146,11 @@ const CourseDetailNew = () => {
             <AlertCircle size={48} />
             <div className="ml-3">
               <h3 className="text-lg font-semibold">Có lỗi xảy ra</h3>
-              <p>{error || 'Không tìm thấy khóa học'}</p>
-              <Link to="/courses" className="text-primary-500 hover:underline mt-2 inline-block">
+              <p>{error || "Không tìm thấy khóa học"}</p>
+              <Link
+                to="/courses"
+                className="text-primary-500 hover:underline mt-2 inline-block"
+              >
                 ← Quay lại danh sách khóa học
               </Link>
             </div>
@@ -124,17 +168,17 @@ const CourseDetailNew = () => {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Left Content */}
             <div className="lg:col-span-2">
-              <Link 
+              <Link
                 to="/courses"
                 className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors"
               >
                 <ArrowLeft size={20} />
                 Quay lại danh sách khóa học
               </Link>
-              
+
               <div className="flex items-center gap-2 mb-3">
                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">
-                  {course.courseLevel}
+                  {levelToLabel(course.courseLevel)}
                 </span>
                 {course.isFree && (
                   <span className="bg-green-500 px-3 py-1 rounded-full text-sm font-medium">
@@ -144,13 +188,22 @@ const CourseDetailNew = () => {
               </div>
 
               <h1 className="text-4xl font-bold mb-4">{course.courseName}</h1>
-              <p className="text-xl mb-6 text-white/90">{course.courseDescription}</p>
-              
+              <p className="text-xl mb-6 text-white/90">
+                {(() => {
+                  const { totalLessons, totalDurationMinutes } = getTotals();
+                  return `${formatMinutes(totalDurationMinutes)}${
+                    totalDurationMinutes ? " • " : ""
+                  }${totalLessons} bài học`;
+                })()}
+              </p>
+
               <div className="flex flex-wrap items-center gap-6 mb-6">
                 <div className="flex items-center gap-2">
                   <Star className="text-yellow-400 fill-current" size={20} />
                   <span className="font-semibold">
-                    {course.averageRating ? course.averageRating.toFixed(1) : '5.0'}
+                    {course.averageRating
+                      ? course.averageRating.toFixed(1)
+                      : "5.0"}
                   </span>
                   <span className="text-white/80">
                     ({course.reviewCount || 0} đánh giá)
@@ -165,7 +218,7 @@ const CourseDetailNew = () => {
                   <span>{course.viewCount || 0} lượt xem</span>
                 </div>
               </div>
-              
+
               <div className="text-white/80">
                 <p>Tạo ngày: {formatDate(course.createdAt)}</p>
                 <p>Cập nhật lần cuối: {formatDate(course.lastModified)}</p>
@@ -176,8 +229,8 @@ const CourseDetailNew = () => {
             <div className="lg:w-96">
               <div className="bg-white rounded-2xl shadow-xl overflow-hidden sticky top-6">
                 <div className="relative">
-                  <img 
-                    src={course.courseImageUrl || '/placeholder-course.jpg'} 
+                  <img
+                    src={course.courseImageUrl || "/placeholder-course.jpg"}
                     alt={course.courseName}
                     className="w-full h-48 object-cover"
                   />
@@ -194,13 +247,17 @@ const CourseDetailNew = () => {
                       {formatPrice(course.coursePrice, course.isFree)}
                     </div>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => setIsWishlisted(!isWishlisted)}
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                       >
-                        <Heart 
-                          className={isWishlisted ? "text-red-500 fill-current" : "text-gray-400"}
-                          size={20} 
+                        <Heart
+                          className={
+                            isWishlisted
+                              ? "text-red-500 fill-current"
+                              : "text-gray-400"
+                          }
+                          size={20}
                         />
                       </button>
                       <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -209,34 +266,46 @@ const CourseDetailNew = () => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleEnroll}
-                    className="w-full bg-primary-500 text-white py-4 rounded-xl font-semibold text-lg hover:bg-primary-600 transition-colors mb-4"
+                  <Link
+                    to={`/checkout?courseId=${courseId}`}
+                    className="block w-full bg-primary-500 text-white text-center py-4 rounded-xl font-semibold text-lg hover:bg-primary-600 transition-colors mb-4"
                   >
-                    {enrollmentStatus === 'enrolled' ? 'Đã đăng ký' : 'Đăng ký ngay'}
-                  </button>
-                  
+                    Đăng ký ngay
+                  </Link>
+
                   <div className="text-center text-gray-500 text-sm mb-4">
                     30 ngày đảm bảo hoàn tiền
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-3 text-gray-600">
                     <h4 className="font-semibold">Khóa học bao gồm:</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-3">
-                        <CheckCircle className="text-green-500 flex-shrink-0" size={16} />
+                        <CheckCircle
+                          className="text-green-500 flex-shrink-0"
+                          size={16}
+                        />
                         <span>Truy cập trọn đời</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <CheckCircle className="text-green-500 flex-shrink-0" size={16} />
+                        <CheckCircle
+                          className="text-green-500 flex-shrink-0"
+                          size={16}
+                        />
                         <span>Tài liệu PDF</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <CheckCircle className="text-green-500 flex-shrink-0" size={16} />
+                        <CheckCircle
+                          className="text-green-500 flex-shrink-0"
+                          size={16}
+                        />
                         <span>Hỗ trợ trực tuyến</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <CheckCircle className="text-green-500 flex-shrink-0" size={16} />
+                        <CheckCircle
+                          className="text-green-500 flex-shrink-0"
+                          size={16}
+                        />
                         <span>Chứng chỉ hoàn thành</span>
                       </div>
                     </div>
@@ -259,17 +328,17 @@ const CourseDetailNew = () => {
                 <div className="border-b">
                   <div className="flex">
                     {[
-                      { id: 'overview', name: 'Tổng quan' },
-                      { id: 'curriculum', name: 'Nội dung khóa học' },
-                      { id: 'reviews', name: 'Đánh giá' }
-                    ].map(tab => (
+                      { id: "overview", name: "Tổng quan" },
+                      { id: "curriculum", name: "Nội dung khóa học" },
+                      { id: "reviews", name: "Đánh giá" },
+                    ].map((tab) => (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`px-6 py-4 font-medium transition-colors ${
                           activeTab === tab.id
-                            ? 'text-primary-500 border-b-2 border-primary-500'
-                            : 'text-gray-600 hover:text-primary-500'
+                            ? "text-primary-500 border-b-2 border-primary-500"
+                            : "text-gray-600 hover:text-primary-500"
                         }`}
                       >
                         {tab.name}
@@ -280,10 +349,12 @@ const CourseDetailNew = () => {
 
                 <div className="p-8">
                   {/* Overview Tab */}
-                  {activeTab === 'overview' && (
+                  {activeTab === "overview" && (
                     <div className="space-y-8">
                       <div>
-                        <h3 className="text-xl font-semibold mb-4">Mô tả khóa học</h3>
+                        <h3 className="text-xl font-semibold mb-4">
+                          Mô tả khóa học
+                        </h3>
                         <div className="prose prose-gray max-w-none">
                           <p>{course.courseDescription}</p>
                         </div>
@@ -292,57 +363,87 @@ const CourseDetailNew = () => {
                   )}
 
                   {/* Curriculum Tab */}
-                  {activeTab === 'curriculum' && (
+                  {activeTab === "curriculum" && (
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <h3 className="text-xl font-semibold">Nội dung khóa học</h3>
+                        <h3 className="text-xl font-semibold">
+                          Nội dung khóa học
+                        </h3>
                         <div className="text-sm text-gray-600">
                           {sections.length} chương
                         </div>
                       </div>
 
-                      {sections.map(section => (
+                      {sections.map((section) => (
                         <div key={section.id} className="border rounded-lg">
                           <button
-                            onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                            onClick={() =>
+                              setExpandedSection(
+                                expandedSection === section.id
+                                  ? null
+                                  : section.id
+                              )
+                            }
                             className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
                           >
                             <div>
-                              <h4 className="font-semibold">{section.sectionName}</h4>
+                              <h4 className="font-semibold">
+                                {section.sectionName}
+                              </h4>
                               <p className="text-sm text-gray-600">
                                 {section.lessons?.length || 0} bài học
                               </p>
                             </div>
-                            {expandedSection === section.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                            {expandedSection === section.id ? (
+                              <ChevronUp size={20} />
+                            ) : (
+                              <ChevronDown size={20} />
+                            )}
                           </button>
-                          
-                          {expandedSection === section.id && section.lessons && (
-                            <div className="px-4 pb-4">
-                              {section.lessons.map(lesson => (
-                                <div key={lesson.id} className="flex items-center gap-3 py-2">
-                                  <Play size={16} className="text-primary-500" />
-                                  <span className="flex-1">{lesson.lessonTitle}</span>
-                                  <span className="text-sm text-gray-500">
-                                    {lesson.contentType}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+
+                          {expandedSection === section.id &&
+                            section.lessons && (
+                              <div className="px-4 pb-4">
+                                {section.lessons.map((lesson) => (
+                                  <div
+                                    key={lesson.id}
+                                    className="flex items-center gap-3 py-2"
+                                  >
+                                    <Play
+                                      size={16}
+                                      className="text-primary-500"
+                                    />
+                                    <span className="flex-1">
+                                      {lesson.lessonTitle}
+                                    </span>
+                                    <span className="text-sm text-gray-500">
+                                      {lesson.contentType}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                         </div>
                       ))}
                     </div>
                   )}
 
                   {/* Reviews Tab */}
-                  {activeTab === 'reviews' && (
+                  {activeTab === "reviews" && (
                     <div className="space-y-6">
                       <div className="flex justify-between items-center">
-                        <h3 className="text-xl font-semibold">Đánh giá học viên</h3>
+                        <h3 className="text-xl font-semibold">
+                          Đánh giá học viên
+                        </h3>
                         <div className="flex items-center gap-2">
-                          <Star className="text-yellow-400 fill-current" size={20} />
+                          <Star
+                            className="text-yellow-400 fill-current"
+                            size={20}
+                          />
                           <span className="font-semibold">
-                            {course.averageRating ? course.averageRating.toFixed(1) : '5.0'}
+                            {course.averageRating
+                              ? course.averageRating.toFixed(1)
+                              : "5.0"}
                           </span>
                           <span className="text-gray-500">
                             ({course.reviewCount || 0} đánh giá)
@@ -356,15 +457,16 @@ const CourseDetailNew = () => {
                             Chưa có đánh giá nào cho khóa học này.
                           </p>
                         ) : (
-                          reviews.map(review => (
+                          reviews.map((review) => (
                             <div key={review.id} className="border-b pb-4">
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-semibold">
-                                  {review.user?.fullName?.charAt(0) || 'U'}
+                                  {review.user?.fullName?.charAt(0) || "U"}
                                 </div>
                                 <div>
                                   <div className="font-semibold">
-                                    {review.user?.fullName || 'Người dùng ẩn danh'}
+                                    {review.user?.fullName ||
+                                      "Người dùng ẩn danh"}
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <div className="flex">
@@ -372,7 +474,11 @@ const CourseDetailNew = () => {
                                         <Star
                                           key={i}
                                           size={14}
-                                          className={i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+                                          className={
+                                            i < review.rating
+                                              ? "text-yellow-400 fill-current"
+                                              : "text-gray-300"
+                                          }
                                         />
                                       ))}
                                     </div>
@@ -408,15 +514,21 @@ const CourseDetailNew = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Học viên:</span>
-                    <span className="font-medium">{course.enrollmentCount || 0}</span>
+                    <span className="font-medium">
+                      {course.enrollmentCount || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Đánh giá:</span>
-                    <span className="font-medium">{course.reviewCount || 0}</span>
+                    <span className="font-medium">
+                      {course.reviewCount || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Cập nhật:</span>
-                    <span className="font-medium">{formatDate(course.lastModified)}</span>
+                    <span className="font-medium">
+                      {formatDate(course.lastModified)}
+                    </span>
                   </div>
                 </div>
               </div>
