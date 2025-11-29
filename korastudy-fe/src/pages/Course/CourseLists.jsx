@@ -12,6 +12,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import courseService from "../../api/courseService";
+import { getMyEnrollments } from "../../api/enrollmentService";
+import { useUser } from "../../contexts/UserContext";
+import DOMPurify from "dompurify";
 
 const CoursesNew = () => {
   const [courses, setCourses] = useState([]);
@@ -21,24 +24,55 @@ const CoursesNew = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("all");
 
-  // Fetch courses from API
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        const data = await courseService.getAllPublishedCourses();
-        setCourses(data);
-        setFilteredCourses(data);
-      } catch (err) {
-        setError("Không thể tải danh sách khóa học. Vui lòng thử lại sau.");
-        console.error("Error fetching courses:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { isAuthenticated } = useUser();
 
+  // Fetch courses from API (exported so listeners can call it)
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const data = await courseService.getAllPublishedCourses();
+
+      let visibleCourses = data || [];
+
+      // If user is authenticated, fetch their enrollments and exclude those courses
+      try {
+        if (isAuthenticated()) {
+          const enrollments = await getMyEnrollments();
+          const enrolledCourseIds = new Set(
+            (enrollments || []).map(
+              (e) => e.course?.id || e.courseId || e.course_id
+            )
+          );
+          visibleCourses = (data || []).filter(
+            (c) => !enrolledCourseIds.has(c.id)
+          );
+        }
+      } catch (ignore) {
+        // if anything fails when fetching enrollments, show full list
+        visibleCourses = data || [];
+      }
+
+      setCourses(visibleCourses);
+      setFilteredCourses(visibleCourses);
+    } catch (err) {
+      setError("Không thể tải danh sách khóa học. Vui lòng thử lại sau.");
+      console.error("Error fetching courses:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchCourses();
-  }, []);
+
+    // Listen for enrollment changes and refresh list
+    const handler = (e) => {
+      console.log("enrollment:changed event received", e?.detail);
+      fetchCourses();
+    };
+    window.addEventListener("enrollment:changed", handler);
+    return () => window.removeEventListener("enrollment:changed", handler);
+  }, [isAuthenticated]);
 
   // Filter courses based on search term and level
   useEffect(() => {
@@ -139,7 +173,20 @@ const CoursesNew = () => {
         </h3>
 
         <p className="text-gray-600 mb-4 text-sm line-clamp-3 min-h-[3.75rem]">
-          {course.courseDescription}
+          {(() => {
+            try {
+              const temp = document.createElement("div");
+              temp.innerHTML = DOMPurify.sanitize(
+                course.courseDescription || ""
+              );
+              let txt = temp.textContent || temp.innerText || "";
+              txt = txt.replace(/\s+/g, " ").trim();
+              if (txt.length > 180) return txt.slice(0, 180).trim() + "...";
+              return txt;
+            } catch (e) {
+              return course.courseDescription || "";
+            }
+          })()}
         </p>
 
         <div className="flex items-center gap-4 mb-4 text-sm text-gray-500 min-h-[1.25rem]">
@@ -217,9 +264,9 @@ const CoursesNew = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <section className="py-12 bg-gradient-to-r from-primary-600 to-secondary-600 text-white">
+      <section className="py-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Khóa học tiếng Hàn</h1>

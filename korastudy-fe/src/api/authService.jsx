@@ -1,58 +1,71 @@
-import axios from 'axios';
+import axios from "axios";
 
 // Base URLs
-const AUTH_API_URL = 'http://localhost:8080/api/v1/auth';
-const USER_API_URL = 'http://localhost:8080/api/v1';
+const AUTH_API_URL = "http://localhost:8080/api/v1/auth";
+const USER_API_URL = "http://localhost:8080/api/v1";
 
 // Create axios instances with default configs
 const authApi = axios.create({
   baseURL: AUTH_API_URL,
   timeout: 10000,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { "Content-Type": "application/json" },
 });
 
 const userApi = axios.create({
   baseURL: USER_API_URL,
   timeout: 10000,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { "Content-Type": "application/json" },
 });
 
 // Helper function to add auth token to requests
 const setupInterceptors = (api) => {
-  api.interceptors.request.use(
-    (config) => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
+  api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-  );
+    return config;
+  });
 
   api.interceptors.response.use(
     (response) => response,
     (error) => {
       if (error.response?.status === 401) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        
+        // Kiểm tra nếu lỗi do tài khoản chưa xác thực
+        const errorMessage = error.response.data?.message || "";
+        if (
+          errorMessage.includes("chưa được xác thực") ||
+          errorMessage.includes("email verification")
+        ) {
+          error.requiresEmailVerification = true;
+          error.verificationEmail = error.response.data?.email;
+          return Promise.reject(error);
+        }
+
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("userProfileRaw");
+
         // Chỉ chuyển hướng nếu KHÔNG đang ở trang đăng nhập
         const currentPath = window.location.pathname;
-        if (currentPath !== '/dang-nhap' && currentPath !== '/login') {
-          window.location.href = '/dang-nhap';
+        if (currentPath !== "/dang-nhap" && currentPath !== "/login") {
+          window.location.href = "/dang-nhap";
         }
       }
 
       // Thêm xử lý lỗi email trùng lặp
       if (error.response && error.response.status === 500) {
         const responseData = error.response.data || {};
-        const errorMessage = responseData.message || responseData.error || '';
-        
-        if (errorMessage.toLowerCase().includes('email') || 
-            errorMessage.toLowerCase().includes('duplicate') || 
-            errorMessage.toLowerCase().includes('trùng')) {
+        const errorMessage = responseData.message || responseData.error || "";
+
+        if (
+          errorMessage.toLowerCase().includes("email") ||
+          errorMessage.toLowerCase().includes("duplicate") ||
+          errorMessage.toLowerCase().includes("trùng")
+        ) {
           error.isEmailDuplicate = true;
-          error.friendlyMessage = 'Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.';
+          error.friendlyMessage =
+            "Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.";
         }
       }
 
@@ -66,40 +79,45 @@ setupInterceptors(authApi);
 setupInterceptors(userApi);
 
 // Helper function to extract profile data from nested objects
-// Modified to prioritize direct fields as seen in Postman response
-const extractProfileData = (data, field, defaultValue = '') => {
+const extractProfileData = (data, field, defaultValue = "") => {
   if (!data) return defaultValue;
-  
+
   // Directly access the field first (as seen in Postman)
   if (data[field] !== undefined && data[field] !== null) {
     return data[field];
   }
-  
+
   // Fallback to other possible nested locations
-  const nestedValue = data.user?.[field] || 
-                     data.account?.[field] || 
-                     data.user?.account?.[field];
-                     
-  return nestedValue !== undefined && nestedValue !== null ? nestedValue : defaultValue;
+  const nestedValue =
+    data.user?.[field] || data.account?.[field] || data.user?.account?.[field];
+
+  return nestedValue !== undefined && nestedValue !== null
+    ? nestedValue
+    : defaultValue;
 };
 
 // Helper function to update user in localStorage
 const updateLocalUserData = (currentUser, newData) => {
   if (!currentUser) return null;
-  
+
   const updatedUser = {
     ...currentUser,
     ...newData,
     // Ensure fullName is consistent with first and last name
-    fullName: `${newData.firstName || currentUser.firstName || ''} ${newData.lastName || currentUser.lastName || ''}`.trim() || 
-              newData.fullName || currentUser.fullName || currentUser.username
+    fullName:
+      `${newData.firstName || currentUser.firstName || ""} ${
+        newData.lastName || currentUser.lastName || ""
+      }`.trim() ||
+      newData.fullName ||
+      currentUser.fullName ||
+      currentUser.username,
   };
-  
-  localStorage.setItem('user', JSON.stringify(updatedUser));
-  
+
+  localStorage.setItem("user", JSON.stringify(updatedUser));
+
   // Debug log - remove in production
-  console.log('Updated user data in localStorage:', updatedUser);
-  
+  console.log("Updated user data in localStorage:", updatedUser);
+
   return updatedUser;
 };
 
@@ -112,71 +130,211 @@ const authService = {
         username: userData.username,
         email: userData.email,
         password: userData.password,
-        confirmPassword: userData.confirmPassword
+        confirmPassword: userData.confirmPassword,
       };
 
-      const response = await authApi.post('/register', registrationData);
-      console.log('Registration successful:', response.data);
-      return response.data;
+      const response = await authApi.post("/register", registrationData);
+      console.log("Registration successful:", response.data);
+
+      // Trả về thêm thông tin để frontend biết cần xác thực email
+      return {
+        ...response.data,
+        requiresEmailVerification: true,
+        message:
+          "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.",
+      };
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
       if (error.response) {
-        const message = error.response.data?.message || 'Đăng ký thất bại';
+        const message = error.response.data?.message || "Đăng ký thất bại";
         throw new Error(message);
       } else if (error.request) {
-        throw new Error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+        throw new Error(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+        );
       } else {
-        throw new Error('Đã xảy ra lỗi khi đăng ký');
+        throw new Error("Đã xảy ra lỗi khi đăng ký");
       }
     }
+  },
+
+  // Xác thực email với token
+  verifyEmail: async (token) => {
+    try {
+      const response = await authApi.get(`/verify-email?token=${token}`);
+      return response.data;
+    } catch (error) {
+      console.error("Email verification error:", error);
+      if (error.response) {
+        const message =
+          error.response.data?.message || "Xác thực email thất bại";
+        throw new Error(message);
+      } else if (error.request) {
+        throw new Error(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+        );
+      } else {
+        throw new Error("Đã xảy ra lỗi khi xác thực email");
+      }
+    }
+  },
+
+  // Gửi lại email xác thực
+  resendVerificationEmail: async (email) => {
+    try {
+      const response = await authApi.post("/resend-verification", null, {
+        params: { email },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Resend verification email error:", error);
+      if (error.response) {
+        const message =
+          error.response.data?.message || "Gửi lại email xác thực thất bại";
+        throw new Error(message);
+      } else if (error.request) {
+        throw new Error(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+        );
+      } else {
+        throw new Error("Đã xảy ra lỗi khi gửi lại email xác thực");
+      }
+    }
+  },
+
+  // Quên mật khẩu
+  forgotPassword: async (email) => {
+    try {
+      const response = await authApi.post("/forgot-password", { email });
+      return response.data;
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      if (error.response) {
+        const message = error.response.data?.message || "Gửi email thất bại";
+        throw new Error(message);
+      } else if (error.request) {
+        throw new Error(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+        );
+      } else {
+        throw new Error("Đã xảy ra lỗi khi gửi yêu cầu quên mật khẩu");
+      }
+    }
+  },
+
+  // Reset mật khẩu với token
+  resetPassword: async (token, newPassword) => {
+    try {
+      const response = await authApi.post("/reset-password", {
+        token,
+        newPassword,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Reset password error:", error);
+      if (error.response) {
+        const message =
+          error.response.data?.message || "Đặt lại mật khẩu thất bại";
+        throw new Error(message);
+      } else if (error.request) {
+        throw new Error(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+        );
+      } else {
+        throw new Error("Đã xảy ra lỗi khi đặt lại mật khẩu");
+      }
+    }
+  },
+
+  // Validate reset token
+  validateResetToken: async (token) => {
+    try {
+      const response = await authApi.get(
+        `/validate-reset-token?token=${token}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Validate reset token error:", error);
+      if (error.response) {
+        const message = error.response.data?.message || "Token không hợp lệ";
+        throw new Error(message);
+      } else if (error.request) {
+        throw new Error(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+        );
+      } else {
+        throw new Error("Đã xảy ra lỗi khi xác thực token");
+      }
+    }
+  },
+
+  // Kiểm tra trạng thái xác thực email của user
+  checkEmailVerificationStatus: () => {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    return user?.emailVerified || false;
   },
 
   // Login user
   login: async (credentials) => {
     try {
-      console.log('Attempting login with:', credentials.username);
-      const response = await authApi.post('/login', {
+      console.log("Attempting login with:", credentials.username);
+      const response = await authApi.post("/login", {
         username: credentials.username,
-        password: credentials.password
+        password: credentials.password,
       });
-      
-      console.log('Login response received:', response.data);
-      
+
+      console.log("Login response received:", response.data);
+
       if (!response.data) {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
-      
+
+      // Kiểm tra nếu backend trả về thông báo tài khoản chưa xác thực
+      if (
+        response.data.message &&
+        response.data.message.includes("chưa được xác thực")
+      ) {
+        throw new Error(
+          "Tài khoản chưa được xác thực. Vui lòng kiểm tra email của bạn."
+        );
+      }
+
       // Store token
       const token = response.data.token || response.data.accessToken;
       if (token) {
-        localStorage.setItem('authToken', token);
+        localStorage.setItem("authToken", token);
       }
-      
+
       // Get user ID - có thể là account ID hoặc user ID
-      const userId = response.data.id || response.data.userId || response.data.accountId;
+      const userId =
+        response.data.id || response.data.userId || response.data.accountId;
       if (!userId) {
-        throw new Error('User ID không tồn tại trong response');
+        throw new Error("User ID không tồn tại trong response");
       }
-      
+
       const basicUserData = {
         id: userId, // Lưu ID chính (có thể là account ID)
         userId: response.data.userId, // Lưu riêng user ID nếu có
         accountId: response.data.id || response.data.accountId, // Lưu riêng account ID
         username: response.data.username || credentials.username,
-        roles: response.data.roles || ['USER'],
+        roles: response.data.roles || ["USER"],
+        emailVerified: response.data.emailVerified || true, // Mặc định true nếu backend không trả về
       };
-      
+
       // Fetch complete profile data
       try {
-        console.log('Fetching profile data for user:', userId);
+        console.log("Fetching profile data for user:", userId);
         const profileResponse = await userApi.get(`/user/profile/${userId}`);
-        console.log('Profile data received:', profileResponse.data);
-        
+        console.log("Profile data received:", profileResponse.data);
+
         // Store raw profile data for debugging
-        localStorage.setItem('userProfileRaw', JSON.stringify(profileResponse.data));
-        
+        localStorage.setItem(
+          "userProfileRaw",
+          JSON.stringify(profileResponse.data)
+        );
+
         const profileData = profileResponse.data;
-        
+
         // Extract user data from profile response, ensuring we have the right IDs
         const userData = {
           ...basicUserData,
@@ -184,73 +342,99 @@ const authService = {
           id: userId, // Primary ID (the one that works for API calls)
           userId: profileData.userId || basicUserData.userId,
           accountId: profileData.accountId || basicUserData.accountId,
-          email: profileData.email || response.data.email || '',
-          firstName: profileData.firstName || response.data.firstName || '',
-          lastName: profileData.lastName || response.data.lastName || '',
-          phoneNumber: profileData.phoneNumber || response.data.phoneNumber || '',
-          gender: profileData.gender || response.data.gender || '',
+          email: profileData.email || response.data.email || "",
+          firstName: profileData.firstName || response.data.firstName || "",
+          lastName: profileData.lastName || response.data.lastName || "",
+          phoneNumber:
+            profileData.phoneNumber || response.data.phoneNumber || "",
+          gender: profileData.gender || response.data.gender || "",
           avatar: profileData.avatar || response.data.avatar || null,
-          dateOfBirth: profileData.dateOfBirth || response.data.dateOfBirth || '',
-          fullName: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || 
-                    response.data.fullName || credentials.username,
+          dateOfBirth:
+            profileData.dateOfBirth || response.data.dateOfBirth || "",
+          fullName:
+            `${profileData.firstName || ""} ${
+              profileData.lastName || ""
+            }`.trim() ||
+            response.data.fullName ||
+            credentials.username,
+          emailVerified:
+            profileData.emailVerified || basicUserData.emailVerified,
           stats: {
             totalTests: 0,
             averageScore: 0,
             studyStreak: 0,
-            totalStudyHours: 0
+            totalStudyHours: 0,
           },
           preferences: {
-            testLevel: 'TOPIK I',
-            interfaceLanguage: 'Vietnamese'
+            testLevel: "TOPIK I",
+            interfaceLanguage: "Vietnamese",
           },
           testHistory: [],
-          badges: []
+          badges: [],
         };
-        
-        localStorage.setItem('user', JSON.stringify(userData));
-        console.log('User data stored with IDs - Primary ID:', userData.id, 'User ID:', userData.userId, 'Account ID:', userData.accountId);
-        
+
+        localStorage.setItem("user", JSON.stringify(userData));
+        console.log(
+          "User data stored with IDs - Primary ID:",
+          userData.id,
+          "User ID:",
+          userData.userId,
+          "Account ID:",
+          userData.accountId
+        );
+
         return { token, user: userData };
       } catch (profileError) {
-        console.error('Failed to fetch profile data:', profileError);
-        
+        console.error("Failed to fetch profile data:", profileError);
+
         // Fallback: use data from login response
         const userData = {
           ...basicUserData,
-          email: response.data.email || '',
-          firstName: response.data.firstName || '',
-          lastName: response.data.lastName || '',
-          phoneNumber: response.data.phoneNumber || '',
-          gender: response.data.gender || '',
+          email: response.data.email || "",
+          firstName: response.data.firstName || "",
+          lastName: response.data.lastName || "",
+          phoneNumber: response.data.phoneNumber || "",
+          gender: response.data.gender || "",
           avatar: response.data.avatar || null,
-          dateOfBirth: response.data.dateOfBirth || '',
+          dateOfBirth: response.data.dateOfBirth || "",
           fullName: response.data.fullName || credentials.username,
           stats: {
             totalTests: 0,
             averageScore: 0,
             studyStreak: 0,
-            totalStudyHours: 0
+            totalStudyHours: 0,
           },
           preferences: {
-            testLevel: 'TOPIK I',
-            interfaceLanguage: 'Vietnamese'
-          }
+            testLevel: "TOPIK I",
+            interfaceLanguage: "Vietnamese",
+          },
         };
-        
-        localStorage.setItem('user', JSON.stringify(userData));
-        console.warn('Using basic user data as profile fetch failed. Primary ID:', userData.id);
-        
+
+        localStorage.setItem("user", JSON.stringify(userData));
+        console.warn(
+          "Using basic user data as profile fetch failed. Primary ID:",
+          userData.id
+        );
+
         return { token, user: userData };
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
+
+      // Giữ nguyên thông báo lỗi tài khoản chưa xác thực
+      if (error.message && error.message.includes("chưa được xác thực")) {
+        throw error;
+      }
+
       if (error.response) {
-        const message = error.response.data?.message || 'Đăng nhập thất bại';
+        const message = error.response.data?.message || "Đăng nhập thất bại";
         throw new Error(message);
       } else if (error.request) {
-        throw new Error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+        throw new Error(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+        );
       } else {
-        throw new Error('Đã xảy ra lỗi khi đăng nhập');
+        throw new Error("Đã xảy ra lỗi khi đăng nhập");
       }
     }
   },
@@ -258,218 +442,221 @@ const authService = {
   // Logout user
   logout: async () => {
     try {
-      await authApi.post('/logout');
+      await authApi.post("/logout");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     } finally {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userProfileRaw'); // Also remove debug data
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("userProfileRaw");
     }
   },
 
   // Get current user from localStorage and refresh data if needed
   getCurrentUser: () => {
     try {
-      const userString = localStorage.getItem('user');
+      const userString = localStorage.getItem("user");
       if (!userString) {
         return null;
       }
-      
+
       const parsedUser = JSON.parse(userString);
-      
+
       // Always fetch fresh profile data on page load
       if (parsedUser?.id) {
-        console.log('Refreshing user data on page load for ID:', parsedUser.id);
-        
+        console.log("Refreshing user data on page load for ID:", parsedUser.id);
+
         // Fetch profile asynchronously but return current user immediately
         (async () => {
           try {
-            const profileResponse = await userApi.get(`/user/profile/${parsedUser.id}`);
+            const profileResponse = await userApi.get(
+              `/user/profile/${parsedUser.id}`
+            );
             if (profileResponse.data) {
-              console.log('Fresh profile data received:', profileResponse.data);
-              
+              console.log("Fresh profile data received:", profileResponse.data);
+
               // Store raw data for debugging
-              localStorage.setItem('userProfileRaw', JSON.stringify(profileResponse.data));
-              
+              localStorage.setItem(
+                "userProfileRaw",
+                JSON.stringify(profileResponse.data)
+              );
+
               const profileData = profileResponse.data;
-              
+
               // Update user with fresh profile data, matching flat structure
               const updatedUser = {
                 ...parsedUser,
-                email: profileData.email || parsedUser.email || '',
-                firstName: profileData.firstName || parsedUser.firstName || '',
-                lastName: profileData.lastName || parsedUser.lastName || '',
-                phoneNumber: profileData.phoneNumber || parsedUser.phoneNumber || '',
-                gender: profileData.gender || parsedUser.gender || '',
+                email: profileData.email || parsedUser.email || "",
+                firstName: profileData.firstName || parsedUser.firstName || "",
+                lastName: profileData.lastName || parsedUser.lastName || "",
+                phoneNumber:
+                  profileData.phoneNumber || parsedUser.phoneNumber || "",
+                gender: profileData.gender || parsedUser.gender || "",
                 avatar: profileData.avatar || parsedUser.avatar || null,
-                dateOfBirth: profileData.dateOfBirth || parsedUser.dateOfBirth || '',
-                fullName: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || 
-                          parsedUser.fullName || parsedUser.username
+                dateOfBirth:
+                  profileData.dateOfBirth || parsedUser.dateOfBirth || "",
+                fullName:
+                  `${profileData.firstName || ""} ${
+                    profileData.lastName || ""
+                  }`.trim() ||
+                  parsedUser.fullName ||
+                  parsedUser.username,
+                emailVerified:
+                  profileData.emailVerified || parsedUser.emailVerified,
               };
-              
-              localStorage.setItem('user', JSON.stringify(updatedUser));
-              console.log('User data updated with fresh profile');
-              
+
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+              console.log("User data updated with fresh profile");
+
               // Force a UI update by dispatching a custom event
-              window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
-                detail: updatedUser 
-              }));
+              window.dispatchEvent(
+                new CustomEvent("userProfileUpdated", {
+                  detail: updatedUser,
+                })
+              );
             }
           } catch (error) {
-            console.error('Failed to refresh profile data:', error);
+            console.error("Failed to refresh profile data:", error);
           }
         })();
       }
-      
+
       return parsedUser;
     } catch (error) {
-      console.error('Error parsing user data:', error);
-      localStorage.removeItem('user');
+      console.error("Error parsing user data:", error);
+      localStorage.removeItem("user");
       return null;
     }
   },
 
   // Get authentication token
   getToken: () => {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem("authToken");
   },
 
   // Check if user is authenticated
   isAuthenticated: () => {
-    const token = localStorage.getItem('authToken');
-    const user = localStorage.getItem('user');
+    const token = localStorage.getItem("authToken");
+    const user = localStorage.getItem("user");
     return !!(token && user);
+  },
+
+  // Check if token is expired
+  isTokenExpired: () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return true;
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.exp * 1000 < Date.now();
+    } catch {
+      return true;
+    }
   },
 
   // Refresh authentication token
   refreshToken: async () => {
     try {
-      const response = await authApi.post('/refresh');
+      const response = await authApi.post("/refresh");
       if (response.data.token || response.data.accessToken) {
-        localStorage.setItem('authToken', response.data.token || response.data.accessToken);
+        localStorage.setItem(
+          "authToken",
+          response.data.token || response.data.accessToken
+        );
         return response.data.token || response.data.accessToken;
       }
-      throw new Error('Failed to refresh token');
+      throw new Error("Failed to refresh token");
     } catch (error) {
       authService.logout();
       throw error;
     }
   },
 
-  // Send password reset request
-  forgotPassword: async (email) => {
-    try {
-      const response = await authApi.post('/forgot-password', { email });
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        throw new Error(error.response.data?.message || 'Gửi email thất bại');
-      }
-      throw error;
-    }
-  },
-
-// Update user profile
+  // Update user profile - CHỈ UPDATE TEXT INFO, KHÔNG ẢNH HƯỞNG ĐẾN AVATAR
   updateProfile: async (userData) => {
     try {
-      const currentUser = authService.getCurrentUser();
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
       const userId = currentUser?.id;
-      
+
       if (!userId) {
-        throw new Error('User ID not found. Please login again.');
+        throw new Error("User ID not found. Please login again.");
       }
 
+      // CHỈ GỬI NHỮNG FIELD CÓ GIÁ TRỊ, KHÔNG GỬI avatar
       const requestData = {
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        phoneNumber: userData.phoneNumber,
-        gender: userData.gender,
-        avatar: userData.avatar || null,
-        dateOfBirth: userData.dateOfBirth || null
+        email: userData.email || currentUser.email,
+        firstName: userData.firstName || currentUser.firstName,
+        lastName: userData.lastName || currentUser.lastName,
+        phoneNumber: userData.phoneNumber || currentUser.phoneNumber,
+        gender: userData.gender || currentUser.gender,
+        dateOfBirth: userData.dateOfBirth || currentUser.dateOfBirth,
       };
 
-      console.log('Updating profile for user:', userId, requestData);
-      
-      try {
-        const response = await userApi.put(`/user/profile/${userId}`, requestData);
-        console.log('Profile updated successfully:', response.data);
-        
-        // Parse response if it's a string
-        let responseData = response.data;
-        if (typeof responseData === 'string' && responseData.trim() !== '') {
-          try {
-            responseData = JSON.parse(responseData);
-          } catch (parseError) {
-            console.warn('Could not parse response as JSON');
-            responseData = {};
-          }
+      // LOẠI BỎ NHỮNG FIELD KHÔNG CÓ GIÁ TRỊ
+      Object.keys(requestData).forEach((key) => {
+        if (
+          requestData[key] === undefined ||
+          requestData[key] === null ||
+          requestData[key] === ""
+        ) {
+          delete requestData[key];
         }
-        
-        // Update local user data
-        const updatedUser = updateLocalUserData(currentUser, {
-          ...requestData,
-          ...responseData
-        });
-        
-        // Force a UI update by dispatching a custom event
-        window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
-          detail: updatedUser 
-        }));
-        
-        return updatedUser;
-      } catch (error) {
-        console.error('Error updating profile with axios:', error);
-        
-        // Xử lý lỗi trùng email
-        if (error.response && error.response.status === 500) {
-          const status = error.response.status;
-          const responseData = error.response.data || {};
-          
-          // Kiểm tra xem có phải là lỗi trùng email không
-          if (status === 500 || status === 400) {
-            const errorMessage = 
-              responseData.message || 
-              responseData.error || 
-              error.message || '';
-              
-            if (errorMessage.toLowerCase().includes('email') || 
-                errorMessage.toLowerCase().includes('duplicate') || 
-                errorMessage.toLowerCase().includes('trùng')) {
-              throw new Error('Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.');
-            }
-          }
-          
-          throw new Error(responseData.message || `Lỗi cập nhật: ${status}`);
+      });
+
+      console.log("Updating profile for user:", userId, requestData);
+
+      const response = await userApi.put(
+        `/user/profile/${userId}`,
+        requestData
+      );
+      console.log("Profile updated successfully:", response.data);
+
+      // Parse response if it's a string
+      let responseData = response.data;
+      if (typeof responseData === "string" && responseData.trim() !== "") {
+        try {
+          responseData = JSON.parse(responseData);
+        } catch (parseError) {
+          console.warn("Could not parse response as JSON");
+          responseData = {};
         }
-        
-        // Nếu không phải lỗi response, thử fallback với fetch API
-        console.log('Trying fallback with fetch API');
-        
-        // ... phần code fetch API giữ nguyên ...
-        
       }
+
+      // Update local user data - CHỈ UPDATE TEXT FIELDS, GIỮ NGUYÊN AVATAR
+      const updatedUser = updateLocalUserData(currentUser, {
+        ...requestData,
+        // KHÔNG động đến avatar
+      });
+
+      // Force a UI update by dispatching a custom event
+      window.dispatchEvent(
+        new CustomEvent("userProfileUpdated", {
+          detail: updatedUser,
+        })
+      );
+
+      return updatedUser;
     } catch (error) {
-      console.error('Profile update error:', error);
-      
-      // Kiểm tra nếu lỗi có liên quan đến email
-      if (error.message && error.message.toLowerCase().includes('email')) {
-        throw error; // Giữ nguyên thông báo lỗi email
-      }
-      
-      // If it's just a parsing error, try to update locally
-      if (error.message && (
-        error.message.includes('Unexpected token') || 
-        error.message.includes('JSON')
-      )) {
-        const currentUser = authService.getCurrentUser();
-        if (currentUser) {
-          console.log('Updating user data locally due to JSON error');
-          return updateLocalUserData(currentUser, userData);
+      console.error("Profile update error:", error);
+
+      // Xử lý lỗi trùng email
+      if (error.response && error.response.status === 500) {
+        const responseData = error.response.data || {};
+        const errorMessage =
+          responseData.message || responseData.error || error.message || "";
+
+        if (
+          errorMessage.toLowerCase().includes("email") ||
+          errorMessage.toLowerCase().includes("duplicate") ||
+          errorMessage.toLowerCase().includes("trùng")
+        ) {
+          throw new Error(
+            "Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác."
+          );
         }
+        throw new Error(responseData.message || "Lỗi cập nhật hồ sơ");
       }
-      
+
       throw error;
     }
   },
@@ -477,44 +664,162 @@ const authService = {
   // Force refresh user profile data
   refreshUserProfile: async () => {
     try {
-      const currentUser = authService.getCurrentUser();
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
       if (!currentUser?.id) return null;
-      
-      const profileResponse = await userApi.get(`/user/profile/${currentUser.id}`);
+
+      const profileResponse = await userApi.get(
+        `/user/profile/${currentUser.id}`
+      );
       if (profileResponse.data) {
         const profileData = profileResponse.data;
-        
+
         // Update user with fresh profile data
         const updatedUser = {
           ...currentUser,
-          email: profileData.email || currentUser.email || '',
-          firstName: profileData.firstName || currentUser.firstName || '',
-          lastName: profileData.lastName || currentUser.lastName || '',
-          phoneNumber: profileData.phoneNumber || currentUser.phoneNumber || '',
-          gender: profileData.gender || currentUser.gender || '',
+          email: profileData.email || currentUser.email || "",
+          firstName: profileData.firstName || currentUser.firstName || "",
+          lastName: profileData.lastName || currentUser.lastName || "",
+          phoneNumber: profileData.phoneNumber || currentUser.phoneNumber || "",
+          gender: profileData.gender || currentUser.gender || "",
           avatar: profileData.avatar || currentUser.avatar || null,
-          dateOfBirth: profileData.dateOfBirth || currentUser.dateOfBirth || '',
-          fullName: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim() || 
-                    currentUser.fullName || currentUser.username
+          dateOfBirth: profileData.dateOfBirth || currentUser.dateOfBirth || "",
+          fullName:
+            `${profileData.firstName || ""} ${
+              profileData.lastName || ""
+            }`.trim() ||
+            currentUser.fullName ||
+            currentUser.username,
+          emailVerified: profileData.emailVerified || currentUser.emailVerified,
         };
-        
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        console.log('User profile manually refreshed');
-        
+
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        console.log("User profile manually refreshed");
+
         // Force a UI update
-        window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
-          detail: updatedUser 
-        }));
-        
+        window.dispatchEvent(
+          new CustomEvent("userProfileUpdated", {
+            detail: updatedUser,
+          })
+        );
+
         return updatedUser;
       }
-      
+
       return currentUser;
     } catch (error) {
-      console.error('Error refreshing user profile:', error);
+      console.error("Error refreshing user profile:", error);
       return null;
     }
-  }
+  },
+
+  // Change password
+  changePassword: async (oldPassword, newPassword) => {
+    try {
+      const response = await authApi.put("/change-password", {
+        oldPassword,
+        newPassword,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Change password error:", error);
+      if (error.response) {
+        const message = error.response.data?.message || "Đổi mật khẩu thất bại";
+        throw new Error(message);
+      }
+      throw error;
+    }
+  },
+
+  // Upload avatar - CHỈ XỬ LÝ AVATAR, KHÔNG ẢNH HƯỞNG ĐẾN THÔNG TIN KHÁC
+  uploadAvatar: async (formData) => {
+    try {
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      const userId = currentUser?.id;
+
+      if (!userId) {
+        throw new Error("User ID not found. Please login again.");
+      }
+
+      console.log("Uploading avatar for user:", userId);
+
+      // 1. Upload avatar lên Cloudinary
+      const uploadResponse = await userApi.post("/upload/avatar", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        timeout: 30000,
+      });
+
+      console.log("Avatar uploaded to Cloudinary:", uploadResponse.data);
+
+      const avatarUrl = uploadResponse.data.url;
+
+      if (!avatarUrl) {
+        throw new Error("Không nhận được URL avatar từ server");
+      }
+
+      // 2. Cập nhật profile với avatar URL mới - CHỈ CẬP NHẬT AVATAR
+      const updateData = {
+        avatar: avatarUrl,
+        // GIỮ NGUYÊN các thông tin khác
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName,
+        email: currentUser.email,
+        phoneNumber: currentUser.phoneNumber,
+        gender: currentUser.gender,
+        dateOfBirth: currentUser.dateOfBirth,
+      };
+
+      console.log("Updating profile with new avatar:", updateData);
+
+      const updateResponse = await userApi.put(
+        `/user/profile/${userId}`,
+        updateData
+      );
+
+      console.log("Profile updated with new avatar:", updateResponse.data);
+
+      // 3. Update local user data - CHỈ CẬP NHẬT AVATAR
+      const updatedUser = {
+        ...currentUser,
+        avatar: avatarUrl,
+      };
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      // 4. Force UI update
+      window.dispatchEvent(
+        new CustomEvent("userProfileUpdated", {
+          detail: updatedUser,
+        })
+      );
+
+      return {
+        success: true,
+        data: {
+          avatarUrl: avatarUrl,
+        },
+        message: "Cập nhật ảnh đại diện thành công",
+      };
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+
+      // ✅ THÊM: Log chi tiết lỗi từ server
+      if (error.response) {
+        console.error("Server response error:", error.response.data);
+        const errorData = error.response.data;
+        const message =
+          errorData?.message || errorData?.error || "Lỗi khi upload avatar";
+        throw new Error(message);
+      } else if (error.request) {
+        throw new Error(
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng."
+        );
+      } else {
+        throw new Error(error.message || "Đã xảy ra lỗi khi upload avatar");
+      }
+    }
+  },
 };
 
 export default authService;

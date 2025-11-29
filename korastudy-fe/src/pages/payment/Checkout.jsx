@@ -9,6 +9,8 @@ import {
   Banknote,
 } from "lucide-react";
 import courseService from "../../api/courseService";
+import { enrollCourse } from "../../api/enrollmentService";
+import { createPayment, getBuyerInfo } from "../../api/paymentService";
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
@@ -38,24 +40,47 @@ const Checkout = () => {
   const query = useQuery();
   const navigate = useNavigate();
   const courseId = query.get("courseId");
+
   const [step, setStep] = useState(1);
   const [buyer, setBuyer] = useState({ name: "", email: "", phone: "" });
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [payMethod, setPayMethod] = useState("bank");
+  const [prefillLoading, setPrefillLoading] = useState(false); // THÊM loading cho pre-fill
+  // Default to VNPay so the checkout flow reaches the payment gateway
+  const [payMethod, setPayMethod] = useState("vnpay");
 
   useEffect(() => {
-    const run = async () => {
+    const fetchCourseAndUserInfo = async () => {
       try {
-        if (courseId) {
-          const data = await courseService.getCourseById(courseId);
-          setCourse(data);
+        if (!courseId) return;
+
+        // Lấy thông tin khóa học
+        const courseData = await courseService.getCourseById(courseId);
+        setCourse(courseData);
+
+        // Lấy thông tin user để pre-fill form
+        setPrefillLoading(true);
+        try {
+          const userInfo = await getBuyerInfo();
+          setBuyer({
+            name: userInfo.buyerName || "",
+            email: userInfo.buyerEmail || "",
+            phone: userInfo.buyerPhone || "",
+          });
+        } catch (error) {
+          console.log("Không thể load thông tin user, form sẽ để trống");
+          // Không xử lý lỗi - form sẽ để trống
+        } finally {
+          setPrefillLoading(false);
         }
+      } catch (err) {
+        console.error("Error fetching course:", err);
       } finally {
         setLoading(false);
       }
     };
-    run();
+
+    fetchCourseAndUserInfo();
   }, [courseId]);
 
   const total = useMemo(() => {
@@ -65,13 +90,64 @@ const Checkout = () => {
 
   const onSubmitInfo = (e) => {
     e.preventDefault();
-    if (!buyer.name || !buyer.email || !buyer.phone) return;
+    if (!buyer.name || !buyer.email || !buyer.phone) {
+      alert("Vui lòng điền đầy đủ thông tin người mua!");
+      return;
+    }
     setStep(2);
   };
 
-  const onPay = () => {
-    // TODO: integrate payment later
-    navigate(`/course/${courseId}`);
+  const onPay = async () => {
+    try {
+      // Nếu khóa học miễn phí -> enroll trực tiếp qua enrollment API
+      if (course.isFree) {
+        try {
+          await enrollCourse(courseId);
+          alert("Đăng ký khóa học thành công!");
+          navigate(`/course/${courseId}`);
+        } catch (err) {
+          console.error("Lỗi đăng ký khóa học:", err);
+          alert(
+            err.message ||
+              "Có lỗi xảy ra khi đăng ký khóa học. Vui lòng thử lại."
+          );
+        }
+        return;
+      }
+
+      // Đối với khóa học có phí -> thanh toán qua VNPay
+      if (payMethod !== "vnpay") {
+        alert("Hiện tại chỉ hỗ trợ thanh toán qua VNPay");
+        return;
+      }
+
+      const paymentRequest = {
+        courseId,
+        amount: course.coursePrice,
+        buyerName: buyer.name,
+        buyerEmail: buyer.email,
+        buyerPhone: buyer.phone,
+        paymentMethod: payMethod,
+      };
+
+      console.log("Payment Request:", paymentRequest);
+      const payment = await createPayment(paymentRequest);
+      console.log("Payment Response:", payment);
+
+      if (payment?.paymentUrl) {
+        console.log("Redirecting to:", payment.paymentUrl);
+        // Lưu courseId để dùng sau khi thanh toán xong
+        localStorage.setItem("lastCourseId", courseId);
+        // Chuyển hướng người dùng đến trang thanh toán VNPay
+        window.location.replace(payment.paymentUrl);
+      } else {
+        console.error("Không nhận được URL thanh toán từ server");
+        alert("Không thể kết nối đến cổng thanh toán. Vui lòng thử lại sau.");
+      }
+    } catch (err) {
+      console.error("Payment error:", err);
+      alert("Có lỗi xảy ra khi thanh toán hoặc ghi danh!");
+    }
   };
 
   if (loading) {
@@ -110,6 +186,11 @@ const Checkout = () => {
               <div className="bg-white rounded-xl p-6 shadow">
                 <h2 className="text-lg font-semibold mb-4">
                   Thông tin người mua
+                  {prefillLoading && (
+                    <span className="text-sm text-gray-500 ml-2">
+                      (Đang tải thông tin...)
+                    </span>
+                  )}
                 </h2>
                 <form onSubmit={onSubmitInfo} className="space-y-4">
                   <input
@@ -119,6 +200,7 @@ const Checkout = () => {
                     onChange={(e) =>
                       setBuyer({ ...buyer, name: e.target.value })
                     }
+                    disabled={prefillLoading}
                   />
                   <input
                     placeholder="Email"
@@ -128,6 +210,7 @@ const Checkout = () => {
                     onChange={(e) =>
                       setBuyer({ ...buyer, email: e.target.value })
                     }
+                    disabled={prefillLoading}
                   />
                   <input
                     placeholder="Số điện thoại"
@@ -136,12 +219,14 @@ const Checkout = () => {
                     onChange={(e) =>
                       setBuyer({ ...buyer, phone: e.target.value })
                     }
+                    disabled={prefillLoading}
                   />
                   <button
                     type="submit"
-                    className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700"
+                    className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 disabled:bg-gray-400"
+                    disabled={prefillLoading}
                   >
-                    Tiếp theo
+                    {prefillLoading ? "Đang tải..." : "Tiếp theo →"}
                   </button>
                 </form>
               </div>
@@ -212,12 +297,22 @@ const Checkout = () => {
                     </label>
                   ))}
                 </div>
-                <button
-                  onClick={onPay}
-                  className="mt-5 w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700"
-                >
-                  Tiến hành thanh toán
-                </button>
+
+                {/* Buttons */}
+                <div className="mt-5 flex gap-3">
+                  <button
+                    onClick={() => setStep(step - 1)}
+                    className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50"
+                  >
+                    ← Quay lại
+                  </button>
+                  <button
+                    onClick={onPay}
+                    className="flex-1 bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700"
+                  >
+                    Tiến hành thanh toán →
+                  </button>
+                </div>
               </div>
             )}
           </div>

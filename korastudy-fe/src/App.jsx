@@ -18,14 +18,19 @@ import Footer from "@components/Footer.jsx";
 import ScrollToTop from "@components/ScrollToTop.jsx";
 // Import pages
 import Home from "@pages/home.jsx";
-import Courses from "@pages/Course/CoursesNew.jsx";
-import CourseDetail from "@/pages/Course/CourseDetailNew.jsx";
-import MyCoursesPage from "@/pages/Course/my-courses-new.jsx";
+// Import course pages
+import Courses from "@/pages/Course/CourseLists.jsx";
+import CourseDetail from "@/pages/Course/CourseDetail.jsx";
+import MyCoursesPage from "@/pages/Course/MyCourse.jsx";
 import Profile from "@/pages/profile.jsx";
 // Import auth pages
 import LoginPage from "./pages/auth/LoginPage";
 import Register from "@pages/auth/register.jsx";
-import ForgotPassword from "@pages/auth/forgot-password.jsx";
+import EmailVerification from "./components/auth/EmailVerification";
+import ResendVerification from "./components/auth/ResendVerification";
+import ForgotPassword from "@/pages/auth/ForgotPassword.jsx";
+import ResetPassword from "./pages/auth/ResetPassword";
+
 // Import exam pages
 import Exams from "@pages/Exam/exam.jsx";
 import ExamDetail from "@pages/Exam/exam-detail.jsx";
@@ -45,7 +50,9 @@ import FlashCardPractice from "@pages/FlashCard/flash-card-practice.jsx";
 import CreateWordList from "@pages/FlashCard/create-word-list.jsx";
 import EditWordList from "@pages/FlashCard/edit-word-list.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Checkout from "./pages/Checkout/Checkout.jsx";
+// Import Checkout and PaymentResult pages
+import PaymentResult from "./pages/payment/PaymentResult";
+import Checkout from "./pages/payment/Checkout";
 
 function App() {
   return (
@@ -81,10 +88,17 @@ function App() {
                 }
               >
                 <Route index element={<Home />} />
+
+                {/* router khóa học */}
                 <Route path="courses" element={<Courses />} />
                 <Route path="course/:courseId" element={<CourseDetail />} />
-                <Route path="checkout" element={<Checkout />} />
                 <Route path="courses/my-courses" element={<MyCoursesPage />} />
+
+                {/* router thanh toán */}
+                <Route path="checkout" element={<Checkout />} />
+                {/* Backend redirects to /payment/result?..., so expose that exact path */}
+                <Route path="payment/result" element={<PaymentResult />} />
+
                 <Route path="flash-card" element={<FlashCard />} />
                 <Route path="ly-thuyet" element={<LyThuyet />} />
                 <Route path="lo-trinh" element={<LearningPath />} />
@@ -199,7 +213,13 @@ function App() {
               {/* Trang xác thực */}
               <Route path="/dang-nhap" element={<LoginPage />} />
               <Route path="/dang-ky" element={<Register />} />
+              <Route
+                path="/resend-verification"
+                element={<ResendVerification />}
+              />
+              <Route path="/verify-email" element={<EmailVerification />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Các trang yêu cầu đăng nhập */}
               <Route element={<ProtectedRoute />}>
