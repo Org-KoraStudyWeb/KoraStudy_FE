@@ -62,21 +62,34 @@ const Exams = () => {
     fetchExams();
   };
 
-  const getLevelForApi = (levelId) => {
-    switch(levelId) {
-      case 'beginner': return 'Sơ cấp';
-      case 'intermediate': return 'Trung cấp';
-      case 'advanced': return 'Cao cấp';
-      default: return '';
-    }
-  };
+  // const getLevelForApi = (levelId) => {
+  //   switch(levelId) {
+  //     case 'beginner': return 'Sơ cấp';
+  //     case 'intermediate': return 'Trung cấp';
+  //     case 'advanced': return 'Cao cấp';
+  //     default: return '';
+  //   }
+  // };
 
-  const getTypeForApi = (typeId) => {
+   const getTypeForApi = (typeId) => {
     switch(typeId) {
       case 'topik1': return 'TOPIK I';
       case 'topik2': return 'TOPIK II';
       default: return '';
     }
+  };
+
+   // Normalize exam.type (handle "TOPIK II", "topik ii", "TOPIK ll", "2", etc.) to internal ids
+  const normalizeTypeId = (type) => {
+   if (!type) return '';
+    const t = String(type).toLowerCase().trim();
+    if (t.includes('topik')) {
+      if (t.includes('ii') || t.includes('ll') || /\b2\b/.test(t)) return 'topik2';
+      if (t.includes('i') || /\b1\b/.test(t)) return 'topik1';
+   }
+    if (t === '2') return 'topik2';
+    if (t === '1') return 'topik1';
+    return '';
   };
 
   const levels = [
@@ -93,7 +106,7 @@ const Exams = () => {
   ];
 
   // Filter exams based on search and filters (client-side filtering as backup)
-  const filteredExams = exams.filter(exam => {
+    const filteredExams = exams.filter(exam => {
     const matchesSearch = searchTerm === '' || 
                          (exam.title && exam.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          (exam.description && exam.description.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -103,6 +116,8 @@ const Exams = () => {
                         (selectedLevel === 'advanced' && exam.level === 'Cao cấp');
     const matchesType = selectedType === 'all' || 
                        (exam.type && exam.type.toLowerCase().includes(getTypeForApi(selectedType).toLowerCase()));
+    const examTypeId = normalizeTypeId(exam.type);
+    // const matchesType = selectedType === 'all' || examTypeId === selectedType;
     
     return matchesSearch && matchesLevel && matchesType;
   });
@@ -195,25 +210,7 @@ const Exams = () => {
                   <h3 className="font-semibold text-lg text-gray-800">Bộ lọc</h3>
                 </div>
 
-                {/* Level Filter */}
-                <div className="mb-6">
-                  <h4 className="font-medium text-gray-800 mb-3">Cấp độ</h4>
-                  <div className="space-y-2">
-                    {levels.map(level => (
-                      <button
-                        key={level.id}
-                        onClick={() => setSelectedLevel(level.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors duration-200 ${
-                          selectedLevel === level.id 
-                            ? 'bg-primary-500 text-white' 
-                            : 'hover:bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {level.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+               
 
                 {/* Type Filter */}
                 <div className="mb-6">

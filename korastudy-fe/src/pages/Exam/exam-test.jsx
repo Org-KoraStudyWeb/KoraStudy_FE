@@ -589,19 +589,19 @@ const ExamTest = () => {
               {/* Answer Options */}
               <div className="space-y-3 mb-6">
                 {currentQuestionData.options && currentQuestionData.options.map((opt) => (
-                  <div key={opt.label} className="flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors
-                    ${answers[currentQuestionData.id] === opt.label
+                  <div key={opt.originalLabel} className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                    answers[currentQuestionData.id] === opt.originalLabel
                       ? 'bg-blue-50 border-blue-200 text-blue-800'
                       : 'bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                    }"
-                    onClick={() => handleAnswerSelect(currentQuestionData.id, opt.label)}
+                  }`}
+                    onClick={() => handleAnswerSelect(currentQuestionData.id, opt.originalLabel)}
                   >
                     <div className={`w-6 h-6 border-2 rounded-full flex items-center justify-center text-sm font-medium ${
-                      answers[currentQuestionData.id] === opt.label
+                      answers[currentQuestionData.id] === opt.originalLabel
                         ? 'border-blue-500 bg-blue-500 text-white' 
                         : 'border-gray-300'
                     }`}>
-                      {answers[currentQuestionData.id] === opt.label ? '●' : opt.label}
+                      {answers[currentQuestionData.id] === opt.originalLabel ? '●' : opt.label}
                     </div>
                     <span className="flex-1 text-left">
                       {opt.text}
@@ -645,7 +645,7 @@ const ExamTest = () => {
 
 export default ExamTest;
 
-// Khi format dữ liệu câu hỏi từ backend, cần tách các lựa chọn (option) thành mảng để render từng đáp án A/B/C/D
+// Khi format dữ liệu câu hỏi từ backend, cần tách các lựa chọn (option) thành mảng để render từng đáp án
 // Giả sử option từ backend là chuỗi: "A) ...?B) ...?C) ...?D) ...?"
 const parseOptions = (optionString) => {
   if (!optionString) return [];
@@ -653,11 +653,14 @@ const parseOptions = (optionString) => {
   const regex = /([A-D])\)\s*([^A-D]*)/g;
   let match;
   const options = [];
+  let index = 0;
   while ((match = regex.exec(optionString)) !== null) {
     options.push({
-      label: match[1],
+      originalLabel: match[1], // Giữ A, B, C, D để gửi cho backend
+      label: String(index + 1), // Hiển thị 1, 2, 3, 4 cho người dùng
       text: match[2].trim()
     });
+    index++;
   }
   return options;
 };

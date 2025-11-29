@@ -128,6 +128,83 @@ const ExamResults = () => {
     fetchResult();
   }, [id, user, location.state]);
 
+  // Merge exam question data (explanation, passage, etc.) into result.answerDetails
+  useEffect(() => {
+    if (!result || !examData) return;
+
+    // avoid remapping repeatedly
+    if (result._mergedWithExam) return;
+
+    const questionMap = {};
+    // examData may contain parts with questions
+    if (Array.isArray(examData.parts)) {
+      examData.parts.forEach(part => {
+        if (Array.isArray(part.questions)) {
+          part.questions.forEach(q => {
+            if (q) {
+              if (q.id !== undefined) questionMap[String(q.id)] = q;
+              if (q.questionId !== undefined) questionMap[String(q.questionId)] = q;
+            }
+          });
+        }
+      });
+    }
+
+    // Also support examData.questions (flat list)
+    if (Array.isArray(examData.questions)) {
+      examData.questions.forEach(q => {
+        if (q) {
+          if (q.id !== undefined) questionMap[String(q.id)] = q;
+          if (q.questionId !== undefined) questionMap[String(q.questionId)] = q;
+        }
+      });
+    }
+
+    if (Array.isArray(result.answerDetails)) {
+      const merged = result.answerDetails.map(d => {
+        const key = String(d.questionId ?? d.id ?? '');
+        const q = questionMap[key];
+        if (!q) return d;
+
+        return {
+          // keep answer detail fields (selectedAnswer, isCorrect, etc.)
+          ...d,
+          // fill missing display fields from exam question data when not present in detail
+          questionText: d.questionText || q.questionText || q.text || '',
+          option: d.option || q.option || '', // Add option field for parsing
+          correctAnswer: d.correctAnswer || q.correctAnswer || q.answer || q.correct || '',
+          explanation: d.explanation || q.explanation || q.explain || '',
+          passage: d.passage || q.passage || q.paragraph || '',
+          imageUrl: d.imageUrl || q.imageUrl || q.image || null,
+          audioUrl: d.audioUrl || q.audioUrl || q.audio || null,
+          partId: d.partId || q.partId || q.part || d.partId
+        };
+      });
+
+      setResult(prev => ({ ...prev, answerDetails: merged, _mergedWithExam: true }));
+    }
+  }, [result, examData]);
+
+  // Render explanation: split into paragraphs after a dot and style
+  const renderExplanation = (text) => {
+  if (!text) return null;
+
+  // Normalize special dots and spaces
+  const normalized = String(text)
+    .replace(/。/g, '.')         // Japanese dot
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Split by . ! ? keeping punctuation
+  const parts = normalized
+    .match(/[^.!?]+[.!?]/g) || [normalized];
+
+  return parts.map((line, idx) => (
+    <p key={idx} className="mb-2 text-yellow-800 text-sm leading-relaxed">
+      {line.trim()}
+    </p>
+  ));
+};
   // Calculate results and additional metrics
   const calculateResults = () => {
     if (!result) return null;
@@ -205,34 +282,39 @@ const ExamResults = () => {
 
   const results = calculateResults();
 
-  // Parse options từ chuỗi text
-  const parseOptions = (optionString) => {
-    if (!optionString) return {};
-    
-    const options = {};
-    
+  // Parse options từ chuỗi text thành array [label, text]
+  const parseOptionsArray = (optionString) => {
+    if (!optionString) return [];
+
     // Thử các pattern khác nhau
     const patterns = [
-      /([①②③④])\s*([^①②③④]*?)(?=[①②③④]|$)/g,
-      /([ABCD])\)\s*([^ABCD]*?)(?=[ABCD]\)|$)/g,
-      /([1234])\)\s*([^1234]*?)(?=[1234]\)|$)/g
+      { regex: /([A-D])\)\s*([^A-D)]*?)(?=[A-D]\)|$)/g, type: 'letter' },
+      { regex: /([①②③④])\s*([^①②③④]*?)(?=[①②③④]|$)/g, type: 'circle' },
+      { regex: /([1234])\)\s*([^1234)]*?)(?=[1234]\)|$)/g, type: 'number' }
     ];
-    
-    for (const pattern of patterns) {
-      const matches = [...(optionString.matchAll(pattern) || [])];
+
+    for (const { regex, type } of patterns) {
+      const matches = [...optionString.matchAll(regex)];
       if (matches.length > 0) {
-        matches.forEach(match => {
-          const key = match[1];
-          const value = match[2].trim();
-          if (value) {
-            options[key] = value;
-          }
-        });
-        break;
+        return matches.map((match, index) => ({
+          originalLabel: match[1].trim(), // Giữ label gốc để so sánh với backend
+          label: String(index + 1), // Hiển thị 1, 2, 3, 4
+          text: match[2].trim()
+        })).filter(opt => opt.text.length > 0);
       }
     }
-    
-    return options;
+
+    // Fallback: split by newlines or common separators
+    const lines = optionString.split(/\r?\n|\?(?=[A-D]\))|\|/).map(l => l.trim()).filter(Boolean);
+    if (lines.length > 1) {
+      return lines.map((line, i) => ({
+        originalLabel: String.fromCharCode(65 + i), // A, B, C, D gốc
+        label: String(i + 1), // 1, 2, 3, 4 để hiển thị
+        text: line.replace(/^[A-D]\)\s*/, '')
+      }));
+    }
+
+    return [];
   };
 
   const getFilteredQuestions = () => {
@@ -518,8 +600,9 @@ const ExamResults = () => {
           <div className="p-6">
             <div className="space-y-6">
               {filteredQuestions.map((question, index) => {
-                const options = parseOptions(question.questionText || '');
-                const hasOptions = Object.keys(options).length > 0;
+                // Parse options from question.option field (from backend)
+                const optionsArray = parseOptionsArray(question.option || '');
+                const hasOptions = optionsArray.length > 0;
                 
                 return (
                 <div key={index} className="border rounded-lg p-6">
@@ -567,10 +650,7 @@ const ExamResults = () => {
                   {/* Question Content */}
                   <div className="mb-4">
                     <p className="text-gray-800 font-medium mb-3 text-lg">
-                      {hasOptions 
-                        ? question.questionText.split(/[①②③④ABCD1234]\)/)[0].trim()
-                        : question.questionText || `Câu hỏi ${index + 1}`
-                      }
+                      {question.questionText || `Câu hỏi ${index + 1}`}
                     </p>
                     
                     {question.passage && (
@@ -578,14 +658,36 @@ const ExamResults = () => {
                         <p className="text-gray-800 leading-relaxed">{question.passage}</p>
                       </div>
                     )}
+
+                    {/* Question Image */}
+                    {question.imageUrl && (
+                      <div className="mt-4 mb-4">
+                        <img
+                          src={question.imageUrl}
+                          alt={`Câu hỏi ${index + 1}`}
+                          className="max-w-full h-auto rounded-lg shadow-sm"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Question Audio */}
+                    {question.audioUrl && (
+                      <div className="mt-4 mb-4">
+                        <audio controls className="w-full" src={question.audioUrl}>
+                          Trình duyệt của bạn không hỗ trợ phát audio.
+                        </audio>
+                      </div>
+                    )}
                   </div>
 
                   {/* Answer Options */}
                   <div className="space-y-2 mb-4">
                     {hasOptions ? (
-                      Object.entries(options).map(([optionKey, optionText], optionIndex) => {
-                        const isUserAnswer = question.selectedAnswer === optionKey;
-                        const isCorrectAnswer = question.correctAnswer === optionKey;
+                      optionsArray.map((option, optionIndex) => {
+                        // So sánh với originalLabel (A, B, C, D) từ backend
+                        const isUserAnswer = question.selectedAnswer === option.originalLabel;
+                        const isCorrectAnswer = question.correctAnswer === option.originalLabel;
                         
                         let optionClass = 'border-gray-200 bg-white';
                         
@@ -602,9 +704,9 @@ const ExamResults = () => {
                           >
                             <div className="flex items-start gap-3">
                               <span className="w-6 h-6 rounded-full border-2 border-current flex items-center justify-center text-sm font-bold flex-shrink-0">
-                                {optionKey}
+                                {option.label}
                               </span>
-                              <span className="flex-1">{optionText}</span>
+                              <span className="flex-1">{option.text}</span>
                               
                               {/* Status Icons */}
                               <div className="flex items-center gap-2">
@@ -660,13 +762,13 @@ const ExamResults = () => {
                   {/* Explanation */}
                   {question.explanation && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-yellow-800 mb-2">해설 (Giải thích):</h4>
-                      <p className="text-yellow-700 leading-relaxed">{question.explanation}</p>
+                      <h4 className="font-semibold text-yellow-900 mb-2">해설 (Giải thích):</h4>
+                      <div className="text-yellow-800">{renderExplanation(question.explanation)}</div>
                     </div>
                   )}
 
                   {/* Performance Tip for Incorrect Answers */}
-                  {question.selectedAnswer && !question.isCorrect && (
+                  {/* {question.selectedAnswer && !question.isCorrect && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
                       <h4 className="font-semibold text-red-800 mb-2">💡 Gợi ý học tập:</h4>
                       <p className="text-red-700 text-sm">
@@ -676,7 +778,7 @@ const ExamResults = () => {
                         }
                       </p>
                     </div>
-                  )}
+                  )} */}
                 </div>
               )})}
             </div>
