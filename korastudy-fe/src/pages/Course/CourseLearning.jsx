@@ -1,360 +1,600 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Menu, X, List, CheckCircle, BookOpen, BarChart } from 'lucide-react';
-import courseService from '../../api/courseService';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState, useEffect } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  Play,
+  Clock,
+  Users,
+  Star,
+  CheckCircle,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  Loader,
+  AlertCircle,
+  Menu,
+  X,
+  FileText,
+  Video,
+  CheckCircle2,
+  Circle,
+} from "lucide-react";
+import courseService from "../../api/courseService";
+import sectionService from "../../api/sectionService";
+import enrollmentService from "../../api/enrollmentService";
+import lessonService from "../../api/lessonService";
+import DOMPurify from "dompurify";
 
-const CourseLearningPage = () => {
-  const { courseId, lessonId } = useParams();
+const CourseLearning = () => {
+  const { courseId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-
   const [course, setCourse] = useState(null);
   const [sections, setSections] = useState([]);
   const [currentLesson, setCurrentLesson] = useState(null);
-  const [enrollment, setEnrollment] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [allLessons, setAllLessons] = useState([]);
-  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const [error, setError] = useState("");
+  const [expandedSection, setExpandedSection] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [enrollment, setEnrollment] = useState(null);
+  const [lessonProgress, setLessonProgress] = useState({});
 
-  // Check if user is authenticated and enrolled
-  useEffect(() => {
-    const checkEnrollment = async () => {
-      if (!isAuthenticated) {
-        navigate(`/auth/login?redirect=/courses/${courseId}/learn`);
-        return;
+  // Tính tổng bài học
+  const getTotals = () => {
+    const totalSections = Array.isArray(sections) ? sections.length : 0;
+    const totalLessons = Array.isArray(sections)
+      ? sections.reduce((sum, s) => sum + (s?.lessons?.length || 0), 0)
+      : 0;
+
+    return { totalSections, totalLessons };
+  };
+
+  // Hàm tính progress dựa trên số bài học đã hoàn thành
+  const calculateProgress = () => {
+    const { totalLessons } = getTotals();
+    if (totalLessons === 0) return 0;
+
+    const completedLessons = Object.values(lessonProgress).filter(
+      (progress) => progress.completed
+    ).length;
+
+    const calculatedProgress = Math.round(
+      (completedLessons / totalLessons) * 100
+    );
+    console.log(
+      `📊 Progress tính toán: ${completedLessons}/${totalLessons} = ${calculatedProgress}%`
+    );
+    return calculatedProgress;
+  };
+
+  const formatMinutes = (minutes) => {
+    if (!minutes || !Number.isFinite(minutes) || minutes <= 0) return "";
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hrs > 0 && mins > 0) return `${hrs} giờ ${mins} phút`;
+    if (hrs > 0) return `${hrs} giờ`;
+    return `${mins} phút`;
+  };
+
+  // Hàm fetch progress của tất cả bài học trong khóa học
+  const fetchLessonProgress = async () => {
+    try {
+      console.log(
+        `📥 Đang gọi API getUserProgressByCourse với courseId: ${courseId}`
+      );
+      const progressData = await lessonService.getUserProgressByCourse(
+        courseId
+      );
+      console.log("📥 Dữ liệu progress nhận được:", progressData);
+
+      // Chuyển đổi mảng progress thành object để dễ truy cập
+      const progressMap = {};
+      progressData.forEach((progress) => {
+        progressMap[progress.lessonId] = {
+          completed: progress.status === "COMPLETED",
+          status: progress.status,
+          progress: progress.progress || 0,
+        };
+      });
+
+      setLessonProgress(progressMap);
+
+      // Cập nhật progress sau khi fetch
+      const newProgress = calculateProgress();
+      setProgress(newProgress);
+
+      return progressMap;
+    } catch (error) {
+      console.error("❌ Lỗi khi lấy tiến độ bài học:", error);
+      console.error("Chi tiết lỗi:", error.response?.data);
+      return {};
+    }
+  };
+
+  // Kiểm tra xem bài học đã hoàn thành chưa
+  const isLessonCompleted = (lessonId) => {
+    return lessonProgress[lessonId]?.completed || false;
+  };
+
+  // Hàm toggle hoàn thành bài học
+  const toggleLessonComplete = async (lessonId, isCurrentlyCompleted) => {
+    try {
+      console.log(
+        "🎯 Đang toggle trạng thái lessonId:",
+        lessonId,
+        "hiện tại:",
+        isCurrentlyCompleted
+      );
+
+      const newStatus = isCurrentlyCompleted ? "NOT_STARTED" : "COMPLETED";
+
+      // Gọi API để cập nhật trạng thái bài học
+      const result = await lessonService.updateLessonProgress({
+        lessonId: lessonId,
+        status: newStatus,
+        timeSpent: 300, // Thời gian mặc định
+      });
+
+      console.log("✅ Kết quả từ API updateLessonProgress:", result);
+
+      // Cập nhật UI local ngay lập tức
+      setLessonProgress((prev) => ({
+        ...prev,
+        [lessonId]: {
+          completed: !isCurrentlyCompleted,
+          status: newStatus,
+          progress: !isCurrentlyCompleted ? 100 : 0,
+        },
+      }));
+
+      // Cập nhật sections để hiển thị đúng trạng thái
+      setSections((prev) =>
+        prev.map((section) => ({
+          ...section,
+          lessons: section.lessons?.map((lesson) =>
+            lesson.id === lessonId
+              ? { ...lesson, completed: !isCurrentlyCompleted }
+              : lesson
+          ),
+        }))
+      );
+
+      // Cập nhật currentLesson nếu đang được chọn
+      if (currentLesson?.id === lessonId) {
+        setCurrentLesson((prev) => ({
+          ...prev,
+          completed: !isCurrentlyCompleted,
+        }));
       }
 
-      try {
-        const enrollments = await courseService.getUserEnrollments();
-        const userEnrollment = enrollments.find(e => e.course.id === parseInt(courseId));
+      // Tính toán lại progress ngay lập tức
+      const newProgress = calculateProgress();
+      setProgress(newProgress);
 
-        if (!userEnrollment) {
-          navigate(`/courses/${courseId}`);
-          return;
-        }
+      console.log(`✅ Đã cập nhật progress: ${newProgress}%`);
+    } catch (err) {
+      console.error("❌ Error toggling lesson complete:", err);
+      console.error("Chi tiết lỗi:", err.response?.data);
+      alert("Có lỗi khi cập nhật trạng thái bài học. Vui lòng thử lại.");
+    }
+  };
 
-        setEnrollment(userEnrollment);
-      } catch (err) {
-        console.error('Error checking enrollment status:', err);
-        navigate(`/courses/${courseId}`);
-      }
-    };
-
-    checkEnrollment();
-  }, [isAuthenticated, courseId, navigate]);
-
-  // Fetch course and lesson data
   useEffect(() => {
     const fetchCourseData = async () => {
       try {
         setLoading(true);
 
-        // Get course details
+        // Kiểm tra enrollment trước
+        const enrollmentData = await enrollmentService.checkMyEnrollment(
+          courseId
+        );
+        if (!enrollmentData) {
+          navigate(`/my-courses/${course.id}`);
+          return;
+        }
+        setEnrollment(enrollmentData);
+
+        // Fetch course details
         const courseData = await courseService.getCourseById(courseId);
         setCourse(courseData);
 
-        // Get course sections with lessons
-        const sectionsData = await courseService.getSectionsByCourseId(courseId);
-        setSections(sectionsData);
+        // Fetch sections và lessons
+        const sectionsData = await sectionService.getSectionsByCourseId(
+          courseId
+        );
 
-        // Create a flattened array of all lessons for navigation
-        const lessons = [];
-        sectionsData.forEach(section => {
-          if (section.lessons) {
-            section.lessons.forEach(lesson => {
-              lessons.push({
-                ...lesson,
-                sectionId: section.id,
-                sectionName: section.sectionName
-              });
-            });
-          }
-        });
-        setAllLessons(lessons);
+        // Fetch progress của tất cả bài học trước khi set sections
+        const progressMap = await fetchLessonProgress();
 
-        // Determine which lesson to show
-        let targetLessonId = lessonId;
-        
-        // If no specific lesson is requested, show the first one
-        if (!targetLessonId && lessons.length > 0) {
-          targetLessonId = lessons[0].id;
-          navigate(`/courses/${courseId}/learn/${targetLessonId}`, { replace: true });
+        // Cập nhật sections với trạng thái completed từ progress
+        const sectionsWithProgress = sectionsData.map((section) => ({
+          ...section,
+          lessons: section.lessons?.map((lesson) => ({
+            ...lesson,
+            completed: progressMap[lesson.id]?.completed || false,
+          })),
+        }));
+
+        setSections(sectionsWithProgress);
+
+        // Tìm lesson đầu tiên để hiển thị
+        if (
+          sectionsWithProgress.length > 0 &&
+          sectionsWithProgress[0].lessons?.length > 0
+        ) {
+          const firstLesson = sectionsWithProgress[0].lessons[0];
+          setCurrentLesson(firstLesson);
+          setExpandedSection(sectionsWithProgress[0].id);
         }
 
-        // Find the current lesson
-        if (targetLessonId) {
-          const lesson = lessons.find(l => l.id === parseInt(targetLessonId));
-          const lessonIndex = lessons.findIndex(l => l.id === parseInt(targetLessonId));
-          
-          if (lesson) {
-            setCurrentLesson(lesson);
-            setCurrentLessonIndex(lessonIndex);
-            
-            // Get lesson details
-            const lessonDetails = await courseService.getLessonById(courseId, lesson.sectionId, lesson.id);
-            setCurrentLesson({...lesson, ...lessonDetails});
-          } else {
-            // If lesson not found, redirect to first lesson
-            if (lessons.length > 0) {
-              navigate(`/courses/${courseId}/learn/${lessons[0].id}`, { replace: true });
-            } else {
-              setError('No lessons found in this course.');
-            }
-          }
-        }
-
-        setLoading(false);
+        // Tính toán progress từ lessonProgress
+        const calculatedProgress = calculateProgress();
+        setProgress(calculatedProgress);
       } catch (err) {
-        setError('Failed to load course content. Please try again later.');
+        console.error("Error fetching course data:", err);
+        if (err.response?.status === 403 || err.response?.status === 404) {
+          setError(
+            "Bạn chưa đăng ký khóa học này hoặc khóa học không tồn tại."
+          );
+        } else {
+          setError("Không thể tải thông tin khóa học. Vui lòng thử lại sau.");
+        }
+      } finally {
         setLoading(false);
-        console.error('Error fetching course data:', err);
       }
     };
 
-    if (enrollment) {
+    if (courseId) {
       fetchCourseData();
     }
-  }, [courseId, lessonId, enrollment, navigate]);
+  }, [courseId, navigate]);
 
-  // Handle lesson completion
-  const markLessonAsCompleted = async () => {
-    if (!currentLesson) return;
+  // Effect để tự động tính progress khi lessonProgress thay đổi
+  useEffect(() => {
+    if (Object.keys(lessonProgress).length > 0) {
+      const newProgress = calculateProgress();
+      setProgress(newProgress);
+    }
+  }, [lessonProgress]);
 
-    try {
-      await courseService.completeLesson(courseId, currentLesson.id);
-      
-      // Update enrollment progress
-      const updatedEnrollments = await courseService.getUserEnrollments();
-      const updatedEnrollment = updatedEnrollments.find(e => e.course.id === parseInt(courseId));
-      if (updatedEnrollment) {
-        setEnrollment(updatedEnrollment);
-      }
-
-      // Navigate to next lesson if available
-      if (currentLessonIndex < allLessons.length - 1) {
-        const nextLesson = allLessons[currentLessonIndex + 1];
-        navigate(`/courses/${courseId}/learn/${nextLesson.id}`);
-      }
-    } catch (err) {
-      console.error('Error marking lesson as completed:', err);
+  const handleLessonSelect = (lesson) => {
+    setCurrentLesson(lesson);
+    // Trên mobile, tự động đóng sidebar khi chọn bài học
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
     }
   };
 
-  // Navigation to next/previous lesson
-  const goToNextLesson = () => {
-    if (currentLessonIndex < allLessons.length - 1) {
-      const nextLesson = allLessons[currentLessonIndex + 1];
-      navigate(`/courses/${courseId}/learn/${nextLesson.id}`);
-    }
+  const getLessonIcon = (lesson) => {
+    if (lesson.contentType === "VIDEO")
+      return <Video size={16} className="text-blue-500" />;
+    if (lesson.contentType === "DOCUMENT")
+      return <FileText size={16} className="text-green-500" />;
+    return <FileText size={16} className="text-gray-500" />;
   };
 
-  const goToPreviousLesson = () => {
-    if (currentLessonIndex > 0) {
-      const prevLesson = allLessons[currentLessonIndex - 1];
-      navigate(`/courses/${courseId}/learn/${prevLesson.id}`);
-    }
-  };
-
-  // Loading and error states
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gray-50 pt-16">
+        <div className="flex items-center justify-center h-64">
+          <Loader className="animate-spin text-primary-500" size={48} />
+          <span className="ml-3 text-lg">Đang tải khóa học...</span>
+        </div>
       </div>
     );
   }
 
   if (error || !course) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
-          <p>{error || 'Failed to load course'}</p>
-          <Link to={`/courses/${courseId}`} className="text-blue-500 mt-4 inline-block">
-            Back to Course Details
-          </Link>
+      <div className="min-h-screen bg-gray-50 pt-16">
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex items-center justify-center text-red-500">
+            <AlertCircle size={48} />
+            <div className="ml-3">
+              <h3 className="text-lg font-semibold">Có lỗi xảy ra</h3>
+              <p>{error || "Không tìm thấy khóa học"}</p>
+              <Link
+                to={`/my-courses/${course.id}`}
+                className="text-primary-500 hover:underline mt-2 inline-block"
+              >
+                ← Quay lại khóa học của tôi
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
+  const { totalLessons } = getTotals();
+
   return (
-    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Top navbar */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm py-3 px-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center">
-            <button 
-              className="mr-4 md:hidden"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} className="dark:text-white" />}
-            </button>
-            <Link to={`/courses/${courseId}`} className="flex items-center text-gray-600 dark:text-gray-400 hover:text-blue-500">
-              <ChevronLeft size={20} className="mr-1" />
-              <span className="hidden sm:inline">Quay lại khóa học</span>
-            </Link>
-          </div>
-
-          <div className="text-center flex-1 mx-4">
-            <h1 className="text-lg font-medium truncate dark:text-white">{course.courseName}</h1>
-          </div>
-
-          <div className="flex items-center">
-            {enrollment && (
-              <div className="hidden sm:flex items-center mr-4">
-                <BarChart size={18} className="text-blue-500 mr-2" />
-                <span className="text-gray-700 dark:text-gray-300">{enrollment.progress || 0}% hoàn thành</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <div 
-          className={`${
-            sidebarOpen ? 'absolute inset-y-0 left-0 z-40 block w-full sm:w-80 h-full pt-16' : 'hidden'
-          } md:relative md:block md:w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 overflow-y-auto`}
-        >
-          <div className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-medium dark:text-white">Nội dung khóa học</h2>
-              <button 
-                className="text-gray-500 md:hidden"
-                onClick={() => setSidebarOpen(false)}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
               >
-                <X size={20} />
+                {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
+
+              <Link
+                to={`/my-courses/${course.id}`}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft size={20} />
+                <span className="hidden lg:inline">Khóa học của tôi</span>
+              </Link>
+
+              <div className="lg:hidden">
+                <h1 className="text-lg font-semibold truncate max-w-xs">
+                  {course.courseName}
+                </h1>
+              </div>
             </div>
 
-            {sections.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400">Không có nội dung cho khóa học này.</p>
-            ) : (
-              <div className="space-y-4">
-                {sections.map((section, sectionIndex) => (
-                  <div key={section.id} className="border dark:border-gray-700 rounded-lg overflow-hidden">
-                    <div className="bg-gray-100 dark:bg-gray-700 py-3 px-4">
-                      <h3 className="font-medium dark:text-white">
-                        Phần {sectionIndex + 1}: {section.sectionName}
-                      </h3>
-                    </div>
-                    <div className="divide-y dark:divide-gray-700">
-                      {section.lessons && section.lessons.map((lesson, lessonIndex) => {
-                        const isActive = currentLesson && currentLesson.id === lesson.id;
-                        const isCompleted = false; // We would need to track completed lessons in the API
-                        
-                        return (
-                          <Link 
-                            key={lesson.id}
-                            to={`/courses/${courseId}/learn/${lesson.id}`}
-                            className={`block py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                              isActive ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
-                            }`}
-                            onClick={() => setSidebarOpen(false)}
-                          >
-                            <div className="flex items-center">
-                              <div className="mr-3 text-gray-500 dark:text-gray-400">
-                                {sectionIndex + 1}.{lessonIndex + 1}
-                              </div>
-                              <span className={`flex-1 ${isActive ? 'font-medium text-blue-500' : 'dark:text-white'}`}>
-                                {lesson.lessonName}
-                              </span>
-                              {isCompleted && (
-                                <CheckCircle size={16} className="text-green-500 ml-2" />
-                              )}
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+            <div className="flex items-center gap-4">
+              {/* Progress bar */}
+              <div className="hidden md:block w-32">
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>Tiến độ</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
               </div>
-            )}
+
+              {/* ĐÃ XÓA "Xem chi tiết" */}
+            </div>
           </div>
         </div>
+      </header>
 
-        {/* Main content */}
-        <div className="flex-1 overflow-y-auto">
-          {currentLesson ? (
-            <div className="max-w-4xl mx-auto px-4 py-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
-                <h2 className="text-2xl font-bold mb-4 dark:text-white">{currentLesson.lessonName}</h2>
-                
-                {/* Lesson content */}
-                <div className="prose max-w-none dark:prose-invert mb-8">
-                  {currentLesson.lessonContent && (
-                    <div dangerouslySetInnerHTML={{ __html: currentLesson.lessonContent }} />
-                  )}
-                  {!currentLesson.lessonContent && (
-                    <p className="text-gray-500 dark:text-gray-400">Nội dung bài học đang được cập nhật.</p>
-                  )}
-                </div>
+      <div className="flex h-[calc(100vh-73px)]">
+        {/* Sidebar - Course Content */}
+        <div
+          className={`
+          bg-white border-r border-gray-200 w-80 lg:w-96 flex-shrink-0 h-full overflow-y-auto
+          transform transition-transform duration-300 ease-in-out
+          ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }
+          fixed lg:relative z-30
+        `}
+        >
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="font-semibold text-lg mb-2">Nội dung khóa học</h2>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <CheckCircle2 size={16} className="text-green-500" />
+              <span>{progress}% hoàn thành</span>
+              <span>•</span>
+              <span>{totalLessons} bài học</span>
+            </div>
+          </div>
 
-                {/* Video content if available */}
-                {currentLesson.videoUrl && (
-                  <div className="mb-8 aspect-w-16 aspect-h-9">
-                    <iframe 
-                      src={currentLesson.videoUrl} 
-                      title={currentLesson.lessonName}
-                      className="w-full h-96 rounded-lg"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                )}
-              </div>
-
-              {/* Navigation buttons */}
-              <div className="flex justify-between">
+          <div className="p-4">
+            {sections.map((section) => (
+              <div key={section.id} className="mb-4">
                 <button
-                  onClick={goToPreviousLesson}
-                  disabled={currentLessonIndex === 0}
-                  className={`flex items-center px-4 py-2 rounded-lg ${
-                    currentLessonIndex === 0
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                  }`}
+                  onClick={() =>
+                    setExpandedSection(
+                      expandedSection === section.id ? null : section.id
+                    )
+                  }
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
                 >
-                  <ChevronLeft size={20} className="mr-1" />
-                  <span>Bài trước</span>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">
+                      {section.sectionName}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {section.lessons?.length || 0} bài học
+                    </p>
+                  </div>
+                  {expandedSection === section.id ? (
+                    <ChevronUp size={20} className="text-gray-400" />
+                  ) : (
+                    <ChevronDown size={20} className="text-gray-400" />
+                  )}
                 </button>
 
-                {currentLessonIndex === allLessons.length - 1 ? (
-                  <button
-                    onClick={markLessonAsCompleted}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
-                  >
-                    Hoàn thành khóa học
-                  </button>
-                ) : (
-                  <button
-                    onClick={markLessonAsCompleted}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center"
-                  >
-                    <span>Bài tiếp theo</span>
-                    <ChevronRight size={20} className="ml-1" />
-                  </button>
+                {expandedSection === section.id && section.lessons && (
+                  <div className="mt-2 space-y-1">
+                    {section.lessons.map((lesson, index) => (
+                      <div
+                        key={lesson.id}
+                        className={`
+                          w-full flex items-center gap-3 p-3 rounded-lg transition-colors
+                          ${
+                            currentLesson?.id === lesson.id
+                              ? "bg-blue-50 border border-blue-200"
+                              : "hover:bg-gray-50 border border-gray-100"
+                          }
+                        `}
+                      >
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 text-xs font-medium">
+                          {index + 1}
+                        </div>
+                        <button
+                          onClick={() => handleLessonSelect(lesson)}
+                          className="flex-1 min-w-0 text-left"
+                        >
+                          <p className="text-sm font-medium text-gray-900">
+                            {lesson.lessonTitle}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                            {getLessonIcon(lesson)}
+                            {lesson.duration && (
+                              <>
+                                <span>{formatMinutes(lesson.duration)}</span>
+                                <span>•</span>
+                              </>
+                            )}
+                            <span>
+                              {isLessonCompleted(lesson.id)
+                                ? "Đã hoàn thành"
+                                : "Chưa hoàn thành"}
+                            </span>
+                          </div>
+                        </button>
+                        {/* Nút toggle hoàn thành */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // Ngăn chặn sự kiện click lan ra ngoài
+                            toggleLessonComplete(
+                              lesson.id,
+                              isLessonCompleted(lesson.id)
+                            );
+                          }}
+                          className="flex-shrink-0 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                          title={
+                            isLessonCompleted(lesson.id)
+                              ? "Đánh dấu chưa hoàn thành"
+                              : "Đánh dấu đã hoàn thành"
+                          }
+                        >
+                          {isLessonCompleted(lesson.id) ? (
+                            <CheckCircle2
+                              size={20}
+                              className="text-green-500 hover:text-green-600"
+                            />
+                          ) : (
+                            <Circle
+                              size={20}
+                              className="text-gray-300 hover:text-gray-400"
+                            />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Content - Lesson Viewer */}
+        <div className="flex-1 h-full overflow-y-auto bg-white">
+          {currentLesson ? (
+            <div className="max-w-4xl mx-auto p-6">
+              {/* Lesson Header */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                  <span>
+                    {currentLesson.contentType === "VIDEO"
+                      ? "Video"
+                      : "Tài liệu"}
+                  </span>
+                  <span>•</span>
+                  <span>
+                    Bài{" "}
+                    {sections
+                      .flatMap((s) => s.lessons)
+                      .findIndex((l) => l.id === currentLesson.id) + 1}{" "}
+                    của {totalLessons}
+                  </span>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                  {currentLesson.lessonTitle}
+                </h1>
+
+                {/* ĐÃ XÓA nút "Đánh dấu hoàn thành" dưới tiêu đề */}
+              </div>
+
+              {/* Lesson Content */}
+              <div className="bg-gray-100 rounded-lg p-6">
+                {currentLesson.contentType === "VIDEO" &&
+                currentLesson.videoUrl ? (
+                  <div className="aspect-w-16 aspect-h-9 bg-black rounded-lg overflow-hidden">
+                    <video
+                      controls
+                      className="w-full h-full"
+                      src={currentLesson.videoUrl}
+                    >
+                      Trình duyệt của bạn không hỗ trợ video.
+                    </video>
+                  </div>
+                ) : currentLesson.documentUrl ? (
+                  <div className="text-center py-12">
+                    <FileText
+                      size={64}
+                      className="mx-auto text-gray-400 mb-4"
+                    />
+                    <p className="text-gray-600 mb-4">
+                      Tài liệu: {currentLesson.lessonTitle}
+                    </p>
+                    <a
+                      href={currentLesson.documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center gap-2"
+                    >
+                      <FileText size={20} />
+                      Mở tài liệu
+                    </a>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FileText
+                      size={64}
+                      className="mx-auto text-gray-400 mb-4"
+                    />
+                    <p className="text-gray-600">
+                      Nội dung bài học đang được cập nhật...
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Lesson Description */}
+              {currentLesson.content && (
+                <div className="mt-6 p-6 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold text-lg mb-4">Mô tả bài học</h3>
+                  <div
+                    className="prose prose-gray max-w-none"
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(currentLesson.content || ""),
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* ĐÃ XÓA Navigation bài trước/bài tiếp theo */}
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-              <p className="text-gray-500 dark:text-gray-400">
-                Chọn một bài học từ menu bên trái để bắt đầu học.
-              </p>
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <BookOpen size={48} className="mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Chọn bài học để bắt đầu
+                </h3>
+                <p className="text-gray-600">
+                  Chọn một bài học từ danh sách bên trái để bắt đầu học.
+                </p>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-20"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };
 
-export default CourseLearningPage;
+export default CourseLearning;

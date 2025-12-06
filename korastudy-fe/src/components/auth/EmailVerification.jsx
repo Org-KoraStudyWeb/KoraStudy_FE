@@ -1,5 +1,5 @@
 // EmailVerification.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { CheckCircle, XCircle, Loader2, MailCheck } from "lucide-react";
 import authService from "../../api/authService";
@@ -12,9 +12,13 @@ const EmailVerification = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [countdown, setCountdown] = useState(5);
 
+  // Thêm useRef để track API call
+  const hasCalledApi = useRef(false);
+
   useEffect(() => {
     const verifyEmail = async () => {
       const token = searchParams.get("token");
+
       if (!token) {
         setMessage("Token xác thực không hợp lệ hoặc không tồn tại");
         setIsLoading(false);
@@ -22,14 +26,25 @@ const EmailVerification = () => {
         return;
       }
 
+      // Prevent multiple API calls
+      if (hasCalledApi.current) {
+        console.log("🛑 API already called, skipping...");
+        return;
+      }
+
+      hasCalledApi.current = true;
+      console.log("🚀 Calling verifyEmail API with token:", token);
+
       try {
         await authService.verifyEmail(token);
+        console.log("✅ Email verification successful");
+
         setMessage(
           "Email đã được xác thực thành công! Bạn sẽ được chuyển hướng đến trang đăng nhập sau vài giây."
         );
         setIsSuccess(true);
 
-        // Countdown timer
+        // Countdown timer - chỉ chạy 1 lần
         const timer = setInterval(() => {
           setCountdown((prev) => {
             if (prev <= 1) {
@@ -41,22 +56,46 @@ const EmailVerification = () => {
           });
         }, 1000);
       } catch (error) {
-        setMessage(
-          error.message || "Xác thực email thất bại. Vui lòng thử lại."
-        );
-        setIsSuccess(false);
+        console.error("❌ Email verification failed:", error);
+
+        // Xử lý lỗi đặc biệt - nếu đã verified thì vẫn là success
+        if (
+          error.message.includes("đã được xác thực") ||
+          error.message.includes("đã được kích hoạt")
+        ) {
+          setMessage(
+            "Tài khoản đã được xác thực trước đó. Bạn sẽ được chuyển hướng đến trang đăng nhập."
+          );
+          setIsSuccess(true);
+
+          // Vẫn chuyển hướng sau 3 giây
+          setTimeout(() => {
+            navigate("/dang-nhap");
+          }, 3000);
+        } else {
+          setMessage(
+            error.message || "Xác thực email thất bại. Vui lòng thử lại."
+          );
+          setIsSuccess(false);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     verifyEmail();
-  }, [searchParams, navigate]);
+
+    // Cleanup function
+    return () => {
+      hasCalledApi.current = false;
+    };
+  }, []); // ❌ QUAN TRỌNG: Remove dependencies để chỉ chạy 1 lần
 
   const handleNavigateNow = () => {
     navigate("/dang-nhap");
   };
 
+  // ... phần còn lại của component giữ nguyên
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-dark-800 dark:to-dark-900 flex items-center justify-center p-4">
@@ -113,7 +152,7 @@ const EmailVerification = () => {
         </p>
 
         {/* Countdown */}
-        {isSuccess && (
+        {isSuccess && countdown > 0 && (
           <div className="mb-6">
             <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <Loader2 size={16} className="animate-spin" />
