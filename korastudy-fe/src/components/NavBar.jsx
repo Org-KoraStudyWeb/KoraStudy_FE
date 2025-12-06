@@ -320,36 +320,29 @@ const NavBar = () => {
                   Kỳ thi TOPIK
                 </div>
                 <Link
-                  to="/exam/topik-1"
+                  to="/exam?type=topik1"
                   className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700"
                 >
                   <BookOpen size={16} className="mr-2" />
                   Đề thi TOPIK I
                 </Link>
                 <Link
-                  to="/exam/topik-2"
+                  to="/exam?type=topik2"
                   className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700"
                 >
                   <BookOpen size={16} className="mr-2" />
                   Đề thi TOPIK II
                 </Link>
-                <hr className="my-2 border-gray-200 dark:border-dark-700" />
-                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                {/* <hr className="my-2 border-gray-200 dark:border-dark-700" /> */}
+                {/* <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                   Đề thi chuyên ngành
-                </div>
+                </div> */}
                 <Link
-                  to="/exam/topik-esp"
+                  to="/exam?type=topikeps"
                   className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700"
                 >
                   <BookOpen size={16} className="mr-2" />
-                  TOPIK ESP
-                </Link>
-                <Link
-                  to="/exam/mock-test"
-                  className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700"
-                >
-                  <BookOpen size={16} className="mr-2" />
-                  Đề thi thử
+                  Đề thi TOPIK ESP
                 </Link>
               </div>
             </div>

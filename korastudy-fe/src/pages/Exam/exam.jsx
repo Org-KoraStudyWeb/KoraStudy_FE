@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Filter, Clock, Users, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import ExamCard from '../../components/ExamComponent/ExamCard';
 import { examService } from '../../api/ExamService';
@@ -8,6 +8,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 
 const Exams = () => {
+  const [searchParams] = useSearchParams();
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,10 +19,27 @@ const Exams = () => {
   const itemsPerPage = 12;
   const { user } = useUser();
 
-  // Fetch danh sách bài thi từ API
+  // Lấy filter từ URL params và tự động filter
   useEffect(() => {
-    fetchExams();
-  }, []);
+    const typeFromUrl = searchParams.get('type');
+    const levelFromUrl = searchParams.get('level');
+    
+    if (typeFromUrl) {
+      setSelectedType(typeFromUrl);
+    }
+    if (levelFromUrl) {
+      setSelectedLevel(levelFromUrl);
+    }
+  }, [searchParams]);
+
+  // Fetch và filter khi selectedType hoặc selectedLevel thay đổi
+  useEffect(() => {
+    if (selectedType !== 'all' || selectedLevel !== 'all' || searchTerm) {
+      handleSearch();
+    } else {
+      fetchExams();
+    }
+  }, [selectedType, selectedLevel]);
 
   const fetchExams = async () => {
     try {
@@ -40,9 +58,10 @@ const Exams = () => {
   const handleSearch = async () => {
     try {
       setLoading(true);
+      setCurrentPage(1); // Reset to first page when searching
       const data = await examService.searchExams(
         searchTerm,
-        getLevelForApi(selectedLevel),
+        getTypeForApi(selectedLevel), // level field contains TOPIK I/II
         getTypeForApi(selectedType)
       );
       setExams(data);
@@ -59,23 +78,23 @@ const Exams = () => {
     setSearchTerm('');
     setSelectedLevel('all');
     setSelectedType('all');
+    setCurrentPage(1);
     fetchExams();
   };
 
-  const getLevelForApi = (levelId) => {
-    switch(levelId) {
-      case 'beginner': return 'Sơ cấp';
-      case 'intermediate': return 'Trung cấp';
-      case 'advanced': return 'Cao cấp';
-      default: return '';
-    }
-  };
-
-  const getTypeForApi = (typeId) => {
-    switch(typeId) {
-      case 'topik1': return 'TOPIK I';
-      case 'topik2': return 'TOPIK II';
-      default: return '';
+  const getTypeForApi = (levelOrTypeId) => {
+    switch(levelOrTypeId) {
+      case 'topik1':
+      case 'beginner': // Map beginner to TOPIK I
+        return 'TOPIK I';
+      case 'topik2':
+      case 'intermediate': // Map intermediate to TOPIK II
+      case 'advanced': // Map advanced to TOPIK II
+        return 'TOPIK II';
+      case 'topikeps': // Map TOPIK EPS
+        return 'TOPIK EPS';
+      default: 
+        return '';
     }
   };
 
@@ -90,22 +109,12 @@ const Exams = () => {
     { id: 'all', name: 'Tất cả loại' },
     { id: 'topik1', name: 'TOPIK I' },
     { id: 'topik2', name: 'TOPIK II' },
+    { id: 'topikeps', name: 'TOPIK EPS' },
   ];
 
   // Filter exams based on search and filters (client-side filtering as backup)
-  const filteredExams = exams.filter(exam => {
-    const matchesSearch = searchTerm === '' || 
-                         (exam.title && exam.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (exam.description && exam.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesLevel = selectedLevel === 'all' || 
-                        (selectedLevel === 'beginner' && exam.level === 'Sơ cấp') ||
-                        (selectedLevel === 'intermediate' && exam.level === 'Trung cấp') ||
-                        (selectedLevel === 'advanced' && exam.level === 'Cao cấp');
-    const matchesType = selectedType === 'all' || 
-                       (exam.type && exam.type.toLowerCase().includes(getTypeForApi(selectedType).toLowerCase()));
-    
-    return matchesSearch && matchesLevel && matchesType;
-  });
+  // Using backend filtering now
+  const filteredExams = exams;
 
   // Pagination
   const totalPages = Math.ceil(filteredExams.length / itemsPerPage);
@@ -174,6 +183,11 @@ const Exams = () => {
                   placeholder="Tìm kiếm đề thi, bài kiểm tra..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearch();
+                    }
+                  }}
                   className="w-full h-14 pl-12 pr-4 rounded-xl border-0 text-gray-800 placeholder-gray-500 text-lg outline-none focus:ring-4 focus:ring-white/20"
                 />
               </div>
@@ -195,25 +209,7 @@ const Exams = () => {
                   <h3 className="font-semibold text-lg text-gray-800">Bộ lọc</h3>
                 </div>
 
-                {/* Level Filter */}
-                <div className="mb-6">
-                  <h4 className="font-medium text-gray-800 mb-3">Cấp độ</h4>
-                  <div className="space-y-2">
-                    {levels.map(level => (
-                      <button
-                        key={level.id}
-                        onClick={() => setSelectedLevel(level.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors duration-200 ${
-                          selectedLevel === level.id 
-                            ? 'bg-primary-500 text-white' 
-                            : 'hover:bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {level.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+               
 
                 {/* Type Filter */}
                 <div className="mb-6">
