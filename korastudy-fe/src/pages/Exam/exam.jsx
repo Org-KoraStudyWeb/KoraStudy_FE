@@ -24,26 +24,22 @@ const Exams = () => {
     const typeFromUrl = searchParams.get('type');
     const levelFromUrl = searchParams.get('level');
     
-    // Chỉ set filter nếu có params trong URL
     if (typeFromUrl) {
       setSelectedType(typeFromUrl);
-      // Tự động search khi có type từ URL
-      setTimeout(() => {
-        handleSearch();
-      }, 100);
-    } else if (levelFromUrl) {
+    }
+    if (levelFromUrl) {
       setSelectedLevel(levelFromUrl);
-      // Tự động search khi có level từ URL
-      setTimeout(() => {
-        handleSearch();
-      }, 100);
-    } else {
-      // Không có params -> reset filters và load tất cả
-      setSelectedType('all');
-      setSelectedLevel('all');
-      fetchExams();
     }
   }, [searchParams]);
+
+  // Fetch và filter khi selectedType hoặc selectedLevel thay đổi
+  useEffect(() => {
+    if (selectedType !== 'all' || selectedLevel !== 'all' || searchTerm) {
+      handleSearch();
+    } else {
+      fetchExams();
+    }
+  }, [selectedType, selectedLevel]);
 
   const fetchExams = async () => {
     try {

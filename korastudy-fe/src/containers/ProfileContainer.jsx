@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import { useTheme } from "../contexts/ThemeContext";
 import authService from "../api/authService";
+import { examService } from "../api/ExamService";
 
 const ProfileContainer = ({ children }) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,6 +27,12 @@ const ProfileContainer = ({ children }) => {
   });
 
   const [preferences, setPreferences] = useState({});
+  const [userStats, setUserStats] = useState({
+    totalTests: 0,
+    averageScore: 0,
+    studyStreak: 0,
+    totalStudyHours: 0
+  });
 
   // Update editForm when user changes
   useEffect(() => {
@@ -40,6 +47,27 @@ const ProfileContainer = ({ children }) => {
       });
       setPreferences(user.preferences || {});
     }
+  }, [user]);
+
+  // Fetch user statistics
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (user?.id) {
+        try {
+          const stats = await examService.getUserStatistics(user.id);
+          setUserStats({
+            totalTests: stats.totalExams || 0,
+            averageScore: stats.averageScore || 0,
+            studyStreak: stats.studyStreak || 0,
+            totalStudyHours: stats.totalStudyHours || 0
+          });
+        } catch (error) {
+          console.error('Error fetching user statistics:', error);
+        }
+      }
+    };
+
+    fetchUserStats();
   }, [user]);
 
   const handleTabChange = (tab) => {
@@ -226,7 +254,7 @@ const ProfileContainer = ({ children }) => {
   }, [user?.id]);
 
   const profileUtils = {
-    user,
+    user: { ...user, stats: userStats }, // Merge user data with statistics
     activeTab,
     isEditing,
     editForm,

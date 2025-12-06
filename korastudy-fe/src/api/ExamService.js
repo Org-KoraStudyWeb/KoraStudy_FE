@@ -191,4 +191,30 @@ export const examService = {
       throw error;
     }
   },
+
+  // Lấy thống kê bài thi của user
+  getUserStatistics: async (userId) => {
+    try {
+      console.log(`Fetching statistics for user ${userId}`);
+      const response = await api.get(`/exams/statistics?userId=${userId}`);
+      console.log('User statistics response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user statistics:', error);
+      throw error;
+    }
+  },
+
+  // Lấy lịch sử làm bài thi của user
+  getExamHistory: async (userId) => {
+    try {
+      console.log(`Fetching exam history for user ${userId}`);
+      const response = await api.get(`/exams/history?userId=${userId}`);
+      console.log('Exam history response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching exam history:', error);
+      throw error;
+    }
+  },
 };
