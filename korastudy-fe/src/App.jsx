@@ -53,6 +53,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Import Checkout and PaymentResult pages
 import PaymentResult from "./pages/payment/PaymentResult";
 import Checkout from "./pages/payment/Checkout";
+import MyCourseDetail from "./pages/Course/MyCourseDetail";
+import CourseLearning from "./pages/Course/CourseLearning.jsx";
 
 function App() {
   return (
@@ -92,7 +94,11 @@ function App() {
                 {/* router khóa học */}
                 <Route path="courses" element={<Courses />} />
                 <Route path="course/:courseId" element={<CourseDetail />} />
-                <Route path="courses/my-courses" element={<MyCoursesPage />} />
+                <Route path="/my-courses" element={<MyCoursesPage />} />
+                <Route
+                  path="/my-courses/:courseId"
+                  element={<MyCourseDetail />}
+                />
 
                 {/* router thanh toán */}
                 <Route path="checkout" element={<Checkout />} />
@@ -234,6 +240,9 @@ function App() {
                   }
                 />
               </Route>
+
+              {/* CourseLearning without header/footer */}
+              <Route path="/learning/:courseId" element={<CourseLearning />} />
             </Routes>
           </div>
         </Router>

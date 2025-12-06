@@ -215,7 +215,7 @@ const NavBar = () => {
         <div className="nav-logo flex items-center">
           <Link to="/" className="flex items-center">
             <img
-              src="bloom_black.png"
+              src="/bloom_black.png"
               alt="KoraStudy Logo"
               className="h-12 md:h-16 w-auto mr-2 dark:filter dark:brightness-0 dark:invert"
             />
@@ -263,7 +263,7 @@ const NavBar = () => {
                   <>
                     <hr className="my-2 border-gray-200 dark:border-dark-700" />
                     <Link
-                      to="/courses/my-courses"
+                      to="/my-courses"
                       className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700"
                     >
                       <User size={16} className="mr-2" />
@@ -543,7 +543,7 @@ const NavBar = () => {
                   </Link>
                   {isAuthenticated() && (
                     <Link
-                      to="/courses/my-courses"
+                      to="/my-courses"
                       onClick={closeMobileMenu}
                       className="block px-4 py-2 ml-4 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors"
                     >

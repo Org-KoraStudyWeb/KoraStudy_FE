@@ -6,17 +6,21 @@ import {
   BookOpen,
   Calendar,
   Clock,
+  Users,
+  Star,
 } from "lucide-react";
+import DOMPurify from "dompurify";
 import enrollmentService from "../../api/enrollmentService";
+import courseService from "../../api/courseService";
 import { useUser } from "../../contexts/UserContext";
 import { formatDate } from "../../utils/formatDate";
 
 const MyCoursesPage = () => {
   const { isAuthenticated, user } = useUser();
   const [enrollments, setEnrollments] = useState([]);
+  const [coursesData, setCoursesData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeFilter, setActiveFilter] = useState("all");
 
   useEffect(() => {
     const fetchEnrollments = async () => {
@@ -31,9 +35,42 @@ const MyCoursesPage = () => {
         }
 
         console.log("Fetching enrollments...");
-        const data = await enrollmentService.getMyEnrollments();
-        console.log("Enrollments data:", data);
-        setEnrollments(data || []);
+        const enrollmentsData = await enrollmentService.getMyEnrollments();
+        console.log("Enrollments data:", enrollmentsData);
+        setEnrollments(enrollmentsData || []);
+
+        // Fetch thông tin chi tiết cho từng khóa học
+        if (enrollmentsData && enrollmentsData.length > 0) {
+          const coursesInfo = {};
+
+          for (const enrollment of enrollmentsData) {
+            try {
+              // Fetch course details
+              const courseDetail = await courseService.getCourseById(
+                enrollment.courseId
+              );
+              coursesInfo[enrollment.courseId] = courseDetail;
+            } catch (err) {
+              console.error(
+                `Error fetching course ${enrollment.courseId}:`,
+                err
+              );
+              // Fallback: sử dụng dữ liệu từ enrollment nếu có
+              coursesInfo[enrollment.courseId] = {
+                courseName: enrollment.courseName,
+                courseDescription: enrollment.courseDescription,
+                courseImageUrl: enrollment.courseImageUrl,
+                courseLevel: enrollment.courseLevel,
+                totalDuration: enrollment.totalDuration,
+                totalLessons: enrollment.totalLessons,
+                enrollmentCount: enrollment.enrollmentCount,
+                averageRating: enrollment.averageRating,
+                reviewCount: enrollment.reviewCount,
+              };
+            }
+          }
+          setCoursesData(coursesInfo);
+        }
       } catch (err) {
         console.error("Error fetching enrollments:", err);
         const friendly =
@@ -50,28 +87,102 @@ const MyCoursesPage = () => {
     fetchEnrollments();
   }, [isAuthenticated]);
 
-  // Filter courses based on active filter
-  const filteredEnrollments = enrollments.filter((enrollment) => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "in-progress") return enrollment.progress < 100;
-    if (activeFilter === "completed") return enrollment.progress === 100;
-    return true;
-  });
-
-  // Hàm format progress
-  const getProgress = (enrollment) => {
-    return enrollment.progress || 0;
-  };
-
   // Hàm lấy thông tin khóa học
   const getCourseInfo = (enrollment) => {
+    const courseDetail = coursesData[enrollment.courseId] || {};
+
+    const getDurationInfo = () => {
+      // Ưu tiên 1: totalDuration từ course detail
+      if (courseDetail.totalDuration) {
+        return formatMinutes(courseDetail.totalDuration);
+      }
+
+      // Ưu tiên 2: courseDuration từ enrollment
+      if (enrollment.courseDuration) {
+        return enrollment.courseDuration;
+      }
+
+      // Ưu tiên 3: Ước tính dựa trên level
+      const level =
+        courseDetail.courseLevel?.toLowerCase() ||
+        enrollment.courseLevel?.toLowerCase();
+      if (
+        level?.includes("beginner") ||
+        level?.includes("cơ bản") ||
+        level?.includes("sơ cấp")
+      ) {
+        return "5-10 giờ";
+      } else if (
+        level?.includes("intermediate") ||
+        level?.includes("trung cấp")
+      ) {
+        return "10-15 giờ";
+      } else if (
+        level?.includes("advanced") ||
+        level?.includes("nâng cao") ||
+        level?.includes("cao cấp")
+      ) {
+        return "15-20 giờ";
+      }
+
+      // Mặc định
+      return "8-12 giờ";
+    };
+
     return {
-      title: enrollment.courseName || "Khóa học không tên",
-      description: enrollment.courseDescription || "Không có mô tả",
-      thumbnail: enrollment.courseThumbnail || "/api/placeholder/400/200",
-      duration: enrollment.courseDuration || "N/A",
+      title:
+        courseDetail.courseName ||
+        enrollment.courseName ||
+        "Khóa học không tên",
+      description:
+        courseDetail.courseDescription ||
+        enrollment.courseDescription ||
+        "Không có mô tả",
+      thumbnail:
+        courseDetail.courseImageUrl ||
+        enrollment.courseImageUrl ||
+        "/api/placeholder/400/200",
+      duration: getDurationInfo(),
+      level: courseDetail.courseLevel || enrollment.courseLevel,
+      totalLessons: courseDetail.totalLessons || enrollment.totalLessons || 0,
+      enrollmentCount:
+        courseDetail.enrollmentCount || enrollment.enrollmentCount || 0,
+      averageRating:
+        courseDetail.averageRating || enrollment.averageRating || 0,
+      reviewCount: courseDetail.reviewCount || enrollment.reviewCount || 0,
       id: enrollment.courseId,
     };
+  };
+
+  // Hàm format minutes thành giờ/phút
+  const formatMinutes = (minutes) => {
+    if (!minutes || !Number.isFinite(minutes) || minutes <= 0) return "";
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hrs > 0 && mins > 0) return `${hrs} giờ ${mins} phút`;
+    if (hrs > 0) return `${hrs} giờ`;
+    return `${mins} phút`;
+  };
+
+  // Hàm format level
+  const levelToLabel = (level) => {
+    if (!level) return "";
+    const value = String(level).toLowerCase();
+    if (
+      value.includes("begin") ||
+      value.includes("cơ bản") ||
+      value.includes("sơ cấp")
+    )
+      return "Sơ cấp";
+    if (value.includes("inter") || value.includes("trung cấp"))
+      return "Trung cấp";
+    if (
+      value.includes("adv") ||
+      value.includes("nâng cao") ||
+      value.includes("cao cấp")
+    )
+      return "Nâng cao";
+    return level;
   };
 
   return (
@@ -124,52 +235,12 @@ const MyCoursesPage = () => {
             Khóa học của tôi
           </h1>
 
-          {/* Filter tabs */}
-          <div className="flex mb-8 border-b dark:border-gray-700">
-            <button
-              className={`pb-4 px-6 ${
-                activeFilter === "all"
-                  ? "border-b-2 border-blue-500 text-blue-500"
-                  : "text-gray-600 dark:text-gray-400"
-              }`}
-              onClick={() => setActiveFilter("all")}
-            >
-              Tất cả ({enrollments.length})
-            </button>
-            <button
-              className={`pb-4 px-6 ${
-                activeFilter === "in-progress"
-                  ? "border-b-2 border-blue-500 text-blue-500"
-                  : "text-gray-600 dark:text-gray-400"
-              }`}
-              onClick={() => setActiveFilter("in-progress")}
-            >
-              Đang học (
-              {enrollments.filter((e) => (e.progress || 0) < 100).length})
-            </button>
-            <button
-              className={`pb-4 px-6 ${
-                activeFilter === "completed"
-                  ? "border-b-2 border-blue-500 text-blue-500"
-                  : "text-gray-600 dark:text-gray-400"
-              }`}
-              onClick={() => setActiveFilter("completed")}
-            >
-              Hoàn thành (
-              {enrollments.filter((e) => (e.progress || 0) === 100).length})
-            </button>
-          </div>
-
           {/* Courses list */}
-          {filteredEnrollments.length === 0 ? (
+          {enrollments.length === 0 ? (
             <div className="text-center py-16">
               <BookOpen className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-600 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                {activeFilter === "all"
-                  ? "Bạn chưa đăng ký khóa học nào"
-                  : activeFilter === "in-progress"
-                  ? "Không có khóa học đang học"
-                  : "Chưa hoàn thành khóa học nào"}
+                Bạn chưa đăng ký khóa học nào
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-6">
                 Khám phá các khóa học chất lượng cao để bắt đầu hành trình học
@@ -184,8 +255,7 @@ const MyCoursesPage = () => {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredEnrollments.map((enrollment) => {
-                const progress = getProgress(enrollment);
+              {enrollments.map((enrollment) => {
                 const course = getCourseInfo(enrollment);
 
                 return (
@@ -198,36 +268,60 @@ const MyCoursesPage = () => {
                         src={course.thumbnail}
                         alt={course.title}
                         className="w-full h-48 object-cover"
+                        onError={(e) => {
+                          e.target.src = "/api/placeholder/400/200";
+                        }}
                       />
                       <div className="absolute top-4 right-4">
                         <div className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-md">
                           <BarChart className="h-5 w-5 text-blue-500" />
                         </div>
                       </div>
+                      {/* Level badge */}
+                      {course.level && (
+                        <div className="absolute top-4 left-4">
+                          <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            {levelToLabel(course.level)}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
                         {course.title}
                       </h3>
 
-                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
-                        {course.description}
-                      </p>
-
-                      {/* Progress bar */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
-                          <span>Tiến độ</span>
-                          <span>{progress}%</span>
+                      {/* Course stats */}
+                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
+                        <div className="flex items-center gap-1">
+                          <Star className="h-4 w-4 text-yellow-500" />
+                          <span>{course.averageRating.toFixed(1)}</span>
+                          <span>({course.reviewCount})</span>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          ></div>
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          <span>{course.enrollmentCount}</span>
                         </div>
                       </div>
+
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                        {(() => {
+                          try {
+                            const temp = document.createElement("div");
+                            temp.innerHTML = DOMPurify.sanitize(
+                              course.description || ""
+                            );
+                            let txt = temp.textContent || temp.innerText || "";
+                            txt = txt.replace(/\s+/g, " ").trim();
+                            if (txt.length > 180)
+                              return txt.slice(0, 180).trim() + "...";
+                            return txt;
+                          } catch (e) {
+                            return course.description || "";
+                          }
+                        })()}
+                      </p>
 
                       {/* Course stats */}
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -239,22 +333,12 @@ const MyCoursesPage = () => {
                         <span>{course.duration}</span>
                       </div>
 
-                      <div className="flex justify-between items-center">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            progress === 100
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                          }`}
-                        >
-                          {progress === 100 ? "Hoàn thành" : "Đang học"}
-                        </span>
-
+                      <div className="flex justify-end">
                         <Link
-                          to={`/course/${course.id}`}
+                          to={`/my-courses/${course.id}`}
                           className="inline-flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
                         >
-                          {progress === 100 ? "Ôn tập lại" : "Tiếp tục học"}
+                          Vào học
                           <ChevronRight className="h-4 w-4 ml-1" />
                         </Link>
                       </div>
