@@ -87,6 +87,7 @@ export const examService = {
       if (title) params.append('title', title);
       if (level) params.append('level', level);
       if (type) params.append('type', type);
+      params.append('size', 1000); // Fetch all matching exams for client-side pagination
       
       console.log(`Searching exams with params:`, params.toString()); // Debug log
       const response = await api.get(`/exams/search?${params}`);
