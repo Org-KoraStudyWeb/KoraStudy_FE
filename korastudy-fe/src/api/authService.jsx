@@ -1,4 +1,5 @@
 import axios from "axios";
+import { AUTH_TOKEN_KEY } from "../config";
 
 // Base URLs
 const AUTH_API_URL = "http://localhost:8080/api/v1/auth";
@@ -20,7 +21,7 @@ const userApi = axios.create({
 // Helper function to add auth token to requests
 const setupInterceptors = (api) => {
   api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -302,7 +303,7 @@ const authService = {
       // Store token
       const token = response.data.token || response.data.accessToken;
       if (token) {
-        localStorage.setItem("authToken", token);
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
       }
 
       // Get user ID - có thể là account ID hoặc user ID
@@ -446,7 +447,7 @@ const authService = {
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      localStorage.removeItem("authToken");
+      localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem("user");
       localStorage.removeItem("userProfileRaw");
     }
@@ -531,19 +532,19 @@ const authService = {
 
   // Get authentication token
   getToken: () => {
-    return localStorage.getItem("authToken");
+    return localStorage.getItem(AUTH_TOKEN_KEY);
   },
 
   // Check if user is authenticated
   isAuthenticated: () => {
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const user = localStorage.getItem("user");
     return !!(token && user);
   },
 
   // Check if token is expired
   isTokenExpired: () => {
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (!token) return true;
 
     try {

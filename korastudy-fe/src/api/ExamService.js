@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
+const AUTH_TOKEN_KEY = 'authToken'; // Import from config would be better
 
 // Tạo axios instance
 const api = axios.create({
@@ -13,7 +14,7 @@ const api = axios.create({
 // Interceptor để thêm token vào headers
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -31,8 +32,7 @@ api.interceptors.response.use(
     console.error('API Error:', error);
     if (error.response?.status === 401) {
       // Token expired, redirect to login
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('token');
+      localStorage.removeItem(AUTH_TOKEN_KEY);
       window.location.href = '/dang-nhap';
     }
     return Promise.reject(error);

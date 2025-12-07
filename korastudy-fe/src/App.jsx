@@ -16,6 +16,7 @@ import { UserProvider } from "@contexts/UserContext.jsx";
 import NavBar from "@components/NavBar.jsx";
 import Footer from "@components/Footer.jsx";
 import ScrollToTop from "@components/ScrollToTop.jsx";
+import ChatBox from "@components/ChatBox.jsx";
 // Import pages
 import Home from "@pages/home.jsx";
 // Import course pages
@@ -77,6 +78,9 @@ function App() {
           />
 
           <div className="App bg-white dark:bg-dark-900 min-h-screen transition-colors duration-300">
+            {/* ChatBox - Trợ lý AI học tiếng Hàn */}
+            <ChatBox />
+            
             <Routes>
               {/* Layout cho các trang công khai */}
               <Route

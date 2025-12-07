@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL, API_CONFIG } from "../config";
+import { API_BASE_URL, API_CONFIG, AUTH_TOKEN_KEY } from "../config";
 
 // Tạo axios instance riêng cho payments
 const paymentApi = axios.create({
@@ -11,7 +11,7 @@ const paymentApi = axios.create({
 // Setup interceptors để tự động thêm token
 paymentApi.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
