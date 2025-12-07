@@ -1,8 +1,8 @@
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, AUTH_TOKEN_KEY } from '../config';
 
 // Helper function to get token from localStorage
 const getAuthToken = () => {
-  return localStorage.getItem('authToken');
+  return localStorage.getItem(AUTH_TOKEN_KEY);
 };
 
 // Helper function to create headers with authentication

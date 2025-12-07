@@ -1,7 +1,7 @@
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import { toast } from 'react-toastify';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, AUTH_TOKEN_KEY } from '../config';
 
 class WebSocketService {
   constructor() {
@@ -25,7 +25,7 @@ class WebSocketService {
 
     return new Promise((resolve, reject) => {
       // Lấy token từ localStorage
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
       
       if (!token) {
         this.connecting = false;

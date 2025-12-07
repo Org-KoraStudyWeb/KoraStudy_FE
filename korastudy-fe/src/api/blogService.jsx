@@ -1,10 +1,10 @@
-import { API_BASE_URL } from '../config.js';
+import { API_BASE_URL, AUTH_TOKEN_KEY } from '../config.js';
 import { formatUserName } from '../utils/formatUserName';
 import { formatDate } from '../utils/formatDate';
 
 // Helper function để get token từ localStorage
 const getAuthToken = () => {
-  return localStorage.getItem('authToken');
+  return localStorage.getItem(AUTH_TOKEN_KEY);
 };
 
 // Helper function để tạo headers với authentication

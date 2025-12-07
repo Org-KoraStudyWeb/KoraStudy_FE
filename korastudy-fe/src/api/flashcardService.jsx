@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, AUTH_TOKEN_KEY } from '../config';
 
 // Khởi tạo Axios instance
 const flashcardApi = axios.create({
@@ -11,7 +11,7 @@ const flashcardApi = axios.create({
 //  Interceptor: Gắn token hợp lệ nếu có
 flashcardApi.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
     if (
       token &&
