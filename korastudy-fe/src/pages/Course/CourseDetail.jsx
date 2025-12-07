@@ -193,10 +193,8 @@ const CourseDetailNew = () => {
               <h1 className="text-4xl font-bold mb-4">{course.courseName}</h1>
               <p className="text-xl mb-6 text-white/90">
                 {(() => {
-                  const { totalLessons, totalDurationMinutes } = getTotals();
-                  return `${formatMinutes(totalDurationMinutes)}${
-                    totalDurationMinutes ? " • " : ""
-                  }${totalLessons} bài học`;
+                  const { totalLessons } = getTotals();
+                  return `${totalLessons} bài học`;
                 })()}
               </p>
 
