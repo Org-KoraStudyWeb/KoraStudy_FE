@@ -31,6 +31,8 @@ const CourseLearning = () => {
   const [course, setCourse] = useState(null);
   const [sections, setSections] = useState([]);
   const [currentLesson, setCurrentLesson] = useState(null);
+  const [videoSrc, setVideoSrc] = useState(null);
+  const [videoError, setVideoError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedSection, setExpandedSection] = useState(null);
@@ -225,6 +227,7 @@ const CourseLearning = () => {
           const firstLesson = sectionsWithProgress[0].lessons[0];
           setCurrentLesson(firstLesson);
           setExpandedSection(sectionsWithProgress[0].id);
+          setVideoSrc(firstLesson.videoUrl || null);
         }
 
         // Tính toán progress từ lessonProgress
@@ -248,6 +251,35 @@ const CourseLearning = () => {
       fetchCourseData();
     }
   }, [courseId, navigate]);
+
+  // when currentLesson changes, reset video src and error
+  useEffect(() => {
+    setVideoError(false);
+    setVideoSrc(currentLesson?.videoUrl || null);
+  }, [currentLesson]);
+
+  const normalizeCloudinaryUrl = (url) => {
+    if (!url) return url;
+    try {
+      // remove Cloudinary version segment like /v123456789/
+      return url.replace(/\/v\d+\//, "/");
+    } catch (e) {
+      return url;
+    }
+  };
+
+  const handleVideoError = async (e) => {
+    console.error("Video failed to load:", videoSrc, e);
+    // try alternative URL (remove version segment)
+    const alt = normalizeCloudinaryUrl(videoSrc);
+    if (alt && alt !== videoSrc) {
+      console.log("Trying alternate video URL:", alt);
+      setVideoSrc(alt);
+      return;
+    }
+
+    setVideoError(true);
+  };
 
   // Effect để tự động tính progress khi lessonProgress thay đổi
   useEffect(() => {
@@ -432,12 +464,7 @@ const CourseLearning = () => {
                           </p>
                           <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
                             {getLessonIcon(lesson)}
-                            {lesson.duration && (
-                              <>
-                                <span>{formatMinutes(lesson.duration)}</span>
-                                <span>•</span>
-                              </>
-                            )}
+                            {/* Lesson duration intentionally hidden to keep UI clean */}
                             <span>
                               {isLessonCompleted(lesson.id)
                                 ? "Đã hoàn thành"
@@ -515,13 +542,47 @@ const CourseLearning = () => {
                 {currentLesson.contentType === "VIDEO" &&
                 currentLesson.videoUrl ? (
                   <div className="aspect-w-16 aspect-h-9 bg-black rounded-lg overflow-hidden">
-                    <video
-                      controls
-                      className="w-full h-full"
-                      src={currentLesson.videoUrl}
-                    >
-                      Trình duyệt của bạn không hỗ trợ video.
-                    </video>
+                    {!videoError ? (
+                      <video
+                        controls
+                        className="w-full h-full"
+                        src={videoSrc}
+                        onError={handleVideoError}
+                      >
+                        Trình duyệt của bạn không hỗ trợ video.
+                      </video>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center p-4 text-white">
+                        <p className="mb-3">
+                          Không thể tải video (404 hoặc video đã bị xóa).
+                        </p>
+                        {currentLesson.documentUrl ? (
+                          <a
+                            href={currentLesson.documentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-white text-primary-600 px-4 py-2 rounded-lg font-medium"
+                          >
+                            Mở tài liệu thay thế
+                          </a>
+                        ) : (
+                          <div className="space-x-2">
+                            <button
+                              onClick={() => {
+                                setVideoError(false);
+                                setVideoSrc(currentLesson.videoUrl || null);
+                              }}
+                              className="bg-white text-primary-600 px-4 py-2 rounded-lg font-medium mr-2"
+                            >
+                              Thử lại
+                            </button>
+                            <span className="text-sm">
+                              Hoặc liên hệ hỗ trợ để khôi phục video.
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : currentLesson.documentUrl ? (
                   <div className="text-center py-12">

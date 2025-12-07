@@ -92,41 +92,8 @@ const MyCoursesPage = () => {
     const courseDetail = coursesData[enrollment.courseId] || {};
 
     const getDurationInfo = () => {
-      // Ưu tiên 1: totalDuration từ course detail
-      if (courseDetail.totalDuration) {
-        return formatMinutes(courseDetail.totalDuration);
-      }
-
-      // Ưu tiên 2: courseDuration từ enrollment
-      if (enrollment.courseDuration) {
-        return enrollment.courseDuration;
-      }
-
-      // Ưu tiên 3: Ước tính dựa trên level
-      const level =
-        courseDetail.courseLevel?.toLowerCase() ||
-        enrollment.courseLevel?.toLowerCase();
-      if (
-        level?.includes("beginner") ||
-        level?.includes("cơ bản") ||
-        level?.includes("sơ cấp")
-      ) {
-        return "5-10 giờ";
-      } else if (
-        level?.includes("intermediate") ||
-        level?.includes("trung cấp")
-      ) {
-        return "10-15 giờ";
-      } else if (
-        level?.includes("advanced") ||
-        level?.includes("nâng cao") ||
-        level?.includes("cao cấp")
-      ) {
-        return "15-20 giờ";
-      }
-
-      // Mặc định
-      return "8-12 giờ";
+      // Duration display removed by request — return empty string
+      return "";
     };
 
     return {
@@ -326,11 +293,9 @@ const MyCoursesPage = () => {
                       {/* Course stats */}
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
                         <Calendar className="h-4 w-4 mr-1" />
-                        <span className="mr-4">
+                        <span>
                           Đăng ký: {formatDate(enrollment.enrollDate)}
                         </span>
-                        <Clock className="h-4 w-4 mr-1" />
-                        <span>{course.duration}</span>
                       </div>
 
                       <div className="flex justify-end">
