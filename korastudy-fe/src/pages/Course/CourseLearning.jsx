@@ -40,6 +40,7 @@ const CourseLearning = () => {
   const [progress, setProgress] = useState(0);
   const [enrollment, setEnrollment] = useState(null);
   const [lessonProgress, setLessonProgress] = useState({});
+  const [showExitModal, setShowExitModal] = useState(false);
 
   // Tính tổng bài học
   const getTotals = () => {
@@ -354,13 +355,13 @@ const CourseLearning = () => {
                 {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
 
-              <Link
-                to={`/my-courses/${course.id}`}
+              <button
+                onClick={() => setShowExitModal(true)}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
               >
                 <ArrowLeft size={20} />
                 <span className="hidden lg:inline">Khóa học của tôi</span>
-              </Link>
+              </button>
 
               <div className="lg:hidden">
                 <h1 className="text-lg font-semibold truncate max-w-xs">
@@ -653,6 +654,38 @@ const CourseLearning = () => {
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-20"
           onClick={() => setSidebarOpen(false)}
         />
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Thoát khóa học?
+              </h2>
+              <p className="text-gray-600">
+                Bạn có chắc chắn muốn thoát khỏi bài học này? Tiến độ của bạn sẽ
+                được lưu lại.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowExitModal(false)}
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Tiếp tục học
+              </button>
+              <button
+                onClick={() => navigate(`/my-courses/${course.id}`)}
+                className="flex-1 px-4 py-3 bg-primary-500 text-white rounded-lg font-semibold hover:bg-primary-600 transition-colors"
+              >
+                Thoát
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

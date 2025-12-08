@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
+import { enrollCourse } from "../../api/enrollmentService";
+import courseService from "../../api/courseService";
+import sectionService from "../../api/sectionService";
+import DOMPurify from "dompurify";
 import {
   ArrowLeft,
   Play,
-  Clock,
   Users,
   Star,
-  CheckCircle,
   BookOpen,
   Share2,
   Heart,
   ChevronDown,
   ChevronUp,
+  CheckCircle,
   Loader,
   AlertCircle,
 } from "lucide-react";
-import courseService from "../../api/courseService";
-import sectionService from "../../api/sectionService";
-import DOMPurify from "dompurify";
 
 const CourseDetailNew = () => {
   const { courseId } = useParams();
@@ -29,8 +29,9 @@ const CourseDetailNew = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedSection, setExpandedSection] = useState(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [enrollmentStatus, setEnrollmentStatus] = useState(null);
+  const [enrollLoading, setEnrollLoading] = useState(false);
 
+  // Chuyển đổi cấp độ khóa học sang tiếng Việt
   const levelToLabel = (level) => {
     if (!level) return "";
     const value = String(level).toLowerCase();
@@ -40,12 +41,13 @@ const CourseDetailNew = () => {
     return level;
   };
 
+  // Tính tổng số chương, bài học và thời lượng
   const getTotals = () => {
     const totalSections = Array.isArray(sections) ? sections.length : 0;
     const totalLessons = Array.isArray(sections)
       ? sections.reduce((sum, s) => sum + (s?.lessons?.length || 0), 0)
       : 0;
-    // Try to compute total duration in minutes if lessons have duration fields
+
     const totalDurationMinutes = Array.isArray(sections)
       ? sections.reduce((sum, s) => {
           const lessonMinutes = (s?.lessons || []).reduce((acc, l) => {
@@ -55,9 +57,11 @@ const CourseDetailNew = () => {
           return sum + lessonMinutes;
         }, 0)
       : 0;
+
     return { totalSections, totalLessons, totalDurationMinutes };
   };
 
+  // Định dạng phút sang giờ và phút
   const formatMinutes = (minutes) => {
     if (!minutes || !Number.isFinite(minutes) || minutes <= 0) return "";
     const hrs = Math.floor(minutes / 60);
@@ -67,23 +71,66 @@ const CourseDetailNew = () => {
     return `${mins} phút`;
   };
 
+  // Định dạng hiển thị giá tiền
+  const formatPrice = (price) => {
+    if (!price || price === 0) return "Miễn phí";
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
+
+  // Định dạng ngày tháng theo tiếng Việt
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleDateString("vi-VN");
+  };
+
+  // Kiểm tra khóa học có miễn phí không
+  const isCourseFree = () => {
+    if (!course) return false;
+
+    // Điều kiện 1: Giá bằng 0 hoặc null/undefined
+    if (
+      course.coursePrice === 0 ||
+      course.coursePrice === "0" ||
+      course.coursePrice === null ||
+      course.coursePrice === undefined
+    ) {
+      return true;
+    }
+
+    // Điều kiện 2: Giá là string có thể parse về 0
+    if (typeof course.coursePrice === "string") {
+      const numPrice = parseFloat(course.coursePrice);
+      return isNaN(numPrice) || numPrice === 0;
+    }
+
+    // Điều kiện 3: Trường isFree là true (nếu có)
+    if (course.isFree === true || course.isFree === "true") {
+      return true;
+    }
+
+    return false;
+  };
+
+  // Lấy dữ liệu khóa học khi component được mount
   useEffect(() => {
     const fetchCourseData = async () => {
       try {
         setLoading(true);
 
-        // Fetch course details
+        // Lấy thông tin chi tiết khóa học
         const courseData = await courseService.getCourseById(courseId);
         setCourse(courseData);
 
-        // Fetch sections and lessons
-        // sections are provided by sectionService
+        // Lấy các chương và bài học
         const sectionsData = await sectionService.getSectionsByCourseId(
           courseId
         );
         setSections(sectionsData);
 
-        // Fetch reviews
+        // Lấy đánh giá khóa học
         const reviewsData = await courseService.getCourseReviews(
           courseId,
           0,
@@ -91,8 +138,8 @@ const CourseDetailNew = () => {
         );
         setReviews(reviewsData.content || reviewsData || []);
       } catch (err) {
-        setError("Không thể tải thông tin khóa học. Vui lòng thử lại sau.");
         console.error("Error fetching course data:", err);
+        setError("Không thể tải thông tin khóa học. Vui lòng thử lại sau.");
       } finally {
         setLoading(false);
       }
@@ -103,31 +150,44 @@ const CourseDetailNew = () => {
     }
   }, [courseId]);
 
-  const handleEnroll = async () => {
+  // Xử lý đăng ký khóa học miễn phí
+  const handleFreeEnrollment = async () => {
     try {
-      const enrollmentData = await courseService.enrollCourse(courseId);
-      setEnrollmentStatus("enrolled");
-      alert("Đăng ký khóa học thành công!");
+      setEnrollLoading(true);
+
+      // Gọi API đăng ký khóa học miễn phí
+      await enrollCourse(courseId);
+
+      // Lưu courseId vào localStorage cho trang kết quả thanh toán
+      try {
+        localStorage.setItem("lastCourseId", String(courseId));
+        localStorage.setItem("lastEnrollmentTime", Date.now().toString());
+      } catch (e) {
+        console.warn("Could not save to localStorage:", e);
+      }
+
+      // Chuyển hướng đến trang kết quả thanh toán với trạng thái thành công
+      window.location.href = "/payment/result?status=success";
     } catch (err) {
-      console.error("Error enrolling course:", err);
-      alert("Có lỗi xảy ra khi đăng ký khóa học.");
+      console.error("Enroll free course error:", err);
+
+      // Xử lý các lỗi cụ thể
+      if (err.isPaymentRequired) {
+        alert(
+          "Khóa học này có phí. Vui lòng sử dụng nút 'Đăng ký ngay' để thanh toán."
+        );
+      } else if (err.isAlreadyEnrolled) {
+        alert("Bạn đã đăng ký khóa học này rồi!");
+        window.location.href = `/course/${courseId}/learn`;
+      } else {
+        alert(err.message || "Đăng ký thất bại. Vui lòng thử lại.");
+      }
+    } finally {
+      setEnrollLoading(false);
     }
   };
 
-  const formatPrice = (price, isFree) => {
-    if (isFree) return "Miễn phí";
-    if (!price || price === 0) return "Miễn phí";
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    return new Date(dateString).toLocaleDateString("vi-VN");
-  };
-
+  // Trạng thái loading
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 pt-20">
@@ -141,6 +201,7 @@ const CourseDetailNew = () => {
     );
   }
 
+  // Trạng thái lỗi
   if (error || !course) {
     return (
       <div className="min-h-screen bg-gray-50 pt-20">
@@ -163,13 +224,16 @@ const CourseDetailNew = () => {
     );
   }
 
+  const { totalLessons } = getTotals();
+  const freeStatus = isCourseFree();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Content */}
+            {/* Nội dung bên trái */}
             <div className="lg:col-span-2">
               <Link
                 to="/courses"
@@ -183,7 +247,7 @@ const CourseDetailNew = () => {
                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">
                   {levelToLabel(course.courseLevel)}
                 </span>
-                {course.isFree && (
+                {freeStatus && (
                   <span className="bg-green-500 px-3 py-1 rounded-full text-sm font-medium">
                     Miễn phí
                   </span>
@@ -192,10 +256,7 @@ const CourseDetailNew = () => {
 
               <h1 className="text-4xl font-bold mb-4">{course.courseName}</h1>
               <p className="text-xl mb-6 text-white/90">
-                {(() => {
-                  const { totalLessons } = getTotals();
-                  return `${totalLessons} bài học`;
-                })()}
+                {totalLessons} bài học
               </p>
 
               <div className="flex flex-wrap items-center gap-6 mb-6">
@@ -226,7 +287,7 @@ const CourseDetailNew = () => {
               </div>
             </div>
 
-            {/* Right Content - Course Card */}
+            {/* Bên phải - Card khóa học */}
             <div className="lg:w-96">
               <div className="bg-white rounded-2xl shadow-xl overflow-hidden sticky top-6">
                 <div className="relative">
@@ -235,22 +296,18 @@ const CourseDetailNew = () => {
                     alt={course.courseName}
                     className="w-full h-48 object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                    <button className="bg-white/90 hover:bg-white rounded-full p-4 transition-colors">
-                      <Play className="text-primary-500" size={24} />
-                    </button>
-                  </div>
                 </div>
 
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-3xl font-bold text-primary-500">
-                      {formatPrice(course.coursePrice, course.isFree)}
+                      {formatPrice(course.coursePrice)}
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setIsWishlisted(!isWishlisted)}
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        aria-label={isWishlisted ? "Bỏ yêu thích" : "Yêu thích"}
                       >
                         <Heart
                           className={
@@ -261,18 +318,49 @@ const CourseDetailNew = () => {
                           size={20}
                         />
                       </button>
-                      <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                      <button
+                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        aria-label="Chia sẻ"
+                      >
                         <Share2 className="text-gray-400" size={20} />
                       </button>
                     </div>
                   </div>
 
-                  <Link
-                    to={`/checkout?courseId=${courseId}`}
-                    className="block w-full bg-primary-500 text-white text-center py-4 rounded-xl font-semibold text-lg hover:bg-primary-600 transition-colors mb-4"
-                  >
-                    Đăng ký ngay
-                  </Link>
+                  {/* Nút đăng ký */}
+                  {freeStatus ? (
+                    <button
+                      onClick={handleFreeEnrollment}
+                      disabled={enrollLoading}
+                      className="block w-full bg-green-600 text-white text-center py-4 rounded-xl font-semibold text-lg hover:bg-green-700 transition-colors mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {enrollLoading ? (
+                        <span className="flex items-center justify-center">
+                          <Loader className="animate-spin mr-2" size={20} />
+                          Đang xử lý...
+                        </span>
+                      ) : (
+                        "Đăng ký miễn phí"
+                      )}
+                    </button>
+                  ) : (
+                    <Link
+                      to={`/checkout?courseId=${courseId}`}
+                      className="block w-full bg-primary-500 text-white text-center py-4 rounded-xl font-semibold text-lg hover:bg-primary-600 transition-colors mb-4"
+                      onClick={() => {
+                        try {
+                          localStorage.setItem(
+                            "lastCourseId",
+                            String(courseId)
+                          );
+                        } catch (e) {
+                          console.warn("Could not save to localStorage:", e);
+                        }
+                      }}
+                    >
+                      Đăng ký ngay
+                    </Link>
+                  )}
 
                   <div className="text-center text-gray-500 text-sm mb-4">
                     30 ngày đảm bảo hoàn tiền
@@ -318,14 +406,14 @@ const CourseDetailNew = () => {
         </div>
       </section>
 
-      {/* Course Content */}
+      {/* Nội dung khóa học - Tabs */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Content */}
+            {/* Nội dung bên trái - Tabs */}
             <div className="lg:col-span-2">
-              {/* Tabs */}
               <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+                {/* Điều hướng tabs */}
                 <div className="border-b">
                   <div className="flex">
                     {[
@@ -348,8 +436,9 @@ const CourseDetailNew = () => {
                   </div>
                 </div>
 
+                {/* Nội dung tabs */}
                 <div className="p-8">
-                  {/* Overview Tab */}
+                  {/* Tab Tổng quan - Mô tả khóa học */}
                   {activeTab === "overview" && (
                     <div className="space-y-8">
                       <div>
@@ -369,7 +458,7 @@ const CourseDetailNew = () => {
                     </div>
                   )}
 
-                  {/* Curriculum Tab */}
+                  {/* Tab Nội dung - Các chương và bài học */}
                   {activeTab === "curriculum" && (
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
@@ -408,6 +497,7 @@ const CourseDetailNew = () => {
                             )}
                           </button>
 
+                          {/* Danh sách bài học khi mở rộng */}
                           {expandedSection === section.id &&
                             section.lessons && (
                               <div className="px-4 pb-4">
@@ -435,7 +525,7 @@ const CourseDetailNew = () => {
                     </div>
                   )}
 
-                  {/* Reviews Tab */}
+                  {/* Tab Đánh giá - Đánh giá từ học viên */}
                   {activeTab === "reviews" && (
                     <div className="space-y-6">
                       <div className="flex justify-between items-center">
@@ -506,7 +596,7 @@ const CourseDetailNew = () => {
               </div>
             </div>
 
-            {/* Right Sidebar - Course Info */}
+            {/* Sidebar bên phải - Thông tin khóa học */}
             <div>
               <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6">
                 <h4 className="font-semibold mb-4">Thông tin khóa học</h4>

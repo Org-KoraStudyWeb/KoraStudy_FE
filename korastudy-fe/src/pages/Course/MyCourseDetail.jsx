@@ -380,11 +380,6 @@ const MyCourseDetail = () => {
                     alt={course.courseName}
                     className="w-full h-48 object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                    <button className="bg-white/90 hover:bg-white rounded-full p-4 transition-colors">
-                      <Play className="text-primary-500" size={24} />
-                    </button>
-                  </div>
                 </div>
 
                 <div className="p-6">
