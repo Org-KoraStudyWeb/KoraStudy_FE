@@ -1,19 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  BarChart,
-  ChevronRight,
-  BookOpen,
-  Calendar,
-  Clock,
-  Users,
-  Star,
-} from "lucide-react";
-import DOMPurify from "dompurify";
+import { BookOpen } from "lucide-react";
 import enrollmentService from "../../api/enrollmentService";
 import courseService from "../../api/courseService";
 import { useUser } from "../../contexts/UserContext";
-import { formatDate } from "../../utils/formatDate";
+import MyCourseCard from "../../components/course/MyCourseCard";
 
 const MyCoursesPage = () => {
   const { isAuthenticated, user } = useUser();
@@ -45,7 +36,6 @@ const MyCoursesPage = () => {
 
           for (const enrollment of enrollmentsData) {
             try {
-              // Fetch course details
               const courseDetail = await courseService.getCourseById(
                 enrollment.courseId
               );
@@ -55,7 +45,6 @@ const MyCoursesPage = () => {
                 `Error fetching course ${enrollment.courseId}:`,
                 err
               );
-              // Fallback: sử dụng dữ liệu từ enrollment nếu có
               coursesInfo[enrollment.courseId] = {
                 courseName: enrollment.courseName,
                 courseDescription: enrollment.courseDescription,
@@ -91,11 +80,6 @@ const MyCoursesPage = () => {
   const getCourseInfo = (enrollment) => {
     const courseDetail = coursesData[enrollment.courseId] || {};
 
-    const getDurationInfo = () => {
-      // Duration display removed by request — return empty string
-      return "";
-    };
-
     return {
       title:
         courseDetail.courseName ||
@@ -109,7 +93,6 @@ const MyCoursesPage = () => {
         courseDetail.courseImageUrl ||
         enrollment.courseImageUrl ||
         "/api/placeholder/400/200",
-      duration: getDurationInfo(),
       level: courseDetail.courseLevel || enrollment.courseLevel,
       totalLessons: courseDetail.totalLessons || enrollment.totalLessons || 0,
       enrollmentCount:
@@ -119,37 +102,6 @@ const MyCoursesPage = () => {
       reviewCount: courseDetail.reviewCount || enrollment.reviewCount || 0,
       id: enrollment.courseId,
     };
-  };
-
-  // Hàm format minutes thành giờ/phút
-  const formatMinutes = (minutes) => {
-    if (!minutes || !Number.isFinite(minutes) || minutes <= 0) return "";
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hrs > 0 && mins > 0) return `${hrs} giờ ${mins} phút`;
-    if (hrs > 0) return `${hrs} giờ`;
-    return `${mins} phút`;
-  };
-
-  // Hàm format level
-  const levelToLabel = (level) => {
-    if (!level) return "";
-    const value = String(level).toLowerCase();
-    if (
-      value.includes("begin") ||
-      value.includes("cơ bản") ||
-      value.includes("sơ cấp")
-    )
-      return "Sơ cấp";
-    if (value.includes("inter") || value.includes("trung cấp"))
-      return "Trung cấp";
-    if (
-      value.includes("adv") ||
-      value.includes("nâng cao") ||
-      value.includes("cao cấp")
-    )
-      return "Nâng cao";
-    return level;
   };
 
   return (
@@ -223,92 +175,14 @@ const MyCoursesPage = () => {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {enrollments.map((enrollment) => {
-                const course = getCourseInfo(enrollment);
+                const courseInfo = getCourseInfo(enrollment);
 
                 return (
-                  <div
+                  <MyCourseCard
                     key={enrollment.id}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    <div className="relative">
-                      <img
-                        src={course.thumbnail}
-                        alt={course.title}
-                        className="w-full h-48 object-cover"
-                        onError={(e) => {
-                          e.target.src = "/api/placeholder/400/200";
-                        }}
-                      />
-                      <div className="absolute top-4 right-4">
-                        <div className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-md">
-                          <BarChart className="h-5 w-5 text-blue-500" />
-                        </div>
-                      </div>
-                      {/* Level badge */}
-                      {course.level && (
-                        <div className="absolute top-4 left-4">
-                          <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                            {levelToLabel(course.level)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
-                        {course.title}
-                      </h3>
-
-                      {/* Course stats */}
-                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 text-yellow-500" />
-                          <span>{course.averageRating.toFixed(1)}</span>
-                          <span>({course.reviewCount})</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          <span>{course.enrollmentCount}</span>
-                        </div>
-                      </div>
-
-                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
-                        {(() => {
-                          try {
-                            const temp = document.createElement("div");
-                            temp.innerHTML = DOMPurify.sanitize(
-                              course.description || ""
-                            );
-                            let txt = temp.textContent || temp.innerText || "";
-                            txt = txt.replace(/\s+/g, " ").trim();
-                            if (txt.length > 180)
-                              return txt.slice(0, 180).trim() + "...";
-                            return txt;
-                          } catch (e) {
-                            return course.description || "";
-                          }
-                        })()}
-                      </p>
-
-                      {/* Course stats */}
-                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        <span>
-                          Đăng ký: {formatDate(enrollment.enrollDate)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-end">
-                        <Link
-                          to={`/my-courses/${course.id}`}
-                          className="inline-flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                        >
-                          Vào học
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+                    enrollment={enrollment}
+                    courseInfo={courseInfo}
+                  />
                 );
               })}
             </div>

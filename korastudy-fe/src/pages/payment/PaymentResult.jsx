@@ -13,17 +13,25 @@ const PaymentResult = () => {
   const [loading, setLoading] = useState(true);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [error, setError] = useState(null);
+  const [isFreeCourse, setIsFreeCourse] = useState(false);
 
   useEffect(() => {
     const fetchPaymentStatus = async () => {
       try {
+        // Kiểm tra nếu là khóa học miễn phí (có status=success nhưng không có paymentId)
+        if (status === "success" && !paymentId) {
+          setIsFreeCourse(true);
+          setLoading(false);
+          return;
+        }
+
         if (!paymentId) {
           setError("Không tìm thấy thông tin thanh toán.");
           setLoading(false);
           return;
         }
 
-        // Lấy trạng thái thanh toán từ backend
+        // Lấy trạng thái thanh toán từ backend cho khóa học có phí
         const data = await getPaymentStatus(paymentId);
         setPaymentInfo(data);
 
@@ -50,7 +58,17 @@ const PaymentResult = () => {
     };
 
     fetchPaymentStatus();
-  }, [paymentId]);
+  }, [paymentId, status]);
+
+  // Xác định trạng thái thanh toán
+  const paymentStatus = paymentInfo?.status || status || "";
+  const isSuccess =
+    paymentStatus.toUpperCase() === "SUCCESS" ||
+    status === "success" ||
+    isFreeCourse;
+
+  // Lấy courseId từ localStorage
+  const lastCourseId = localStorage.getItem("lastCourseId");
 
   // Hiển thị loading
   if (loading) {
@@ -87,15 +105,7 @@ const PaymentResult = () => {
     );
   }
 
-  // Xác định trạng thái thanh toán
-  const paymentStatus = paymentInfo?.status || status || "";
-  const isSuccess =
-    paymentStatus.toUpperCase() === "SUCCESS" || status === "success";
-
-  // Lấy courseId từ localStorage
-  const lastCourseId = localStorage.getItem("lastCourseId");
-
-  // Thanh toán thành công
+  // Thanh toán thành công (bao gồm khóa học miễn phí)
   if (isSuccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -104,10 +114,12 @@ const PaymentResult = () => {
             <span className="text-2xl">✅</span>
           </div>
           <h2 className="text-xl font-semibold text-green-600 mb-2">
-            Thanh toán thành công!
+            {isFreeCourse ? "Đăng ký thành công!" : "Thanh toán thành công!"}
           </h2>
           <p className="text-gray-600 mb-2">
-            Thanh toán của bạn đã được xác nhận.
+            {isFreeCourse
+              ? "Bạn đã đăng ký khóa học miễn phí thành công."
+              : "Thanh toán của bạn đã được xác nhận."}
           </p>
           <p className="text-sm text-gray-500 mb-6">
             Bây giờ bạn có thể bắt đầu học ngay.
@@ -117,9 +129,13 @@ const PaymentResult = () => {
             <button
               className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-medium transition-colors"
               onClick={() => {
+                // Xóa dữ liệu localStorage
                 localStorage.removeItem("lastCourseId");
+                localStorage.removeItem("lastEnrollmentTime");
+
+                // Điều hướng đến trang chi tiết khóa học đã đăng ký (MyCourseDetail)
                 if (lastCourseId) {
-                  navigate(`/course/${lastCourseId}`);
+                  navigate(`/my-courses/${lastCourseId}`);
                 } else {
                   navigate("/my-courses");
                 }
@@ -129,7 +145,11 @@ const PaymentResult = () => {
             </button>
             <button
               className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              onClick={() => navigate("/courses")}
+              onClick={() => {
+                localStorage.removeItem("lastCourseId");
+                localStorage.removeItem("lastEnrollmentTime");
+                navigate("/courses");
+              }}
             >
               Khám phá khóa học khác
             </button>
@@ -158,20 +178,24 @@ const PaymentResult = () => {
           <button
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-medium transition-colors"
             onClick={() => {
+              // Quay lại trang chi tiết khóa học (CourseDetail) để người dùng thử lại
               if (lastCourseId) {
-                navigate(`/checkout?courseId=${lastCourseId}`);
+                navigate(`/course/${lastCourseId}`);
               } else {
                 navigate("/courses");
               }
             }}
           >
-            Thử lại thanh toán
+            Quay lại chi tiết khóa học
           </button>
           <button
             className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-            onClick={() => navigate("/courses")}
+            onClick={() => {
+              localStorage.removeItem("lastCourseId");
+              navigate("/courses");
+            }}
           >
-            Quay lại khóa học
+            Khám phá khóa học khác
           </button>
         </div>
       </div>

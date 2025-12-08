@@ -7,60 +7,103 @@ const enrollmentApi = axios.create({
   ...API_CONFIG,
 });
 
-// Setup interceptors để tự động thêm token
-enrollmentApi.interceptors.request.use((config) => {
+// Tạo axios instance cho courses
+const courseApi = axios.create({
+  baseURL: `${API_BASE_URL}/api/v1/courses`,
+  ...API_CONFIG,
+});
+
+// Hàm chung để thêm token
+const addAuthToken = (config) => {
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-});
+};
+
+// Setup interceptors để tự động thêm token
+enrollmentApi.interceptors.request.use(addAuthToken);
+courseApi.interceptors.request.use(addAuthToken);
+
+// Interceptor chung cho 401
+const handleUnauthorized = async (error) => {
+  if (error.response?.status === 401) {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem("user");
+    window.location.href = "/dang-nhap";
+  }
+  return Promise.reject(error);
+};
 
 enrollmentApi.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem("user");
-      window.location.href = "/dang-nhap";
-    }
-    return Promise.reject(error);
-  }
+  handleUnauthorized
 );
 
-/**
- * Đăng ký khóa học FREE
- * @param {number} courseId - ID của khóa học
- * @returns {Promise} Thông tin ghi danh
- */
-export async function enrollCourse(courseId) {
-  try {
-    console.log("📝 Enrolling in course:", courseId);
-    const response = await enrollmentApi.post("", { courseId });
-    console.log("✅ Enrolled successfully:", response.data);
+courseApi.interceptors.response.use((response) => response, handleUnauthorized);
 
-    // Dispatch event để cập nhật UI
-    try {
-      window.dispatchEvent(
-        new CustomEvent("enrollment:changed", { detail: { courseId } })
-      );
-    } catch (e) {
-      // ignore if window not available
-    }
-    return response.data;
+/**
+ * Kiểm tra khóa học có miễn phí không
+ */
+export async function checkCourseIsFree(courseId) {
+  try {
+    // Thử gọi API check-free mới
+    const response = await courseApi.get(`/${courseId}/check-free`);
+    return response.data.isFree;
   } catch (error) {
-    console.error(
-      "❌ Enrollment error:",
-      error.response?.data || error.message
-    );
-    throw error.response?.data || error.message;
+    // Nếu API check-free không tồn tại, fallback bằng cách lấy course details
+    try {
+      const response = await courseApi.get(`/${courseId}`);
+      const course = response.data;
+      return course.coursePrice <= 0 || course.isFree === true;
+    } catch (fallbackError) {
+      throw fallbackError.response?.data || fallbackError.message;
+    }
   }
 }
 
 /**
- * ✅ THÊM: Kiểm tra trạng thái ghi danh của user HIỆN TẠI
- * @param {number} courseId - ID của khóa học
- * @returns {Promise<boolean>} true nếu đã ghi danh
+ * Đăng ký khóa học FREE
+ */
+export async function enrollCourse(courseId) {
+  try {
+    // Kiểm tra khóa học có free không
+    const isFree = await checkCourseIsFree(courseId);
+    if (!isFree) {
+      throw new Error("Khóa học này có phí, vui lòng thanh toán trước");
+    }
+
+    const response = await enrollmentApi.post("", { courseId });
+
+    // Dispatch event để cập nhật UI
+    window.dispatchEvent(
+      new CustomEvent("enrollment:changed", { detail: { courseId } })
+    );
+
+    return response.data;
+  } catch (error) {
+    const errorMessage =
+      error.response?.data?.message ||
+      error.response?.data ||
+      error.message ||
+      "Đăng ký thất bại";
+
+    const detailedError = new Error(errorMessage);
+    detailedError.isPaymentRequired =
+      errorMessage.includes("thanh toán") ||
+      errorMessage.includes("yêu cầu thanh toán") ||
+      error.response?.status === 402;
+
+    detailedError.isAlreadyEnrolled =
+      errorMessage.includes("đã đăng ký") || errorMessage.includes("already");
+
+    throw detailedError;
+  }
+}
+
+/**
+ * Kiểm tra trạng thái ghi danh của user hiện tại
  */
 export async function checkMyEnrollment(courseId) {
   try {
@@ -69,55 +112,24 @@ export async function checkMyEnrollment(courseId) {
     );
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Check my enrollment error:",
-      error.response?.data || error.message
-    );
-    throw error.response?.data || error.message;
-  }
-}
-
-/**
- * ❌ DEPRECATED: Kiểm tra trạng thái ghi danh (cần userId)
- * @deprecated Use checkMyEnrollment instead
- */
-export async function checkEnrollmentStatus(userId, courseId) {
-  try {
-    const response = await enrollmentApi.get(
-      `/check?userId=${userId}&courseId=${courseId}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error(
-      "❌ Check enrollment error:",
-      error.response?.data || error.message
-    );
     throw error.response?.data || error.message;
   }
 }
 
 /**
  * Lấy danh sách khóa học đã ghi danh của user hiện tại
- * @returns {Promise<Array>} Danh sách khóa học đã ghi danh
  */
 export async function getMyEnrollments() {
   try {
     const response = await enrollmentApi.get("/my-courses");
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Get enrollments error:",
-      error.response?.data || error.message
-    );
     throw error.response?.data || error.message;
   }
 }
 
 /**
  * Cập nhật tiến độ học tập
- * @param {number} enrollmentId - ID của ghi danh
- * @param {number} progress - Tiến độ mới (0-100)
- * @returns {Promise} Thông tin ghi danh đã cập nhật
  */
 export async function updateProgress(enrollmentId, progress) {
   try {
@@ -126,34 +138,25 @@ export async function updateProgress(enrollmentId, progress) {
     );
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Update progress error:",
-      error.response?.data || error.message
-    );
     throw error.response?.data || error.message;
   }
 }
 
 /**
  * Hủy ghi danh khóa học
- * @param {number} enrollmentId - ID của ghi danh cần hủy
- * @returns {Promise} Kết quả hủy ghi danh
  */
 export async function cancelEnrollment(enrollmentId) {
   try {
     const response = await enrollmentApi.delete(`/${enrollmentId}`);
     return response.data;
   } catch (error) {
-    console.error(
-      "❌ Cancel enrollment error:",
-      error.response?.data || error.message
-    );
     throw error.response?.data || error.message;
   }
 }
 
 export default {
   enrollCourse,
+  checkCourseIsFree,
   checkMyEnrollment,
   getMyEnrollments,
   updateProgress,
